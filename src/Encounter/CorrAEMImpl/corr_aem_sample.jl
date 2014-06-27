@@ -1,0 +1,472 @@
+# Converted the code for airspace encounter model from MATLAB to Julia
+
+# Originally written in MATLAB by Mykel Kochenderfer, mykel@stanford.edu
+# Converted by Youngjun Kim, youngjun@stanford.edu
+# Date: 4/23/2014
+
+
+using Util
+
+
+function em_sample(aem, num_initial_samples, num_transition_samples, output_to_file = false)
+
+# EM_SAMPLE Outputs samples from an encounter model to files.
+#   Outputs samples into two specified files from an encounter model
+#   described in a file.
+#
+#   EM_SAMPLES takes as input the following arguments:
+#   PARAMETERS_FILENAME: a string specifying the name of the parameters
+#   file
+#   INITIAL_OUTPUT_FILENAME: a string specifying the the name of the file
+#   to store transition samples
+#   NUM_INITIAL_SAMPLES: the number of samples to generate
+#   NUM_TRANSITION_SAMPLES: the number of steps to sample from the
+#   transition network
+
+    initial_output_filename = aem.initial_sample_filename
+    transition_output_filename = aem.transition_sample_filename
+    p = aem.parameters
+
+    # read parameters
+    #p = Parameters()
+    #em_read(p, parameters_filename)
+
+    # create priors
+    dirichlet_initial = bn_dirichlet_prior(p.N_initial)
+    dirichlet_transition = bn_dirichlet_prior(p.N_transition)
+
+    # open files
+    if output_to_file
+        f_initial = open(initial_output_filename, "w")
+        #f_initial_cmp = open(initial_output_filename * "_cmp", "w")
+        f_transition = open(transition_output_filename, "w")
+
+        # print initial headers
+        @printf(f_initial, "id ")
+        #@printf(f_initial_cmp, "id ")
+        for i = 1:p.n_initial
+            @printf(f_initial, "%s ", p.labels_initial[i])
+            #@printf(f_initial_cmp, "%s ", p.labels_initial[i])
+        end
+        @printf(f_initial, "\n")
+        #@printf(f_initial_cmp, "\n")
+
+        # print transition headers
+        @printf(f_transition, "initial_id t ")
+        for i = 1:(p.n_transition - p.n_initial)
+            @printf(f_transition, "%s ", p.labels_transition[p.temporal_map[i,2]])
+        end
+        @printf(f_transition, "\n")
+    end
+
+    num_initial_samples = int(num_initial_samples)
+    num_transition_samples  = int(num_transition_samples)
+
+    output_array = []
+    if !output_to_file
+        output_array = Array(FloatingPoint, (num_initial_samples * num_transition_samples, p.n_initial + 2))
+    end
+
+    for i = 1:num_initial_samples
+        x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
+
+        for j = 1:p.n_initial
+            if !isempty(p.boundaries[j])
+                if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
+                    print("sample: ", i, " ", x[j, 1]')
+                    println("i: ", j, ", value: ", values[j], ", boundary: ", p.boundaries[j][end])
+                    error("The value violates the boundary.")
+                end
+            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+                print("sample: ", i, " ", x[j, 1]')
+                println("i: ", j, ", value: ", values[j], ", boundary: ", p.boundaries[j][end])
+                error("The value violates the boundary.")
+            end
+        end
+
+        if output_to_file
+            # print initial sample
+            @printf(f_initial, "%d ", i)
+            #@printf(f_initial_cmp, "%d ", i)
+            for j = 1:size(x, 1)
+                @printf(f_initial, "%s ", outputGFormatString(x[j, 1]))
+                #@printf(f_initial_cmp, "%s ", x[j, 1])
+            end
+            @printf(f_initial, "\n")
+            #@printf(f_initial_cmp, "\n")
+
+            # print transition samples
+            for j = 1:num_transition_samples
+                @printf(f_transition, "%d %d ", i, j - 1)
+                y = x[p.temporal_map[:, 1], j]
+                for k = 1:length(y)
+                    @printf(f_transition, "%s ", outputGFormatString(y[k]))
+                end
+                @printf(f_transition, "\n")
+            end
+        end
+
+        if !output_to_file
+            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 1] = i * ones(num_transition_samples)
+            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 2] = [0:num_transition_samples - 1]
+            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 3:end] = x'
+        end
+    end
+
+    if output_to_file
+        close(f_initial)
+        #close(f_initial_cmp)
+        close(f_transition)
+    end
+
+    if !output_to_file
+        return output_array
+    end
+end
+
+
+function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time)
+
+    initial, events = dbn_sample(p.G_initial, p.G_transition, p.temporal_map, p.r_transition, p.N_initial, p.N_transition, dirichlet_initial, dirichlet_transition, sample_time)
+
+    if isempty(events)
+        events = [sample_time 0 0]
+    else
+        events = [events; (sample_time - sum(events[:,1])) 0 0]
+    end
+
+    # Within-bin resampling
+    events = resample_events(initial, events, p.resample_rates)
+
+    # Dediscretize
+    for i = 1:length(initial)
+        if !isempty(p.boundaries[i])
+            initial[i] = dediscretize(initial[i], p.boundaries[i], p.zero_bins[i])[1]
+        end
+    end
+
+    if !isempty(events)
+        for i = 1:(size(events, 1) - 1)
+            events[i, 3] = dediscretize(events[i, 3], p.boundaries[events[i, 2]], p.zero_bins[events[i, 2]])[1]
+        end
+    end
+
+    return events2samples(initial, events)
+end
+
+
+function events2samples(initial, events)
+    n = length(initial)
+    D = zeros(n, int(sum(events[:, 1])))
+
+    x = vec(copy(initial))
+    t = 0
+
+    for i = 1:size(events, 1)
+        event = events[i, :]
+
+        delta_t = int(event[1])
+
+        if event[2] == 0
+            if delta_t > 0
+                t = t + 1
+                D[:, t:(t + delta_t - 1)] = repmat(x, 1, delta_t)
+            end
+        else
+            if delta_t > 0
+                D[:, (t + 1):(t + delta_t)] = repmat(x, 1, delta_t)
+                t = t + delta_t
+            end
+
+            x[event[2]] = event[3]
+        end
+    end
+
+    return D
+end
+
+
+function dediscretize(d, parameters, zero_bins)
+
+    if isempty(parameters)
+        return d
+    end
+
+    x = zeros(length(d))
+    n = length(d)
+
+    for i = 1:n
+        # generate uniform in interval [a, b]
+        if d[i] == zero_bins
+            x[i] = 0
+        else
+            dd = d[i]
+            a = parameters[dd]
+            b = parameters[dd + 1]
+            x[i] = a + (b - a) * rand()
+        end
+    end
+
+    return x
+end
+
+
+function resample_events(initial, events, rates)
+
+    n = size(events, 1)
+
+    newevents = Float64[]
+
+    x = vec(copy(initial))
+
+    for i = 1:n
+        holdtime = events[i, 1]
+
+        if holdtime == 0
+            append!(newevents, vec(events[i, :]))
+        else
+            delta_t = 0
+
+            for j = 1:holdtime
+                changes = find(rand(size(rates)) .< rates)
+                delta_t = delta_t + 1
+
+                if !isempty(changes)
+                    T = [[delta_t, zeros(length(changes) - 1)] changes x[changes]]
+                    for k = 1:size(T, 1)
+                        append!(newevents, vec(T[k, :]))
+                    end
+
+                    delta_t = 0
+                end
+            end
+
+            append!(newevents, [delta_t, events[i,2], events[i,3]])
+        end
+
+        if events[i, 2] > 0
+            x[events[i, 2]] = events[i, 3]
+        end
+    end
+
+    newevents = reshape(newevents, (3, int(length(newevents)/3)))'
+
+    return newevents
+end
+
+
+function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_transition, dirichlet_initial, dirichlet_transition, t_max)
+
+# DBN_SAMPLE Samples from a dynamic Bayesian network.
+# Returns a sample of the intitial variables and a series of events from
+# the dynamic Bayesian network with specified graphical structure,
+# sufficient statistics, and prior.
+#
+#   DBN_SAMPLE takes as input the following
+#   G_initial - initial distribution graph structure
+#   G_transition - continuous transition model graph structure
+#   r - a column vector specifying the number of bins for each variable
+#   N_initial - sufficient statistics for initial distribution
+#   N_transition - sufficient statistics for transition model
+#   dirichlet_initial - Dirichlet prior
+#   dirichlet_transition - Dirichlet prior
+#   t_max - the maximum amount of time to run the simulation
+#
+#   DBN_SAMPLE returns the following
+#   initial
+#   events - matrix of (t, variable_index, new_value) (NOTE: t is the time 
+#   since the last event)
+
+    initial = bn_sample(G_initial, r, N_initial, dirichlet_initial, 1)
+
+    events = Float64[]
+    n_initial = size(G_initial, 1)
+
+    dynamic_variables = temporal_map[:, 2]
+
+    order = bn_sort(G_transition)
+
+    x = [initial zeros(1, length(dynamic_variables))]
+
+    delta_t = 0
+
+    for t = 2:t_max
+        delta_t = delta_t + 1
+        x_old = copy(x)
+
+        for i = order
+            if in(i, dynamic_variables)
+                # only dynamic variables change
+                parents = G_transition[:, i]
+
+                j = 1
+                if !isempty(find(parents))
+                    j = asub2ind(r[parents], x[parents']')
+                end
+
+                x[i] = select_random(N_transition[i][:, j] + dirichlet_transition[i][:, j])
+            end
+        end
+        
+        # map back
+        x[temporal_map[:, 1]] = x[temporal_map[:, 2]]
+
+        if !isequal(x[1:n_initial], x_old[1:n_initial])
+            # change (i.e. new event)
+            for i = 1:n_initial
+                if x[i] != x_old[i]
+                    append!(events, vec([delta_t i x[i]]))
+                    delta_t = 0
+                end
+            end
+        end    
+    end
+
+    events = reshape(events, (3, int(length(events)/3)))'
+
+    return initial, events
+end
+
+
+function bn_sample(G, r, N, alpha, num_samples)
+
+# BN_SAMPLE Produces a sample from a Bayesian network.
+#   Returns a matrix whose rows consist of n-dimensional samples from the
+#   specified Bayesian network.
+#
+#   S = BN_SAMPLE(G, R, N, ALPHA, NUM_SAMPLES) returns a matrix S whose
+#   rows consist of n-dimensional samples from a Bayesian network with
+#   graphical structure G, sufficient statistics N, and prior ALPHA. The
+#   number of samples is specified by NUM_SAMPLES. The array R specifies
+#   the number of bins associated with each variable.
+
+    order = bn_sort(G)
+
+    n = length(N)
+    S = zeros((num_samples, n))
+
+    for sample_index = 1:num_samples
+        # generate each sample
+        for i = order
+            parents = G[:, i]
+
+            j = 1
+            if !isempty(find(parents))
+                j = asub2ind(r[[parents, false, false, false, false]], S[sample_index, parents])
+            end
+
+            S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
+        end
+    end
+
+    return S
+end
+
+
+function select_random(weights)
+# SELECT_RANDOM Randomly selects an index according to specified weights.
+#   Returns a randomly selected index according to the distribution
+#   specified by a vector of weights.
+#
+#   INDEX = SELECT_RANDOM(WEIGHTS) returns a scalar index INDEX selected 
+#   randomly according to the specified weights WEIGHTS represented as an
+#   array.
+
+    s = cumsum(weights)
+    r = s[end] * rand()
+    index = findfirst(x -> (x >= r), s)
+
+    return index
+end
+
+
+function asub2ind(siz, x)
+# ASUB2IND Linear index from multiple subscripts.
+#   Returns a linder index from multiple subscripts assuming a matrix of a
+#   specified size.
+#
+#   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
+#   matrix of dimension SIZ associated with subscripts specified in X.
+
+    k = [1, cumprod(siz[1:end-1])]
+    ndx = k' * (x' - 1) + 1
+
+    return ndx[1]
+end
+
+
+function bn_sort(G)
+# BN_SORT Produces a topological sort of a Bayesian network.
+#   Returns an array specifying the indices of variables in topological
+#   order according to a graphical structure.
+#
+#   ORDER = BN_SORT(G) topologically sorts the variables in the specified
+#   graph G and returns an array ORDER that contains the indices of the
+#   variables in order. The matrix G is a square adjacency matrix.
+#
+# This code is based on the topological sort routine by Kevin Murphy. The
+# original source code is available from:
+# http://bnt.sourceforge.net/ 
+
+# INPUT:
+# G - a square adjacency matrix
+#
+# OUTPUT:
+# order - an array of indices indicating order
+#
+# This code is based on the topological sort routine by Kevin Murphy. The
+# original source code is available from:
+# http://bnt.sourceforge.net/
+
+    n = size(G)[1]
+    indeg = zeros(Int, (1, n))
+    zero_indeg = Int[]    # a stack of nodes with no parents
+
+    for i = 1:n
+        indeg[i] = sum(G[:, i])
+
+        if indeg[i] == 0
+            push!(zero_indeg, i)
+        end
+    end
+
+    t = 1
+    order = zeros(Int, (1, n))
+
+    while !isempty(zero_indeg)
+        v = pop!(zero_indeg)
+
+        order[t] = v
+        t = t + 1
+
+        cs = find(G[v, :])
+
+        for j = 1:length(cs)
+            c = cs[j]
+            indeg[c] = indeg[c] - 1
+
+            if indeg[c] == 0
+                push!(zero_indeg, c)
+            end
+        end
+    end
+
+    return order
+end
+
+
+function bn_dirichlet_prior(N)
+
+    n = length(N)
+
+    alpha = cell(n, 1)
+
+    for i = 1:n
+        r, q = size(N[i])
+        alpha[i] = ones(r, q)
+    end
+
+    return alpha
+end
+
+

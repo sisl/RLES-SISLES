@@ -2,24 +2,9 @@
 # Date: 06/25/2014
 
 
-module SISLES
-
-export
-    CorrAEM,
-    LLAEM,
-    SimplePilotResponse,
-    SimpleADM,
-    AirSpace,
-    SimpleTCASSensor,
-    SimpleTCAS,
-    TCASSimulator,
-
-    addObserver,
-    getTrajectory,
-    simulate
-
-
-PACKAGE_PATH = Pkg.dir("SISLES", "src")
+if !isdefined(:PACKAGE_PATH)
+    PACKAGE_PATH = Pkg.dir("SISLES", "src")
+end
 
 push!(LOAD_PATH, "$PACKAGE_PATH/include")
 push!(LOAD_PATH, "$PACKAGE_PATH/common")
@@ -49,7 +34,5 @@ using WorldModel
 using Sensor
 using CollisionAvoidanceSystem
 using Simulator
-
-end
 
 
