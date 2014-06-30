@@ -2,6 +2,12 @@
 # Date: 06/05/2014
 
 
+# + References
+# Kochenderfer, M., Espindle, L., Kuchar, J., and Griffith, J. D., "Correlated encounter model for cooperative aircraft in the national airspace system version 1.0," Project Report ATC-344, Lincoln Laboratory, 2008. Appendix D.
+# "Introduction to TCAS II version 7.1," Tech. rep., Federal Aviation Administration, 2011.
+# Kochenderfer, M. J., Chryssanthacopoulos, J. P., Kaelbling, L. P., and Lozano-Perez, T., "Model-based optimization of airborne collision avoidance logic," Project Report ATC-360, Lincoln Laboratory, 2010. Appendix I.
+
+
 module SimpleTCASImpl
 
 export
