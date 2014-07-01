@@ -352,7 +352,7 @@ function bn_sample(G, r, N, alpha, num_samples)
 
             j = 1
             if !isempty(find(parents))
-                j = asub2ind(r[[parents, false, false, false, false]], S[sample_index, parents])
+                j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
             end
 
             S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
