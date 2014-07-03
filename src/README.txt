@@ -8,7 +8,7 @@ Author: Youngjun Kim, youngjun@stanford.edu
 
 
 + Example
-To run example code, PyPlot, HDF5, JLD are required.
+To run example code, PyPlot, HDF5 are required.
 
 $ cd examples
 $ julia tcas_simulation.jl
