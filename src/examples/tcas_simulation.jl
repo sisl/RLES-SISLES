@@ -5,15 +5,37 @@ using SISLES
 using HDF5, JLD
 
 
-sample_number = 1
 bTCAS = false
 bCompareTCAS = false
 bValidate = false
+
+bGenerateSamplesToFile = false
+bReadSampleFromFile = false
+sample_number = 1
 
 
 SISLES_PATH = Pkg.dir("SISLES", "src")
 number_of_aircraft = 2
 
+
+if bCompareTCAS
+    bReadSampleFromFile = true
+end
+
+if bGenerateSamplesToFile || bReadSampleFromFile
+    initial_sample_filename = "initial.txt"
+    transition_sample_filename = "transition.txt"
+end
+
+if bGenerateSamplesToFile
+    number_of_initial_samples = 10
+    number_of_transition_samples = 50
+
+    aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt", initial_sample_filename, number_of_initial_samples, transition_sample_filename, number_of_transition_samples)
+    Encounter.generateEncountersToFile(aem)
+
+    exit(0)
+end
 
 if bValidate
     number_of_initial_samples = 50
@@ -21,12 +43,12 @@ if bValidate
 
     aem = LLAEM(number_of_aircraft, "$SISLES_PATH/Encounter/LLAEMImpl/data/cor_enc.txt", number_of_initial_samples, ["$SISLES_PATH/Encounter/LLAEMImpl/data/cor_ac1.txt", "$SISLES_PATH/Encounter/LLAEMImpl/data/cor_ac2.txt"], [number_of_transition_samples, number_of_transition_samples])
 else
-    initial_sample_filename = ""
-    transition_sample_filename = ""
-
-    aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt")
-    #aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt", initial_sample_filename, transition_sample_filename)
-    #Encounter.validate(aem)
+    if bReadSampleFromFile
+        aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt", initial_sample_filename, transition_sample_filename)
+        #Encounter.validate(aem)
+    else
+        aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt")
+    end
 end
 
 pr_1 = SimplePilotResponse()
@@ -65,8 +87,8 @@ sim.parameters.number_of_aircraft = number_of_aircraft
 if bValidate
     SimulationMatrix = Vector{Any}[]
 
-    for i = 1:number_of_initial_samples
-        simulate(sim, bTCAS = bTCAS)
+    for i = 1:50
+        simulate(sim)
 
         labels = ["A, L, chi(1: front, 2: back), beta(deg), C1, C2, hmd(ft), vmd(ft)", "time(sec), x_1(ft), y_1(ft), h_1(ft), x_2(ft), y_2(ft), h_2(ft)"]
 
@@ -124,7 +146,11 @@ elseif bCompareTCAS
     save("result_tcas.jld", "data", SimulationResult)
 
 else
-    simulate(sim, bTCAS = bTCAS, sample_number = sample_number)
+    if bReadSampleFromFile
+        simulate(sim, bTCAS = bTCAS, sample_number = sample_number)
+    else
+        simulate(sim, bTCAS = bTCAS)
+    end
 
     labels = ["A, L, chi(1: front, 2: back), beta(deg), C1, C2, hmd(ft), vmd(ft)", "time(sec), x_1(ft), y_1(ft), h_1(ft), x_2(ft), y_2(ft), h_2(ft)"]
 
