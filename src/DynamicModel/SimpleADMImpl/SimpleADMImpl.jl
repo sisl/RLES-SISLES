@@ -164,11 +164,12 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
 
         if abs(h_d) > abs(v_n) * sind(adm.theta_regulated)
             h_d = sign(h_d) * abs(v_n) * sind(adm.theta_regulated)
+            #println(t_sim, ": regulated")
         end
 
         psi_n += psi_d * dt # deg
-        x_n += sqrt(v^2 - h_d^2) * cosd(psi_n) * dt
-        y_n += sqrt(v^2 - h_d^2) * sind(psi_n) * dt
+        x_n += sqrt(v_n^2 - h_d^2) * cosd(psi_n) * dt
+        y_n += sqrt(v_n^2 - h_d^2) * sind(psi_n) * dt
         h_n += h_d * dt     # ft
         v_n += v_d * dt     # ft/s
         #println(x_n, " ", y_n, " ", h_n, " ", v_n, " ", psi_n)
@@ -180,7 +181,7 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
         dh_d = (h_d_next - h_d_prev) * (t_sim - t_prev)
         dpsi_d = (psi_d_next - psi_d_prev) * (t_sim - t_prev)
 
-        # fast control
+        # sigmoid control
         #CMD_DIST = Normal(0.3, 0.07)
         #dv_d = (v_d_next - v_d_prev) * cdf(CMD_DIST, (t_sim - t_prev))
         #dh_d = (h_d_next - h_d_prev) * cdf(CMD_DIST, (t_sim - t_prev))
@@ -204,10 +205,10 @@ end
 
 function step(adm::SimpleADM, update::SimpleADMCommand)
 
-    #t =  copy(adm.state.t)
-    #x =  copy(adm.state.x)
-    #y =  copy(adm.state.y)
-    #h =  copy(adm.state.h)
+    t =  copy(adm.state.t)
+    x =  copy(adm.state.x)
+    y =  copy(adm.state.y)
+    h =  copy(adm.state.h)
 
     simulateDynamicModel(adm, update)
 
@@ -216,13 +217,14 @@ function step(adm::SimpleADM, update::SimpleADMCommand)
     y_n =  adm.state.y
     h_n =  adm.state.h
 
-    #vx_n = (x_n - x) / (t_n - t)
-    #vy_n = (y_n - y) / (t_n - t)
-    #vh_n = (h_n - h) / (t_n - t)
+    vx_n = (x_n - x) / (t_n - t)
+    vy_n = (y_n - y) / (t_n - t)
+    vh_n = (h_n - h) / (t_n - t)
 
-    vh_n = adm.update.h_d
-    vx_n = sqrt(adm.state.v^2 - vh_n^2) * cosd(adm.state.psi)
-    vy_n = sqrt(adm.state.v^2 - vh_n^2) * sind(adm.state.psi)
+    # instantaneous velocities
+    #vh_n = adm.update.h_d
+    #vx_n = sqrt(adm.state.v^2 - vh_n^2) * cosd(adm.state.psi)
+    #vy_n = sqrt(adm.state.v^2 - vh_n^2) * sind(adm.state.psi)
 
     return SimpleADMOutputState(t_n, x_n, y_n, h_n, vx_n, vy_n, vh_n)
 end
