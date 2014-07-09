@@ -13,7 +13,7 @@ Mykel Kochenderfer, Assistant Professor, mykel@stanford.edu
 
 ## Example
 
-To run example code, PyPlot, HDF5 are required.
+To run example code, PyPlot and HDF5 are required.
 
 ```
 #!shell
