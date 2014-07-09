@@ -21,8 +21,8 @@ using AbstractWorldModelImpl
 using AbstractWorldModelInterfaces
 using CommonInterfaces
 
-import CommonInterface.initialize
-import CommonInterface.step
+import CommonInterfaces.initialize
+import CommonInterfaces.step
 import AbstractWorldModelInterfaces.updateObjectState
 import AbstractWorldModelInterfaces.getAllObjectStates
 import AbstractWorldModelInterfaces.getAll

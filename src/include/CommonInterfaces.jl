@@ -6,7 +6,7 @@ module CommonInterfaces
 
 export
     initialize,
-    step,
+    step
 
 function initialize()
 end
