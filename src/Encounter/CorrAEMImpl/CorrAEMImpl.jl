@@ -26,14 +26,15 @@ export
 
 
 using AbstractEncounterModelImpl
-using Interfaces
+using AbstractEncounterModelInterfaces
+using CommonInterfaces
 using ObserverImpl
 
-import Interfaces.step
-import Interfaces.generateEncountersToFile
-import Interfaces.generateEncounter
-import Interfaces.getInitialState
-import Interfaces.getNextCommand
+import CommonInterfaces.step
+import AbstractEncounterModelInterfaces.generateEncountersToFile
+import AbstractEncounterModelInterfaces.generateEncounter
+import AbstractEncounterModelInterfaces.getInitialState
+import AbstractEncounterModelInterfaces.getNextCommand
 
 include("corr_aem_load_params.jl")
 include("corr_aem_sample.jl")

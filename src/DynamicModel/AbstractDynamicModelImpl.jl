@@ -11,3 +11,17 @@ abstract AbstractDynamicModel
 end
 
 
+module AbstractDynamicModelInterfaces
+
+export initializeDynamicModel,
+       simulateDynamicModel
+
+function initializeDynamicModel()
+end
+
+function simulateDynamicModel()
+end
+
+end
+
+

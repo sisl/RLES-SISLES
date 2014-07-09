@@ -11,3 +11,25 @@ abstract AbstractWorldModel
 end
 
 
+module AbstractWorldModelInterfaces
+
+export updateObjectState,
+       getAllObjectStates,
+       getAll,
+       updateAll
+
+function updateObjectState()
+end
+
+function getAllObjectStates()
+end
+
+function getAll()
+end
+
+function updateAll()
+end
+
+end
+
+

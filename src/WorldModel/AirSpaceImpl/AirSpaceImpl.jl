@@ -18,14 +18,15 @@ export
 
 
 using AbstractWorldModelImpl
-using Interfaces
+using AbstractWorldModelInterfaces
+using CommonInterfaces
 
-import Interfaces.initialize
-import Interfaces.step
-import Interfaces.updateObjectState
-import Interfaces.getAllObjectStates
-import Interfaces.getAll
-import Interfaces.updateAll
+import CommonInterface.initialize
+import CommonInterface.step
+import AbstractWorldModelInterfaces.updateObjectState
+import AbstractWorldModelInterfaces.getAllObjectStates
+import AbstractWorldModelInterfaces.getAll
+import AbstractWorldModelInterfaces.updateAll
 
 
 type ASWMState

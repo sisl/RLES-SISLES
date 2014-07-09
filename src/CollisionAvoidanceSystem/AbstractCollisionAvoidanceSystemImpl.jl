@@ -11,3 +11,17 @@ abstract AbstractCollisionAvoidanceSystem
 end
 
 
+module AbstractCollisionAvoidanceSystemInterfaces
+
+export testThreat,
+       selectRA
+
+function testThreat()
+end
+
+function selectRA()
+end
+
+end
+
+

@@ -11,3 +11,13 @@ abstract AbstractPilotResponse
 end
 
 
+module AbstractPilotResponseInterfaces
+
+export updatePilotResponse
+
+function updatePilotResponse()
+end
+
+end
+
+

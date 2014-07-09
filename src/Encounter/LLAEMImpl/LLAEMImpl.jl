@@ -22,14 +22,14 @@ export
 
 
 using AbstractEncounterModelImpl
-using Interfaces
+using CommonInterfaces
 using ObserverImpl
 
-import Interfaces.step
-import Interfaces.generateEncountersToFile
-import Interfaces.generateEncounter
-import Interfaces.getInitialState
-import Interfaces.getNextCommand
+import CommonInterfaces.step
+import AbstractEncounterModelInterfaces.generateEncountersToFile
+import AbstractEncounterModelInterfaces.generateEncounter
+import AbstractEncounterModelInterfaces.getInitialState
+import AbstractEncounterModelInterfaces.getNextCommand
 
 
 type LLAEMInitialState

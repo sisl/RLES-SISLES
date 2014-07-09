@@ -16,10 +16,11 @@ export
 
 
 using AbstractPilotResponseImpl
-using Interfaces
+using AbstractPilotResponseInterfaces
+using CommonInterfaces
 
-import Interfaces.step
-import Interfaces.updatePilotResponse
+import CommonInterfaces.step
+import AbstractPilotResponseInterfaces.updatePilotResponse
 
 
 type SimplePRResolutionAdvisory

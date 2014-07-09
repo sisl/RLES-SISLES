@@ -11,3 +11,13 @@ abstract AbstractSensor
 end
 
 
+module AbstractSensorInterfaces
+
+export updateSensor
+
+function updateSensor()
+end
+
+end
+
+

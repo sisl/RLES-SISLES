@@ -23,13 +23,14 @@ export
 
 
 using AbstractCollisionAvoidanceSystemImpl
-using Interfaces
+using AbstractCollisionAvoidanceSystemInterfaces
+using CommonInterfaces
 
 using Util
 
-import Interfaces.step
-import Interfaces.testThreat
-import Interfaces.selectRA
+import CommonInterfaces.step
+import AbstractCollisionAvoidanceSystemInterfaces.testThreat
+import AbstractCollisionAvoidanceSystemInterfaces.selectRA
 
 
 type SimpleTCASInput

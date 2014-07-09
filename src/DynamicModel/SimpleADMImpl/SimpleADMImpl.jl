@@ -20,16 +20,17 @@ export
 
 
 using AbstractDynamicModelImpl
-using Interfaces
+using AbstractDynamicModelInterfaces
+using CommonInterfaces
 using ObserverImpl
 
 using Base.Test
 #using Distributions
 
-import Interfaces.initialize
-import Interfaces.step
-import Interfaces.initializeDynamicModel
-import Interfaces.simulateDynamicModel
+import CommonInterfaces.initialize
+import CommonInterfaces.step
+import AbstractDynamicModelInterfaces.initializeDynamicModel
+import AbstractDynamicModelInterfaces.simulateDynamicModel
 
 
 type SimpleADMInitialState

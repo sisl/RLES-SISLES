@@ -17,12 +17,13 @@ export
 
 
 using AbstractSensorImpl
-using Interfaces
+using AbstractSensorInterfaces
+using CommonInterfaces
 
 using Base.Test
 
-import Interfaces.step
-import Interfaces.updateSensor
+import CommonInterfaces.step
+import AbstractSensorInterfaces.updateSensor
 
 
 type SimpleTCASSRState
