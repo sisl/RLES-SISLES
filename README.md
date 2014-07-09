@@ -1,21 +1,33 @@
-Update: 07/09/2014
+# SISLES
 
-SISL + ES
+SISL + ES  
 = Stanford Intelligent Systems Laboratory + Encounter Simulation
 
-Author: Youngjun Kim, youngjun@stanford.edu
-        Mykel Kochenderfer, mykel@stanford.edu
+
+## Authors
+
+Youngjun Kim, Ph.D. Candidate, youngjun@stanford.edu
+
+Mykel Kochenderfer, Assistant Professor, mykel@stanford.edu
 
 
-+ Example
+## Example
+
 To run example code, PyPlot, HDF5 are required.
+
+```
+#!shell
 
 $ cd examples
 $ julia tcas_simulation.jl
 $ julia plot_simulation.jl
+```
 
 
-+ Layout
+## Layout
+
+```
+#!text
 
 SISLES.jl                           encounter simulation module
 
@@ -67,5 +79,9 @@ Simulator/
 examples/
     tcas_simulation.jl              example of running simulator
     plot_simulation.jl              example of plotting result
+```
 
 
+***
+
+*Updated: 07/09/2014*
