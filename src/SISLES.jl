@@ -15,7 +15,15 @@ export
     TCASSimulator,
 
     addObserver,
+    outputGFormatString,
+
+    # Encoutner
     getTrajectory,
+    setInitialDistributions,
+    validate,
+    getInitialSample,
+
+    # Simulator
     simulate
 
 

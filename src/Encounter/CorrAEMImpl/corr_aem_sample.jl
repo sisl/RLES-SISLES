@@ -8,7 +8,7 @@
 using Util
 
 
-function em_sample(aem, num_initial_samples, num_transition_samples, output_to_file = false)
+function em_sample(aem, num_initial_samples, num_transition_samples; output_to_file = false, initial_dist = nothing)
 
 # EM_SAMPLE Outputs samples from an encounter model to files.
 #   Outputs samples into two specified files from an encounter model
@@ -54,7 +54,7 @@ function em_sample(aem, num_initial_samples, num_transition_samples, output_to_f
         # print transition headers
         @printf(f_transition, "initial_id t ")
         for i = 1:(p.n_transition - p.n_initial)
-            @printf(f_transition, "%s ", p.labels_transition[p.temporal_map[i,2]])
+            @printf(f_transition, "%s ", p.labels_transition[p.temporal_map[i, 2]])
         end
         @printf(f_transition, "\n")
     end
@@ -65,23 +65,31 @@ function em_sample(aem, num_initial_samples, num_transition_samples, output_to_f
     output_array = []
     if !output_to_file
         output_array = Array(FloatingPoint, (num_initial_samples * num_transition_samples, p.n_initial + 2))
+
+        if initial_dist != nothing
+            IS_array = Array(Float64, num_initial_samples * p.n_initial, 4)
+        end
     end
 
     for i = 1:num_initial_samples
-        x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
+        if initial_dist == nothing
+            x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
 
-        for j = 1:p.n_initial
-            if !isempty(p.boundaries[j])
-                if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
-                    print("sample: ", i, " ", x[j, 1]')
-                    println("i: ", j, ", value: ", values[j], ", boundary: ", p.boundaries[j][end])
+            for j = 1:p.n_initial
+                if !isempty(p.boundaries[j])
+                    if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
+                        print("sample: ", i, " ", x[:, 1]')
+                        println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
+                        error("The value violates the boundary.")
+                    end
+                elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+                    print("sample: ", i, " ", x[:, 1]')
+                    println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
                     error("The value violates the boundary.")
                 end
-            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
-                print("sample: ", i, " ", x[j, 1]')
-                println("i: ", j, ", value: ", values[j], ", boundary: ", p.boundaries[j][end])
-                error("The value violates the boundary.")
             end
+        else
+            x, IS = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples, initial_dist = initial_dist)
         end
 
         if output_to_file
@@ -104,12 +112,14 @@ function em_sample(aem, num_initial_samples, num_transition_samples, output_to_f
                 end
                 @printf(f_transition, "\n")
             end
-        end
-
-        if !output_to_file
+        else
             output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 1] = i * ones(num_transition_samples)
             output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 2] = [0:num_transition_samples - 1]
             output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 3:end] = x'
+
+            if initial_dist != nothing
+                IS_array[((i - 1) * p.n_initial + 1):(i * p.n_initial), :] = IS
+            end
         end
     end
 
@@ -120,14 +130,22 @@ function em_sample(aem, num_initial_samples, num_transition_samples, output_to_f
     end
 
     if !output_to_file
-        return output_array
+        if initial_dist == nothing
+            return output_array
+        else
+            return output_array, IS_array
+        end
     end
 end
 
 
-function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time)
+function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time; initial_dist = nothing)
 
-    initial, events = dbn_sample(p.G_initial, p.G_transition, p.temporal_map, p.r_transition, p.N_initial, p.N_transition, dirichlet_initial, dirichlet_transition, sample_time)
+    if initial_dist == nothing
+        initial, events = dbn_sample(p.G_initial, p.G_transition, p.temporal_map, p.r_transition, p.N_initial, p.N_transition, dirichlet_initial, dirichlet_transition, p.boundaries, sample_time)
+    else
+        initial, events, IS = dbn_sample(p.G_initial, p.G_transition, p.temporal_map, p.r_transition, p.N_initial, p.N_transition, dirichlet_initial, dirichlet_transition, p.boundaries, sample_time, initial_dist = initial_dist)
+    end
 
     if isempty(events)
         events = [sample_time 0 0]
@@ -141,7 +159,15 @@ function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time)
     # Dediscretize
     for i = 1:length(initial)
         if !isempty(p.boundaries[i])
-            initial[i] = dediscretize(initial[i], p.boundaries[i], p.zero_bins[i])[1]
+            if initial_dist == nothing
+                initial[i] = dediscretize(initial[i], p.boundaries[i], p.zero_bins[i])[1]
+            else
+                if IS[i, 1] == 0
+                    initial[i] = dediscretize(initial[i], p.boundaries[i], p.zero_bins[i])[1]
+                else
+                    initial[i] = IS[i, 2]
+                end
+            end
         end
     end
 
@@ -151,7 +177,11 @@ function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time)
         end
     end
 
-    return events2samples(initial, events)
+    if initial_dist == nothing
+        return events2samples(initial, events)
+    else
+        return events2samples(initial, events), IS
+    end
 end
 
 
@@ -255,7 +285,7 @@ function resample_events(initial, events, rates)
 end
 
 
-function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_transition, dirichlet_initial, dirichlet_transition, t_max)
+function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_transition, dirichlet_initial, dirichlet_transition, boundaries, t_max; initial_dist = nothing)
 
 # DBN_SAMPLE Samples from a dynamic Bayesian network.
 # Returns a sample of the intitial variables and a series of events from
@@ -277,7 +307,11 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
 #   events - matrix of (t, variable_index, new_value) (NOTE: t is the time 
 #   since the last event)
 
-    initial = bn_sample(G_initial, r, N_initial, dirichlet_initial, 1)
+    if initial_dist == nothing
+        initial = bn_sample(G_initial, r, N_initial, dirichlet_initial, boundaries, 1)
+    else
+        initial, IS = bn_sample(G_initial, r, N_initial, dirichlet_initial, boundaries, 1, initial_dist = initial_dist)
+    end
 
     events = Float64[]
     n_initial = size(G_initial, 1)
@@ -324,11 +358,15 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
 
     events = reshape(events, (3, int(length(events)/3)))'
 
-    return initial, events
+    if initial_dist == nothing
+        return initial, events
+    else
+        return initial, events, IS
+    end
 end
 
 
-function bn_sample(G, r, N, alpha, num_samples)
+function bn_sample(G, r, N, alpha, boundaries, num_samples; initial_dist = nothing)
 
 # BN_SAMPLE Produces a sample from a Bayesian network.
 #   Returns a matrix whose rows consist of n-dimensional samples from the
@@ -345,21 +383,77 @@ function bn_sample(G, r, N, alpha, num_samples)
     n = length(N)
     S = zeros((num_samples, n))
 
+    if initial_dist != nothing
+        IS = zeros(n, 4)
+    end
+
     for sample_index = 1:num_samples
         # generate each sample
         for i = order
-            parents = G[:, i]
+            if initial_dist == nothing
+                parents = G[:, i]
 
-            j = 1
-            if !isempty(find(parents))
-                j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                j = 1
+                if !isempty(find(parents))
+                    j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                end
+
+                S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
+            else
+                f = initial_dist[i]
+
+                if f == nothing
+                    parents = G[:, i]
+
+                    j = 1
+                    if !isempty(find(parents))
+                        j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                    end
+
+                    S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
+                else
+                    value, prob_new = f()
+
+                    if !isempty(boundaries[i])
+                        index = findfirst(x -> (x > value), boundaries[i]) - 1
+
+                        if index == -1
+                            index = r[i]
+                        end
+                    else
+                        index = value
+                    end
+
+
+                    parents = G[:, i]
+
+                    j = 1
+                    if !isempty(find(parents))
+                        j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                    end
+
+                    A = N[i][:, j] + alpha[i][:, j]
+
+                    if !isempty(boundaries[i])
+                        prob = 1 / (boundaries[i][index + 1] - boundaries[i][index]) * A[index] / sum(A)
+                    else
+                        prob = A[index] / sum(A)
+                    end
+
+
+                    IS[i, :] = [index, value, prob_new, prob]
+
+                    S[sample_index, i] = index
+                end
             end
-
-            S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
         end
     end
 
-    return S
+    if initial_dist == nothing
+        return S
+    else
+        return S, IS
+    end
 end
 
 

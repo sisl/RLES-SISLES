@@ -13,14 +13,21 @@ end
 
 module AbstractEncounterModelInterfaces
 
-export generateEncountersToFile,
+export
+       # common
        generateEncounter,
        getInitialState,
        getNextCommand,
-       getTrajectory
+       getTrajectory,
 
-function generateEncountersToFile()
-end
+       # CorrAEM
+       generateEncountersToFile,
+       setInitialDistributions,
+       validate,
+       getInitialSample
+
+
+# common
 
 function generateEncounter()
 end
@@ -32,6 +39,21 @@ function getNextCommand()
 end
 
 function getTrajectory()
+end
+
+
+# CorrAEM
+
+function generateEncountersToFile()
+end
+
+function setInitialDistributions()
+end
+
+function validate()
+end
+
+function getInitialSample()
 end
 
 end

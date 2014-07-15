@@ -26,10 +26,10 @@ using CommonInterfaces
 using ObserverImpl
 
 import CommonInterfaces.step
-import AbstractEncounterModelInterfaces.generateEncountersToFile
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
 import AbstractEncounterModelInterfaces.getNextCommand
+import AbstractEncounterModelInterfaces.getTrajectory
 
 
 type LLAEMInitialState
@@ -119,12 +119,24 @@ addObserver(aem::LLAEM, f::Function) = _addObserver(aem, f)
 addObserver(aem::LLAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 
-function generateEncounter(aem::LLAEM)
+function generateEncounter(aem::LLAEM, sample_number::Int)
 
-    initial, transitions = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+    if sample_number > 0
+        reset_sample_from_file(aem)
 
-    if initial == nothing || transitions == nothing
-        return -1
+        for i = 1:sample_number
+            initial, transitions = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+
+            if initial == nothing || transitions == nothing
+                return -1
+            end
+        end
+    else
+        initial, transitions = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+
+        if initial == nothing || transitions == nothing
+            return -1
+        end
     end
 
     # A, L, chi, beta, C1, C2, v1, v2, v1d, v2d, h1d, h2d, psi1d, psi2d, hmd, vmd, h
@@ -166,20 +178,16 @@ function generateEncounter(aem::LLAEM)
     end
 
 
-    #println(initial')
-
-    #for i = 1:aem.number_of_aircraft
-    #    for j = 1:(maximum(aem.number_of_transition_samples) + 1)
-    #        print(reshape(aem.dynamic_states[i, j, :], 6)')
-    #    end
+    #for i = 1:(maximum(aem.number_of_transition_samples) + 1)
+    #    print(reshape(aem.dynamic_states[1, i, :], 6)')
     #end
 
-    #for i = 1:aem.number_of_aircraft
-    #    for j = 1:maximum(aem.number_of_transition_samples)
-    #        print(reshape(aem.states[i, j, :], 4)')
-    #    end
+    #for i = 1:maximum(aem.number_of_transition_samples)
+    #    print(reshape(aem.states[1, i, :], 4)')
     #end
 end
+
+generateEncounter(aem::LLAEM) = generateEncounter(aem, 0)
 
 function getInitialState(aem::LLAEM, aircraft_number::Int)
 
@@ -334,6 +342,21 @@ function read_sample_from_file(aem, number_of_initial_samples, number_of_transit
     end
 
     return initial, transitions
+end
+
+function reset_sample_from_file(aem)
+
+    if aem.f_init != nothing
+        close(aem.f_init)
+        aem.f_init = nothing
+    end
+
+    for i = 1:aem.number_of_aircraft
+        if aem.f_tran[i] != nothing
+            close(aem.f_tran[i])
+            aem.f_tran[i] = nothing
+        end
+    end
 end
 
 end

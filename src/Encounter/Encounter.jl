@@ -10,7 +10,6 @@ export
 
     step,
 
-    generateEncountersToFile,
     generateEncounter,
     getInitialState,
     getNextCommand,
@@ -19,7 +18,10 @@ export
     CorrAEM,
     CorrAEMInitialState,
     CorrAEMCommand,
+    generateEncountersToFile,
+    setInitialDistributions,
     validate,
+    getInitialSample,
 
     LLAEM,
     LLAEMInitialState,

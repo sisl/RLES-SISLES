@@ -10,8 +10,6 @@ module CorrAEMImpl
 export
     AddObserver,
 
-    generateEncountersToFile,
-
     step,
 
     generateEncounter,
@@ -22,7 +20,11 @@ export
     CorrAEM,
     CorrAEMInitialState,
     CorrAEMCommand,
-    validate
+
+    generateEncountersToFile,
+    setInitialDistributions,
+    validate,
+    getInitialSample
 
 
 using AbstractEncounterModelImpl
@@ -31,10 +33,15 @@ using CommonInterfaces
 using ObserverImpl
 
 import CommonInterfaces.step
-import AbstractEncounterModelInterfaces.generateEncountersToFile
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
 import AbstractEncounterModelInterfaces.getNextCommand
+import AbstractEncounterModelInterfaces.getTrajectory
+
+import AbstractEncounterModelInterfaces.generateEncountersToFile
+import AbstractEncounterModelInterfaces.setInitialDistributions
+import AbstractEncounterModelInterfaces.validate
+import AbstractEncounterModelInterfaces.getInitialSample
 
 include("corr_aem_load_params.jl")
 include("corr_aem_sample.jl")
@@ -101,6 +108,8 @@ type CorrAEM <: AbstractEncounterModel
 
     number_of_aircraft::Int
 
+    initial::Vector{Float64}
+
     A::Int
     L::Int
     C::Vector{Int}
@@ -114,6 +123,10 @@ type CorrAEM <: AbstractEncounterModel
 
     dynamic_states::Array{Float64, 3}
     dn_state_index::Vector{Int}
+
+    initial_distributions::Union(Vector{Union(Function, Nothing)}, Nothing)
+    ISInfo::Array{Float64, 2}
+
 
     const default_number_of_initial_samples = 1
     const default_number_of_transition_samples = 50
@@ -156,6 +169,8 @@ type CorrAEM <: AbstractEncounterModel
         obj.dn_state_index = zeros(obj.number_of_aircraft)
         obj.dynamic_states = zeros(obj.number_of_aircraft, obj.number_of_transition_samples + 1, 6)
 
+        obj.initial_distributions = nothing
+
         obj.observer = Observer()
 
         return obj
@@ -189,7 +204,7 @@ addObserver(aem::CorrAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 function generateEncountersToFile(aem::CorrAEM)
 
-    em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples, true)
+    em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples, output_to_file = true)
 end
 
 function generateEncounter(aem::CorrAEM, sample_number::Int)
@@ -209,7 +224,12 @@ function generateEncounter(aem::CorrAEM, sample_number::Int)
             states = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
         end
     else
-        states = em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+        if aem.initial_distributions == nothing
+            states = em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+        else
+            states, aem.ISInfo = em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples, initial_dist = aem.initial_distributions)
+        end
+
         states = states[:, 2:end]
     end
 
@@ -217,6 +237,8 @@ function generateEncounter(aem::CorrAEM, sample_number::Int)
 
 
     t, A, L, chi, beta_, C1, C2, v1, v2, v1d, v2d, h1d, h2d, psi1d, psi2d, hmd, vmd = states[1, :]
+
+    aem.initial = vec(states[1, 2:end])
 
     aem.A = A
     aem.L = L
@@ -252,16 +274,12 @@ function generateEncounter(aem::CorrAEM, sample_number::Int)
     end
 
 
-    #for i = 1:aem.number_of_aircraft
-    #    for j = 1:(aem.number_of_transition_samples + 1)
-    #        print(reshape(aem.dynamic_states[i, j, :], 6)')
-    #    end
+    #for i = 1:(aem.number_of_transition_samples + 1)
+    #    print(reshape(aem.dynamic_states[1, i, :], 6)')
     #end
 
-    #for i = 1:aem.number_of_aircraft
-    #    for j = 1:aem.number_of_transition_samples
-    #        print(reshape(aem.states[i, j, :], 4)')
-    #    end
+    #for i = 1:aem.number_of_transition_samples
+    #    print(reshape(aem.states[1, i, :], 4)')
     #end
 end
 
@@ -291,6 +309,70 @@ end
 function getTrajectory(aem::CorrAEM, aircraft_number::Int)
 
     return reshape(aem.dynamic_states[aircraft_number, :, 1:4], aem.dn_state_index[aircraft_number], 4)
+end
+
+function setInitialDistributions(aem::CorrAEM, n::Int, f::Function)
+
+    if aem.initial_distributions == nothing
+        aem.initial_distributions = Array(Union(Function, Nothing), 16)
+
+        for i = 1:16
+            aem.initial_distributions[i] = nothing
+        end
+    end
+
+    aem.initial_distributions[n] = f
+end
+
+function getInitialSample(aem::CorrAEM)
+
+    return aem.initial
+end
+
+function getInitialSample(aem::CorrAEM, index::Int)
+
+    return aem.initial[index]
+end
+
+function getInitialSample(aem::CorrAEM, var = :all)
+
+    if var == : all
+        return aem.initial
+    elseif var == :A
+        return aem.initial[1]
+    elseif var == :L
+        return aem.initial[2]
+    elseif var == :chi
+        return aem.initial[3]
+    elseif var == :beta
+        return aem.initial[4]
+    elseif var == :C1
+        return aem.initial[5]
+    elseif var == :C2
+        return aem.initial[6]
+    elseif var == :v1
+        return aem.initial[7]
+    elseif var == :v2
+        return aem.initial[8]
+    elseif var == :v1d
+        return aem.initial[9]
+    elseif var == :v2d
+        return aem.initial[10]
+    elseif var == :h1d
+        return aem.initial[11]
+    elseif var == :h2d
+        return aem.initial[12]
+    elseif var == :psi1d
+        return aem.initial[13]
+    elseif var == :psi2d
+        return aem.initial[14]
+    elseif var == :hmd
+        return aem.initial[15]
+    elseif var == :vmd
+        return aem.initial[16]
+    else
+        return nothing
+    end
 end
 
 
@@ -385,35 +467,26 @@ end
 function simulate_tracks(aem)
 
     for i = 1:aem.number_of_aircraft
-        state_init = get_next_state(aem, i)
-
-        t_curr, v_d_curr, h_d_curr, psi_d_curr = state_init
+        t_curr, v_d_curr, h_d_curr, psi_d_curr = get_next_state(aem, i)
         v_curr = aem.v_init[i]
 
         aem.dn_state_index[i] += 1
         aem.dynamic_states[i, aem.dn_state_index[i], :] = [t_curr, 0., 0., 0, v_curr, 0.]
 
-        #println("====")
-        #print(state_init')
-        #println(v_curr)
-        #println("----")
-
         while true
             state_next = get_next_state(aem, i)
 
             if state_next != nothing
-                #print(state_next')
-
                 t_next, v_d_next, h_d_next, psi_d_next = state_next
 
                 sim_time = t_next
-            else
-                #println(state_next)
-
+            else    # last second
                 sim_time += 1
             end
 
-            #print([sim_time, v_d_curr, h_d_curr, psi_d_curr]')
+            #if i == 1
+            #    print([sim_time, v_d_curr, h_d_curr, psi_d_curr]')
+            #end
 
             state = update_state(aem, i, sim_time, v_d_curr, h_d_curr, psi_d_curr)
 
@@ -443,11 +516,13 @@ function update_state(aem, aircraft_number, t, v_d, h_d, psi_d)
     end
 
     dt = t - t_
-    psi_n = psi + psi_d * dt    # deg
-    x_n = x + sqrt(v^2 - h_d^2) * cosd(psi_n) * dt
-    y_n = y + sqrt(v^2 - h_d^2) * sind(psi_n) * dt
-    h_n = h + h_d * dt  # ft
+
+    x_n = x + sqrt(v^2 - h_d^2) * cosd(psi) * dt
+    y_n = y + sqrt(v^2 - h_d^2) * sind(psi) * dt
+
     v_n = v + v_d * dt  # ft/s
+    h_n = h + h_d * dt  # ft
+    psi_n = psi + psi_d * dt    # deg
 
     aem.dn_state_index[aircraft_number] += 1
     aem.dynamic_states[aircraft_number, aem.dn_state_index[aircraft_number], :] = [t, x_n, y_n, h_n, v_n, psi_n]
@@ -555,6 +630,7 @@ function read_sample_from_file(aem, number_of_initial_samples, number_of_transit
 end
 
 function reset_sample_from_file(aem)
+
     if aem.f_init != nothing
         close(aem.f_init)
         aem.f_init = nothing
@@ -564,9 +640,6 @@ function reset_sample_from_file(aem)
         close(aem.f_tran)
         aem.f_tran = nothing
     end
-
-    initial = nothing
-    transitions = nothing
 end
 
 end

@@ -22,6 +22,7 @@ using CommonInterfaces
 
 using Base.Test
 
+import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractSensorInterfaces.updateSensor
 
@@ -107,6 +108,7 @@ end
 step(sr::SimpleTCASSensor, input::SimpleTCASSensorInput) = updateSensor(sr, input)
 
 function initialize(sr::SimpleTCASSensor)
+
 end
 
 end

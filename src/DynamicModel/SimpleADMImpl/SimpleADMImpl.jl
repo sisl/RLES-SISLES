@@ -87,7 +87,7 @@ type SimpleADM <: AbstractDynamicModel
     observer::Observer
 
 
-    function SimpleADM(timestep = 1., number_of_substeps = 10)
+    function SimpleADM(;timestep = 1., number_of_substeps = 10)
 
         obj = new()
 
@@ -110,6 +110,7 @@ addObserver(adm::SimpleADM, tag::String, f::Function) = _addObserver(adm, tag, f
 function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)
 
     adm.state = SimpleADMState(state.t, state.x, state.y, state.h, state.v, state.psi)
+    #print([state.t, state.x, state.y, state.h, state.v, state.psi]')
 
     notifyObserver(adm, [adm.state.t, adm.state.x, adm.state.y, adm.state.h])
 
@@ -128,16 +129,18 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
 
     t, x, y, h, v, psi = adm.state.t, adm.state.x, adm.state.y, adm.state.h, adm.state.v, adm.state.psi
 
-    if adm.update == nothing
-        t_prev, v_d_prev, h_d_prev, psi_d_prev = t, update.v_d, update.h_d, update.psi_d
+    if adm.update == nothing    # first second
+        t_prev, v_d_prev, h_d_prev, psi_d_prev = t - 1, update.v_d, update.h_d, update.psi_d
     else
-        t_prev, v_d_prev, h_d_prev, psi_d_prev = adm.update.t + adm.timestep, adm.update.v_d, adm.update.h_d, adm.update.psi_d
+        t_prev, v_d_prev, h_d_prev, psi_d_prev = adm.update.t, adm.update.v_d, adm.update.h_d, adm.update.psi_d
     end
-    t_next, v_d_next, h_d_next, psi_d_next = update.t + adm.timestep, update.v_d, update.h_d, update.psi_d
+    t_curr, v_d_curr, h_d_curr, psi_d_curr = update.t, update.v_d, update.h_d, update.psi_d
 
-    #@test t == t_prev
+    @test t == t_curr
+    @test t_prev + 1 == t_curr
 
-    dt = (t_next - t_prev) / adm.number_of_substeps
+
+    dt = adm.timestep / adm.number_of_substeps
 
     t_sim = t
 
@@ -151,56 +154,58 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     h_d = h_d_prev
     psi_d = psi_d_prev
 
-    #println("====")
-    #println(dt)
-    #println(t_sim)
-    #println(t, " ", x_n, " ", y_n, " ", h_n, " ", v_n, " ", psi_n)
-    #println(t_prev, " ", v_d_prev, " ", h_d_prev, " ", psi_d_prev)
-    #println(t_next, " ", v_d_next, " ", h_d_next, " ", psi_d_next)
-    #println("----")
+    #print([t_curr, v_d_curr, h_d_curr, psi_d_curr]')
 
     for i = 1:adm.number_of_substeps
+        # update simulation time
         t_sim += dt
-        #println(t_sim)
 
-        if abs(h_d) > abs(v_n) * sind(adm.theta_regulated)
-            h_d = sign(h_d) * abs(v_n) * sind(adm.theta_regulated)
-            #println(t_sim, ": regulated")
-        end
 
-        psi_n += psi_d * dt # deg
-        x_n += sqrt(v_n^2 - h_d^2) * cosd(psi_n) * dt
-        y_n += sqrt(v_n^2 - h_d^2) * sind(psi_n) * dt
-        h_n += h_d * dt     # ft
-        v_n += v_d * dt     # ft/s
-        #println(x_n, " ", y_n, " ", h_n, " ", v_n, " ", psi_n)
-
-        notifyObserver(adm, [t_sim, x_n, y_n, h_n])
+        # update control
 
         # linear control
-        dv_d = (v_d_next - v_d_prev) * (t_sim - t_prev)
-        dh_d = (h_d_next - h_d_prev) * (t_sim - t_prev)
-        dpsi_d = (psi_d_next - psi_d_prev) * (t_sim - t_prev)
+        dv_d = (v_d_curr - v_d_prev) * (t_sim - t_curr)
+        dh_d = (h_d_curr - h_d_prev) * (t_sim - t_curr)
+        dpsi_d = (psi_d_curr - psi_d_prev) * (t_sim - t_curr)
 
         # sigmoid control
         #CMD_DIST = Normal(0.3, 0.07)
-        #dv_d = (v_d_next - v_d_prev) * cdf(CMD_DIST, (t_sim - t_prev))
-        #dh_d = (h_d_next - h_d_prev) * cdf(CMD_DIST, (t_sim - t_prev))
-        #dpsi_d = (psi_d_next - psi_d_prev) * cdf(CMD_DIST, (t_sim - t_prev))
+        #dv_d = (v_d_curr - v_d_prev) * cdf(CMD_DIST, (t_sim - t_curr))
+        #dh_d = (h_d_curr - h_d_prev) * cdf(CMD_DIST, (t_sim - t_curr))
+        #dpsi_d = (psi_d_curr - psi_d_prev) * cdf(CMD_DIST, (t_sim - t_curr))
 
         v_d = v_d_prev + dv_d
         h_d = h_d_prev + dh_d
         psi_d = psi_d_prev + dpsi_d
 
         #println(v_d, " ", h_d, " ", psi_d)
+
+        if abs(h_d) > abs(v_n) * sind(adm.theta_regulated)
+            h_d = sign(h_d) * abs(v_n) * sind(adm.theta_regulated)
+            #println("regulated")
+        end
+
+
+        # update state
+
+        x_n += sqrt(v_n^2 - h_d^2) * cosd(psi) * dt
+        y_n += sqrt(v_n^2 - h_d^2) * sind(psi) * dt
+
+        v_n += v_d * dt     # ft/s
+        h_n += h_d * dt     # ft
+        psi_n += psi_d * dt # deg
+
+        #print([t_sim, x_n, y_n, h_n, v_n, psi_n]')
+
+        notifyObserver(adm, [t_sim, x_n, y_n, h_n])
     end
 
-    #@test_approx_eq_eps t_sim t_next 0.001
-    #@test_approx_eq_eps v_d v_d_next 0.001
-    #@test_approx_eq_eps h_d h_d_next 0.001
-    #@test_approx_eq_eps psi_d psi_d_next 0.001
+    @test_approx_eq_eps t_sim (t_curr + adm.timestep) 0.001
+    @test_approx_eq_eps v_d v_d_curr 0.001
+    #@test_approx_eq_eps h_d h_d_curr 0.001
+    @test_approx_eq_eps psi_d psi_d_curr 0.001
 
-    adm.state = SimpleADMState(t_next, x_n, y_n, h_n, v_n, psi_n)
+    adm.state = SimpleADMState(t_curr + adm.timestep, x_n, y_n, h_n, v_n, psi_n)
     adm.update = update
 end
 
