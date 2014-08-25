@@ -5,11 +5,17 @@
 module TCASSimulatorImpl
 
 export
+    addObserver,
+
     simulate,
     TCASSimulator
 
 
 using AbstractSimulatorImpl
+using CommonInterfaces
+using ObserverImpl
+
+using Base.Test
 
 using Encounter
 using PilotResponse
@@ -17,6 +23,8 @@ using DynamicModel
 using WorldModel
 using Sensor
 using CollisionAvoidanceSystem
+
+import CommonInterfaces.addObserver
 
 
 type SimulationParameters
@@ -41,14 +49,25 @@ type TCASSimulator <: AbstractSimulator
     time_step::Float64
 
 
+    observer::Observer
+
+
     function TCASSimulator()
 
-        parameters = SimulationParameters()
-        time_step = 1.
+        obj = new()
 
-        return new(parameters, time_step)
+        obj.parameters = SimulationParameters()
+        obj.time_step = 1.
+
+        obj.observer = Observer()
+
+        return obj
     end
 end
+
+
+addObserver(sim::TCASSimulator, f::Function) = _addObserver(sim, f)
+addObserver(sim::TCASSimulator, tag::String, f::Function) = _addObserver(sim, tag, f)
 
 
 import Base.convert
@@ -88,13 +107,32 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
     cas = sim.parameters.cas
 
     number_of_aircraft = sim.parameters.number_of_aircraft
+    @test number_of_aircraft == 2
 
 
     if sample_number == 0
         generateEncounter(aem)
     else
-        generateEncounter(aem, sample_number)
+        generateEncounter(aem, sample_number = sample_number)
     end
+
+    initial_coords = zeros(number_of_aircraft, 3)
+
+    for i = 1:number_of_aircraft
+        initial = Encounter.getInitialState(aem, i)
+        initial_coords[i, :] = [initial.x, initial.y, initial.h]
+    end
+
+    # filter out the encounter within TCAS thresholds
+#    for i = 1:number_of_aircraft
+#        dmod, zthr = TCAS_thresholds(initial_coords[i, 3])
+#
+#        for j = (i + 1):number_of_aircraft
+#            if norm(initial_coords[i, 1] - initial_coords[j, 1], initial_coords[i, 2] - initial_coords[j, 2]) <= dmod || abs(initial_coords[i, 3] - initial_coords[j, 3]) <= zthr
+#                return -1
+#            end
+#        end
+#    end
 
     for i = 1:number_of_aircraft
         initial = Encounter.getInitialState(aem, i)
@@ -120,6 +158,10 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
                 states = WorldModel.getAll(as)
                 output = Sensor.step(sr[i], convert(SimpleTCASSensorInput, states))
                 RA = CollisionAvoidanceSystem.step(cas[i], convert(SimpleTCASInput, output))
+
+                if RA != nothing
+                    notifyObserver(sim, "RA", [i, states[i].t, RA.h_d])
+                end
             else
                 RA = nothing
             end
@@ -135,6 +177,36 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
 
         WorldModel.updateAll(as)
     end
+
+    return 0
+end
+
+function TCAS_thresholds(h)
+
+    if h < 1000
+        dmod = 0
+        zthr = 0
+    elseif h < 2350
+        dmod = 0.2 * 6076.12
+        zthr = 600
+    elseif h < 5000
+        dmod = 0.35 * 6076.12
+        zthr = 600
+    elseif h < 10000
+        dmod = 0.55 * 6076.12
+        zthr = 600
+    elseif h < 20000
+        dmod = 0.80 * 6076.12
+        zthr = 600
+    elseif h < 42000
+        dmod = 1.10 * 6076.12
+        zthr = 700
+    else
+        dmod = 1.10 * 6076.12
+        zthr = 800
+    end
+
+    return dmod, zthr
 end
 
 end

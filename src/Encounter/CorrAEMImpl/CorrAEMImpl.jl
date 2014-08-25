@@ -31,7 +31,10 @@ using AbstractEncounterModelImpl
 using AbstractEncounterModelInterfaces
 using CommonInterfaces
 using ObserverImpl
+using Util
+using Base.Test
 
+import CommonInterfaces.addObserver
 import CommonInterfaces.step
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
@@ -46,6 +49,8 @@ import AbstractEncounterModelInterfaces.getInitialSample
 include("corr_aem_load_params.jl")
 include("corr_aem_sample.jl")
 include("corr_aem_validate.jl")
+include("corr_aem_save_scripts.jl")
+include("corr_aem_load_scripts.jl")
 
 
 type CorrAEMInitialState
@@ -106,6 +111,13 @@ type CorrAEM <: AbstractEncounterModel
     number_of_transition_samples::Int
     f_tran::Union(IOStream, Nothing)
 
+    b_read_from_file::Bool
+    b_write_to_file::Bool
+    file_format::String
+
+    number_of_encounters_generated::Int
+    print_header::Bool
+
     number_of_aircraft::Int
 
     initial::Vector{Float64}
@@ -140,7 +152,10 @@ type CorrAEM <: AbstractEncounterModel
                     initial_sample_filename::String,
                     number_of_initial_samples::Int,
                     transition_sample_filename::String,
-                    number_of_transition_samples::Int)
+                    number_of_transition_samples::Int;
+                    b_read_from_file = false,
+                    b_write_to_file = false,
+                    file_format = "text")
 
         obj = new()
 
@@ -155,6 +170,24 @@ type CorrAEM <: AbstractEncounterModel
         obj.transition_sample_filename = transition_sample_filename
         obj.number_of_transition_samples = number_of_transition_samples
         obj.f_tran = nothing
+
+        obj.b_read_from_file = b_read_from_file
+        obj.b_write_to_file = b_write_to_file
+        obj.file_format = file_format
+
+        obj.number_of_encounters_generated = 0
+        obj.print_header = true
+
+        @test (b_read_from_file && b_write_to_file) == false
+
+        if b_read_from_file || b_write_to_file
+            @test initial_sample_filename != ""
+            @test transition_sample_filename != ""
+        end
+
+        if b_read_from_file
+            @test file_format == "text"
+        end
 
         obj.number_of_aircraft = 2
 
@@ -176,16 +209,30 @@ type CorrAEM <: AbstractEncounterModel
         return obj
     end
 
-    CorrAEM(
-        parameter_filename::String,
-        initial_sample_filename::String,
-        transition_sample_filename::String
-        ) = CorrAEM(
-                parameter_filename,
-                initial_sample_filename,
-                default_number_of_initial_samples,
-                transition_sample_filename,
-                default_number_of_transition_samples)
+    function CorrAEM(
+                    parameter_filename::String,
+                    initial_sample_filename::String,
+                    transition_sample_filename::String;
+                    b_write_to_file::Bool = false,
+                    file_format::String = "text")
+
+        if b_write_to_file
+            CorrAEM(parameter_filename,
+                    initial_sample_filename,
+                    default_number_of_initial_samples,
+                    transition_sample_filename,
+                    default_number_of_transition_samples,
+                    b_write_to_file = true,
+                    file_format = file_format)
+        else
+            CorrAEM(parameter_filename,
+                    initial_sample_filename,
+                    default_number_of_initial_samples,
+                    transition_sample_filename,
+                    default_number_of_transition_samples,
+                    b_read_from_file = true)
+        end
+    end
 
     CorrAEM(
         parameter_filename::String
@@ -202,88 +249,237 @@ addObserver(aem::CorrAEM, f::Function) = _addObserver(aem, f)
 addObserver(aem::CorrAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 
-function generateEncountersToFile(aem::CorrAEM)
+function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
 
-    em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples, output_to_file = true)
-end
+    params = aem.parameters
 
-function generateEncounter(aem::CorrAEM, sample_number::Int)
+    if aem.b_write_to_file && aem.file_format == "text"
+        f_initial = open(aem.initial_sample_filename, "a+")
+        #f_initial_cmp = open(aem.initial_sample_filename * "_cmp", "w")
+        f_transition = open(aem.transition_sample_filename, "a+")
 
-    if aem.initial_sample_filename != "" && aem.transition_sample_filename != ""
+        if aem.print_header
+            # print initial headers
+            @printf(f_initial, "id ")
+            #@printf(f_initial_cmp, "id ")
+            for i = 1:params.n_initial
+                @printf(f_initial, "%s ", params.labels_initial[i])
+                #@printf(f_initial_cmp, "%s ", params.labels_initial[i])
+            end
+            @printf(f_initial, "\n")
+            #@printf(f_initial_cmp, "\n")
+
+            # print transition headers
+            @printf(f_transition, "initial_id t ")
+            for i = 1:(params.n_transition - params.n_initial)
+                @printf(f_transition, "%s ", params.labels_transition[params.temporal_map[i, 2]])
+            end
+            @printf(f_transition, "\n")
+
+            aem.print_header = false
+        end
+    end
+
+    if aem.b_read_from_file
         if sample_number > 0
             reset_sample_from_file(aem)
 
             for i = 1:sample_number
-                states = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+                states = read_sample_from_file(aem, aem.number_of_transition_samples)
 
                 if states == nothing
                     return -1
                 end
             end
         else
-            states = read_sample_from_file(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+            states = read_sample_from_file(aem, aem.number_of_transition_samples)
         end
     else
         if aem.initial_distributions == nothing
-            states = em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples)
+            states = em_sample(aem, aem.number_of_transition_samples)
         else
-            states, aem.ISInfo = em_sample(aem, aem.number_of_initial_samples, aem.number_of_transition_samples, initial_dist = aem.initial_distributions)
+            states, aem.ISInfo = em_sample(aem, aem.number_of_transition_samples, initial_dist = aem.initial_distributions)
         end
 
+        aem.number_of_encounters_generated += 1
+
         states = states[:, 2:end]
+
+        if aem.b_write_to_file && aem.file_format == "text"
+            # print initial sample
+            @printf(f_initial, "%d ", aem.number_of_encounters_generated)
+            #@printf(f_initial_cmp, "%d ", aem.number_of_encounters_generated)
+            for j = 2:size(states, 2)
+                @printf(f_initial, "%s ", outputGFormatString(states[1, j]))
+                #@printf(f_initial_cmp, "%s ", states[1, j])
+            end
+            @printf(f_initial, "\n")
+            #@printf(f_initial_cmp, "\n")
+
+            # print transition samples
+            for j = 1:aem.number_of_transition_samples
+                @printf(f_transition, "%d %d ", aem.number_of_encounters_generated, j - 1)
+                for k = params.temporal_map[:, 1]
+                    @printf(f_transition, "%s ", outputGFormatString(states[j, k + 1]))
+                end
+                @printf(f_transition, "\n")
+            end
+        end
     end
 
-    convert_units(states)
+    if b_simulate
+        convert_units(states)
+
+        t, A, L, chi, beta_, C1, C2, v1, v2, v1d, v2d, h1d, h2d, psi1d, psi2d, hmd, vmd = states[1, :]
+
+        aem.initial = vec(states[1, 2:end])
+
+        aem.A = A
+        aem.L = L
+        aem.C[1] = C1
+        aem.C[2] = C2
+        aem.v_init[1] = v1
+        aem.v_init[2] = v2
+
+        aem.geometry_at_TCA = [chi, beta_, hmd, vmd]
+
+        aem.states[1, :, 1] = states[:, 1]  # time
+        aem.states[1, :, 2] = states[:, 10] # v1d
+        aem.states[1, :, 3] = states[:, 12] # h1d
+        aem.states[1, :, 4] = states[:, 14] # psi1d
+        aem.state_index[1] = 0
+
+        aem.states[2, :, 1] = states[:, 1]  # time
+        aem.states[2, :, 2] = states[:, 11] # v2d
+        aem.states[2, :, 3] = states[:, 13] # h2d
+        aem.states[2, :, 4] = states[:, 15] # psi2d
+        aem.state_index[2] = 0
+
+        aem.dn_state_index[1] = 0
+        aem.dn_state_index[2] = 0
+
+        simulate_tracks(aem)
+
+        transform_regarding_TCA(aem, aem.L, aem.geometry_at_TCA)
 
 
-    t, A, L, chi, beta_, C1, C2, v1, v2, v1d, v2d, h1d, h2d, psi1d, psi2d, hmd, vmd = states[1, :]
-
-    aem.initial = vec(states[1, 2:end])
-
-    aem.A = A
-    aem.L = L
-    aem.C[1] = C1
-    aem.C[2] = C2
-    aem.v_init[1] = v1
-    aem.v_init[2] = v2
-
-    aem.geometry_at_TCA = [chi, beta_, hmd, vmd]
-
-    aem.states[1, :, 1] = states[:, 1]  # time
-    aem.states[1, :, 2] = states[:, 10] # v1d
-    aem.states[1, :, 3] = states[:, 12] # h1d
-    aem.states[1, :, 4] = states[:, 14] # psi1d
-    aem.state_index[1] = 0
-
-    aem.states[2, :, 1] = states[:, 1]  # time
-    aem.states[2, :, 2] = states[:, 11] # v2d
-    aem.states[2, :, 3] = states[:, 13] # h2d
-    aem.states[2, :, 4] = states[:, 15] # psi2d
-    aem.state_index[2] = 0
-
-    aem.dn_state_index[1] = 0
-    aem.dn_state_index[2] = 0
-
-    simulate_tracks(aem)
-
-    transform_regarding_TCA(aem, aem.L, aem.geometry_at_TCA)
+        for i = 1:aem.number_of_aircraft
+            aem.state_index[i] = 0
+        end
 
 
-    for i = 1:aem.number_of_aircraft
-        aem.state_index[i] = 0
+        #for i = 1:(aem.number_of_transition_samples + 1)
+        #    print(reshape(aem.dynamic_states[1, i, :], 6)')
+        #end
+
+        #for i = 1:aem.number_of_transition_samples
+        #    print(reshape(aem.states[1, i, :], 4)')
+        #end
     end
 
+    if aem.b_write_to_file && aem.file_format == "binary"
+        encounters = Array(Any, aem.number_of_aircraft)
 
-    #for i = 1:(aem.number_of_transition_samples + 1)
-    #    print(reshape(aem.dynamic_states[1, i, :], 6)')
-    #end
+        for i = 1:aem.number_of_aircraft
+            encounters[i] = Dict()
+        end
 
-    #for i = 1:aem.number_of_transition_samples
-    #    print(reshape(aem.states[1, i, :], 4)')
-    #end
+        # initial
+        # airspeed, ft/s, double
+        # north position, ft, double
+        # east position, ft, double
+        # altitude, ft, double
+        # heading angle, radians, double
+        # flight path angle, radians, double
+        # roll angle, radians, double
+        # airspeed acceleration, ft/s^2, double
+
+        for i = 1:aem.number_of_aircraft
+            t, x, y, h, v, psi = aem.dynamic_states[i, 1, :]
+            t_n, x_n, y_n, h_n, v_n, psi_n, = aem.dynamic_states[i, 2, :]
+
+            t, v_d, h_d, psi_d = aem.states[i, 1, :]
+
+            theta = atand((h_n - h) / norm(x_n - x, y_n - y))
+            phi = 0.
+
+            encounters[i]["initial"] = Float64[v, x, y, h, psi * pi / 180, theta * pi / 180, phi, v_d]
+        end
+
+        # time, s, double
+        # vertical rate, ft/s, double
+        # turn rate, rad/s, double
+        # airspeed acceleration, ft/s^2, double
+
+        for i = 1:aem.number_of_aircraft
+            update = Array(Float64, 4, aem.number_of_transition_samples)
+
+            k = 0
+
+            t, v_d, h_d, psi_d = aem.states[i, 1, :]
+
+            k += 1
+            update[:, k] = [t, h_d, psi_d * pi / 180, v_d]
+
+            v_d_p = v_d
+            h_d_p = h_d
+            psi_d_p = psi_d
+
+            for j = 2:aem.number_of_transition_samples
+                t, v_d, h_d, psi_d = aem.states[i, j, :]
+
+                if v_d != v_d_p || h_d != h_d_p || psi_d != psi_d_p
+                    k += 1
+                    update[:, k] = [t, h_d, psi_d * pi / 180, v_d]
+                end
+
+                v_d_p = v_d
+                h_d_p = h_d
+                psi_d_p = psi_d
+            end
+
+            encounters[i]["update"] = update[:, 1:k]
+        end
+
+        save_scripts(aem.initial_sample_filename, encounters, append = true)
+    end
+
+    if aem.b_write_to_file && aem.file_format == "text"
+        close(f_initial)
+        #close(f_initial_cmp)
+        close(f_transition)
+    end
 end
 
-generateEncounter(aem::CorrAEM) = generateEncounter(aem, 0)
+function generateEncountersToFile(aem::CorrAEM; file_format = "")
+
+    if isfile(aem.initial_sample_filename)
+        rm(aem.initial_sample_filename)
+    end
+
+    if isfile(aem.transition_sample_filename)
+        rm(aem.transition_sample_filename)
+    end
+
+    b_write_to_file_orig = aem.b_write_to_file
+    file_format_orig = aem.file_format
+
+    aem.b_write_to_file = true
+    if file_format != ""
+        aem.file_format = file_format
+    end
+
+    for i = 1:aem.number_of_initial_samples
+        if file_format == "text"
+            generateEncounter(aem, b_simulate = false)
+        elseif file_format == "binary"
+            generateEncounter(aem)
+        end
+    end
+
+    aem.b_write_to_file = b_write_to_file_orig
+    aem.file_format = file_format_orig
+end
 
 function getInitialState(aem::CorrAEM, aircraft_number::Int)
 
@@ -557,7 +753,7 @@ end
 # TODO support to read number of samples
 # returns a sample at a time, currently
 
-function read_sample_from_file(aem, number_of_initial_samples, number_of_transition_samples)
+function read_sample_from_file(aem, number_of_transition_samples)
 
     # 1       id
     # 2       A = [1:4]

@@ -11,6 +11,8 @@
 module SimpleTCASImpl
 
 export
+    AddObserver,
+
     initialize,
     step,
 
@@ -25,9 +27,12 @@ export
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
+using ObserverImpl
 
 using Util
+using Base.Test
 
+import CommonInterfaces.addObserver
 import CommonInterfaces.step
 import AbstractCollisionAvoidanceSystemInterfaces.testThreat
 import AbstractCollisionAvoidanceSystemInterfaces.selectRA
@@ -57,6 +62,8 @@ type SimpleTCAS <: AbstractCollisionAvoidanceSystem
     b_TCAS_activated::Bool
     RA::Union(SimpleTCASResolutionAdvisory, Nothing)
 
+    observer::Observer
+
 
     function SimpleTCAS()
 
@@ -65,9 +72,15 @@ type SimpleTCAS <: AbstractCollisionAvoidanceSystem
         obj.b_TCAS_activated = false
         obj.RA = nothing
 
+        obj.observer = Observer()
+
         return obj
     end
 end
+
+
+addObserver(cas::SimpleTCAS, f::Function) = _addObserver(cas, f)
+addObserver(cas::SimpleTCAS, tag::String, f::Function) = _addObserver(cas, tag, f)
 
 
 function testThreat(cas::SimpleTCAS, input::SimpleTCASInput)
@@ -82,26 +95,7 @@ function testThreat(cas::SimpleTCAS, input::SimpleTCASInput)
 
     sl, tau, dmod, zthr, alim = simple_TCAS_thresholds(input.h[1])
 
-    if ((r_dot < 0 && -(r - dmod) / r_dot <= tau) || r < dmod) && ((a_dot < 0 && -a / a_dot <= tau) || a <= zthr)
-        if false
-            @printf(STDERR, "%s\n", input.t)
-            @printf(STDERR, "%s\n", outputGFormatString(input.h[1]))
-            @printf(STDERR, "%s\n", sl)
-            if r_dot < 0 && -(r - dmod) / r_dot <= tau
-                @printf(STDERR, "H1 ")
-            end
-            if r < dmod
-                @printf(STDERR, "H2 ")
-            end
-            if a_dot < 0 && -a / a_dot <= tau
-                @printf(STDERR, "V1 ")
-            end
-            if a <= zthr
-                @printf(STDERR, "V2 ")
-            end
-            @printf(STDERR, "\n")
-        end
-
+    if (r_dot < 0 && (-(r - dmod) / r_dot <= tau || r < dmod)) && ((a_dot < 0 && -a / a_dot <= tau) || a <= zthr)
         b_TCAS_activated = true
     end
 
@@ -109,6 +103,9 @@ function testThreat(cas::SimpleTCAS, input::SimpleTCASInput)
 end
 
 function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
+
+    r = input.r
+    r_dot = input.r_d
 
     a = input.a
     a_dot = input.a_d
@@ -129,7 +126,28 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
     descend_dist = 0
     descend_alim = false
 
-    t_ = 40 - input.t
+    t_ = -r / r_dot
+
+    # debug
+    if false && t_ < 0
+        println("t, r, r_dot, a, a_dot, h1, h2, h1_dot, h2_dot")
+        println([input.t, input.r, input.r_d, input.a, input.a_d, input.h[1], input.h[2], input.h_d[1], input.h_d[2]]')
+
+        println("sl, tau, dmod, zthr, alim")
+        println([sl, tau, dmod, zthr, alim]')
+
+        println("tests")
+        println([r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr]')
+
+        println("selects")
+        println(t_)
+        println()
+
+        notifyObserver(cas, "debug", [false])
+
+        return 0.
+    end
+    @test t_ > 0
 
     h_dot_ascend = 1500 / 60
 
@@ -195,16 +213,22 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         end
     end
 
+    # debug
     if false
-        @printf(STDERR, "%s\n", ascend_cross)
-        @printf(STDERR, "%s\n", outputGFormatString(ascend_dist))
-        @printf(STDERR, "%s\n", ascend_alim)
-        @printf(STDERR, "%s\n", descend_cross)
-        @printf(STDERR, "%s\n", outputGFormatString(descend_dist))
-        @printf(STDERR, "%s\n", descend_alim)
-        @printf(STDERR, "%s\n", resolution_advisory)
-        @printf(STDERR, "\n")
+        println("t, r, r_dot, a, a_dot, h1, h2, h1_dot, h2_dot")
+        println([input.t, input.r, input.r_d, input.a, input.a_d, input.h[1], input.h[2], input.h_d[1], input.h_d[2]]')
+
+        println("sl, tau, dmod, zthr, alim")
+        println([sl, tau, dmod, zthr, alim]')
+
+        println("tests")
+        println([r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr]')
+
+        println("selects")
+        println({t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory}')
     end
+
+    notifyObserver(cas, "debug", {{input.t, input.r, input.r_d, input.a, input.a_d, input.h, input.h_d}, [sl, tau, dmod, zthr, alim], [r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr], {t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory}})
 
     return resolution_advisory
 end

@@ -5,10 +5,7 @@
 # Date: 4/23/2014
 
 
-using Util
-
-
-function em_sample(aem, num_initial_samples, num_transition_samples; output_to_file = false, initial_dist = nothing)
+function em_sample(aem, num_transition_samples; initial_dist = nothing)
 
 # EM_SAMPLE Outputs samples from an encounter model to files.
 #   Outputs samples into two specified files from an encounter model
@@ -23,8 +20,6 @@ function em_sample(aem, num_initial_samples, num_transition_samples; output_to_f
 #   NUM_TRANSITION_SAMPLES: the number of steps to sample from the
 #   transition network
 
-    initial_output_filename = aem.initial_sample_filename
-    transition_output_filename = aem.transition_sample_filename
     p = aem.parameters
 
     # read parameters
@@ -35,107 +30,99 @@ function em_sample(aem, num_initial_samples, num_transition_samples; output_to_f
     dirichlet_initial = bn_dirichlet_prior(p.N_initial)
     dirichlet_transition = bn_dirichlet_prior(p.N_transition)
 
-    # open files
-    if output_to_file
-        f_initial = open(initial_output_filename, "w")
-        #f_initial_cmp = open(initial_output_filename * "_cmp", "w")
-        f_transition = open(transition_output_filename, "w")
+    num_transition_samples  = int(num_transition_samples)
 
-        # print initial headers
-        @printf(f_initial, "id ")
-        #@printf(f_initial_cmp, "id ")
-        for i = 1:p.n_initial
-            @printf(f_initial, "%s ", p.labels_initial[i])
-            #@printf(f_initial_cmp, "%s ", p.labels_initial[i])
-        end
-        @printf(f_initial, "\n")
-        #@printf(f_initial_cmp, "\n")
+    output = Array(FloatingPoint, (num_transition_samples, p.n_initial + 2))
 
-        # print transition headers
-        @printf(f_transition, "initial_id t ")
-        for i = 1:(p.n_transition - p.n_initial)
-            @printf(f_transition, "%s ", p.labels_transition[p.temporal_map[i, 2]])
-        end
-        @printf(f_transition, "\n")
+    if initial_dist != nothing
+        IS_array = Array(Float64, p.n_initial, 4)
     end
+
+    if initial_dist == nothing
+        x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
+
+        for j = 1:p.n_initial
+            if !isempty(p.boundaries[j])
+                if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
+                    print("sample: ", x[:, 1]')
+                    println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
+                    error("The value violates the boundary.")
+                end
+            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+                print("sample: ", x[:, 1]')
+                println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
+                error("The value violates the boundary.")
+            end
+        end
+    else
+        x, IS = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples, initial_dist = initial_dist)
+    end
+
+    output[1:num_transition_samples, 1] = ones(num_transition_samples)
+    output[1:num_transition_samples, 2] = [0:num_transition_samples - 1]
+    output[1:num_transition_samples, 3:end] = x'
+
+    if initial_dist == nothing
+        return output
+    else
+        return output, IS
+    end
+end
+
+
+function em_sample_n(aem, num_initial_samples, num_transition_samples)
+
+# EM_SAMPLE Outputs samples from an encounter model to files.
+#   Outputs samples into two specified files from an encounter model
+#   described in a file.
+#
+#   EM_SAMPLES takes as input the following arguments:
+#   PARAMETERS_FILENAME: a string specifying the name of the parameters
+#   file
+#   INITIAL_OUTPUT_FILENAME: a string specifying the the name of the file
+#   to store transition samples
+#   NUM_INITIAL_SAMPLES: the number of samples to generate
+#   NUM_TRANSITION_SAMPLES: the number of steps to sample from the
+#   transition network
+
+    p = aem.parameters
+
+    # read parameters
+    #p = Parameters()
+    #em_read(p, parameters_filename)
+
+    # create priors
+    dirichlet_initial = bn_dirichlet_prior(p.N_initial)
+    dirichlet_transition = bn_dirichlet_prior(p.N_transition)
 
     num_initial_samples = int(num_initial_samples)
     num_transition_samples  = int(num_transition_samples)
 
-    output_array = []
-    if !output_to_file
-        output_array = Array(FloatingPoint, (num_initial_samples * num_transition_samples, p.n_initial + 2))
-
-        if initial_dist != nothing
-            IS_array = Array(Float64, num_initial_samples * p.n_initial, 4)
-        end
-    end
+    output_array = Array(FloatingPoint, (num_initial_samples * num_transition_samples, p.n_initial + 2))
 
     for i = 1:num_initial_samples
-        if initial_dist == nothing
-            x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
+        x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
 
-            for j = 1:p.n_initial
-                if !isempty(p.boundaries[j])
-                    if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
-                        print("sample: ", i, " ", x[:, 1]')
-                        println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
-                        error("The value violates the boundary.")
-                    end
-                elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+        for j = 1:p.n_initial
+            if !isempty(p.boundaries[j])
+                if x[j, 1] < p.boundaries[j][1] || x[j, 1] > p.boundaries[j][end]
                     print("sample: ", i, " ", x[:, 1]')
-                    println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
+                    println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
                     error("The value violates the boundary.")
                 end
-            end
-        else
-            x, IS = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples, initial_dist = initial_dist)
-        end
-
-        if output_to_file
-            # print initial sample
-            @printf(f_initial, "%d ", i)
-            #@printf(f_initial_cmp, "%d ", i)
-            for j = 1:size(x, 1)
-                @printf(f_initial, "%s ", outputGFormatString(x[j, 1]))
-                #@printf(f_initial_cmp, "%s ", x[j, 1])
-            end
-            @printf(f_initial, "\n")
-            #@printf(f_initial_cmp, "\n")
-
-            # print transition samples
-            for j = 1:num_transition_samples
-                @printf(f_transition, "%d %d ", i, j - 1)
-                y = x[p.temporal_map[:, 1], j]
-                for k = 1:length(y)
-                    @printf(f_transition, "%s ", outputGFormatString(y[k]))
-                end
-                @printf(f_transition, "\n")
-            end
-        else
-            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 1] = i * ones(num_transition_samples)
-            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 2] = [0:num_transition_samples - 1]
-            output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 3:end] = x'
-
-            if initial_dist != nothing
-                IS_array[((i - 1) * p.n_initial + 1):(i * p.n_initial), :] = IS
+            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+                print("sample: ", i, " ", x[:, 1]')
+                println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
+                error("The value violates the boundary.")
             end
         end
+
+        output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 1] = i * ones(num_transition_samples)
+        output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 2] = [0:num_transition_samples - 1]
+        output_array[((i - 1) * num_transition_samples + 1):(i * num_transition_samples), 3:end] = x'
     end
 
-    if output_to_file
-        close(f_initial)
-        #close(f_initial_cmp)
-        close(f_transition)
-    end
-
-    if !output_to_file
-        if initial_dist == nothing
-            return output_array
-        else
-            return output_array, IS_array
-        end
-    end
+    return output_array
 end
 
 
@@ -186,6 +173,7 @@ end
 
 
 function events2samples(initial, events)
+
     n = length(initial)
     D = zeros(n, int(sum(events[:, 1])))
 

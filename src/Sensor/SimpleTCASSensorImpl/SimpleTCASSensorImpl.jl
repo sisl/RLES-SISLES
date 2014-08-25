@@ -93,11 +93,16 @@ function updateSensor(sr::SimpleTCASSensor, input::SimpleTCASSensorInput)
 
     t = t1
 
+    # assume delta t = 1 second
+    # cross in the path in delta t is a corner case
+
     r = norm([(x1 - x2), (y1 - y2)])
-    r_d = norm([(vx1 - vx2), (vy1 - vy2)])
+    r_prev = norm([(x1 - vx1) - (x2 - vx2), (y1 - vy1) - (y2 - vy2)])
+    r_d = r - r_prev
 
     a = abs(h1 - h2)
-    a_d = abs(vh1 - vh2)
+    a_prev = abs((h1 - vh1) - (h2 - vh2))
+    a_d = a - a_prev
 
     h = [h1, h2]
     h_d = [vh1, vh2]

@@ -5,8 +5,13 @@
 module CommonInterfaces
 
 export
+    addObserver,
+
     initialize,
     step
+
+function addObserver()
+end
 
 function initialize()
 end

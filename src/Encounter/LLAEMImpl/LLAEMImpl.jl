@@ -25,6 +25,7 @@ using AbstractEncounterModelImpl
 using CommonInterfaces
 using ObserverImpl
 
+import CommonInterfaces.addObserver
 import CommonInterfaces.step
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState

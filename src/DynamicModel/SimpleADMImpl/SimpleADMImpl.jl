@@ -27,6 +27,7 @@ using ObserverImpl
 using Base.Test
 #using Distributions
 
+import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractDynamicModelInterfaces.initializeDynamicModel
