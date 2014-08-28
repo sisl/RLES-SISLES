@@ -34,10 +34,6 @@ function em_sample(aem, num_transition_samples; initial_dist = nothing)
 
     output = Array(FloatingPoint, (num_transition_samples, p.n_initial + 2))
 
-    if initial_dist != nothing
-        IS_array = Array(Float64, p.n_initial, 4)
-    end
-
     if initial_dist == nothing
         x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
 
