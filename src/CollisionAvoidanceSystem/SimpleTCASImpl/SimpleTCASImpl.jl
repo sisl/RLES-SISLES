@@ -195,7 +195,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         end
     else
         if descend_alim && ascend_alim
-            if descend_dist < ascend_dist
+            if descend_dist > ascend_dist
                 resolution_advisory = - 1500 / 60
             else
                 resolution_advisory = 1500 / 60
@@ -234,7 +234,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
 end
 
 function step(cas::SimpleTCAS, input::SimpleTCASInput)
-    
+
     if cas.b_TCAS_activated == false
         cas.b_TCAS_activated = testThreat(cas, input)
 
@@ -258,7 +258,7 @@ end
 
 function simple_TCAS_thresholds(h)
 
-    if h < 1000 
+    if h < 1000
         sl = 2
         tau = 0
         dmod = 0
