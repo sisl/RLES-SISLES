@@ -70,6 +70,7 @@ type CorrAEMCommand
     v_d::Float64
     h_d::Float64
     psi_d::Float64
+
 end
 
 type CorrAEMParameters
@@ -773,7 +774,7 @@ function read_sample_from_file(aem, number_of_transition_samples)
         aem.f_init = open(aem.initial_sample_filename, "r")
         readline(aem.f_init)
     end
-    
+
     line = readline(aem.f_init)
 
     if line == ""

@@ -19,6 +19,7 @@ using AbstractPilotResponseImpl
 using AbstractPilotResponseInterfaces
 using CommonInterfaces
 
+import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
@@ -34,6 +35,7 @@ type SimplePRCommand
     v_d::Float64
     h_d::Float64
     psi_d::Float64
+
 end
 
 type SimplePilotResponse <: AbstractPilotResponse

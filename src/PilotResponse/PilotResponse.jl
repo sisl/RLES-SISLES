@@ -14,12 +14,17 @@ export
 
     SimplePilotResponse,
     SimplePRResolutionAdvisory,
-    SimplePRCommand
+    SimplePRCommand,
+
+    StochasticLinearPR,
+    StochasticLinearPRCommand
 
 
 using AbstractPilotResponseImpl
 
 using SimplePilotResponseImpl
+
+using StochasticLinearPRImpl
 
 end
 

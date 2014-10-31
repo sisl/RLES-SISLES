@@ -195,7 +195,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         end
     else
         if descend_alim && ascend_alim
-            if descend_dist > ascend_dist
+            if descend_dist < ascend_dist
                 resolution_advisory = - 1500 / 60
             else
                 resolution_advisory = 1500 / 60
