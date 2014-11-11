@@ -243,6 +243,8 @@ type CorrAEM <: AbstractEncounterModel
                 default_number_of_initial_samples,
                 "",
                 default_number_of_transition_samples)
+
+    CorrAEM() = new()
 end
 
 
