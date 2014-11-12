@@ -10,8 +10,8 @@ export
     initialize,
     step,
 
-    updateRecord,
-    getRecord,
+    updateCoordObj,
+    getCoordObj,
     getAllRecords,
     getAll,
 

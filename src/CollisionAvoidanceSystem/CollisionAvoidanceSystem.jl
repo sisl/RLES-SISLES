@@ -17,7 +17,7 @@ export
     SimpleTCASInput,
     SimpleTCASResolutionAdvisory,
 
-    CoordSimpleTCASImpl
+    CoordSimpleTCAS
 
 
 using AbstractCollisionAvoidanceSystemImpl

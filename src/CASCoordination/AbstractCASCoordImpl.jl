@@ -14,15 +14,15 @@ end
 module AbstractCASCoordInterfaces
 
 export
-    updateRecord,
-    getRecord,
+    updateCoordObj,
+    getCoordObj,
     getAllRecords,
     getAll
 
-function updateRecord()
+function updateCoordObj()
 end
 
-function getRecord()
+function getCoordObj()
 end
 
 function getAllRecords()
