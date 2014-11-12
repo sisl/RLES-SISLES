@@ -33,6 +33,7 @@ using Util
 using Base.Test
 
 import CommonInterfaces.addObserver
+import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractCollisionAvoidanceSystemInterfaces.testThreat
 import AbstractCollisionAvoidanceSystemInterfaces.selectRA

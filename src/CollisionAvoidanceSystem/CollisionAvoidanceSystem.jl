@@ -15,12 +15,16 @@ export
 
     SimpleTCAS,
     SimpleTCASInput,
-    SimpleTCASResolutionAdvisory
+    SimpleTCASResolutionAdvisory,
+
+    CoordSimpleTCASImpl
 
 
 using AbstractCollisionAvoidanceSystemImpl
 
 using SimpleTCASImpl
+
+using CoordSimpleTCASImpl
 
 end
 

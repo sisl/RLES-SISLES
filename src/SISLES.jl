@@ -8,10 +8,13 @@ export
     CorrAEM,
     LLAEM,
     SimplePilotResponse,
+    StochasticLinearPR,
     SimpleADM,
     AirSpace,
     SimpleTCASSensor,
+    SimpleCASCoord,
     SimpleTCAS,
+    CoordSimpleTCAS,
     TCASSimulator,
 
     addObserver,
@@ -44,8 +47,11 @@ push!(LOAD_PATH, "$PACKAGE_PATH/WorldModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/WorldModel/AirSpaceImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Sensor")
 push!(LOAD_PATH, "$PACKAGE_PATH/Sensor/SimpleTCASSensorImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/CASCoordination")
+push!(LOAD_PATH, "$PACKAGE_PATH/CASCoordination/SimpleCASCoordImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem")
 push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/SimpleTCASImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/CoordSimpleTCASImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Simulator")
 push!(LOAD_PATH, "$PACKAGE_PATH/Simulator/TCASSimulatorImpl")
 
@@ -56,6 +62,7 @@ using PilotResponse
 using DynamicModel
 using WorldModel
 using Sensor
+using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
 
