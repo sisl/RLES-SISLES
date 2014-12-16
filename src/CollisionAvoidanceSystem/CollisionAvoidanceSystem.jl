@@ -17,7 +17,11 @@ export
     SimpleTCASInput,
     SimpleTCASResolutionAdvisory,
 
-    CoordSimpleTCAS
+    CoordSimpleTCAS,
+
+    ACASX,
+    ACASXInput,
+    ACASXResolutionAdvisory
 
 
 using AbstractCollisionAvoidanceSystemImpl
@@ -25,6 +29,8 @@ using AbstractCollisionAvoidanceSystemImpl
 using SimpleTCASImpl
 
 using CoordSimpleTCASImpl
+
+using ACASXImpl
 
 end
 

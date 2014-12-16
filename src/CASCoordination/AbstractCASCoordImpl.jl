@@ -4,9 +4,11 @@
 
 module AbstractCASCoordImpl
 
-export AbstractCASCoord
+export AbstractCASCoord, AbstractCoordRecord
 
 abstract AbstractCASCoord
+
+abstract AbstractCoordRecord
 
 end
 
@@ -14,21 +16,17 @@ end
 module AbstractCASCoordInterfaces
 
 export
-    updateCoordObj,
-    getCoordObj,
-    getAllRecords,
-    getAll
+    setRecord,
+    getRecord,
+    getAllRecords
 
-function updateCoordObj()
+function setRecord()
 end
 
-function getCoordObj()
+function getRecord()
 end
 
 function getAllRecords()
-end
-
-function getAll()
 end
 
 end

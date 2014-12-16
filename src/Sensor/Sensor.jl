@@ -15,12 +15,19 @@ export
     SimpleTCASSensor,
     SimpleTCASSRState,
     SimpleTCASSensorInput,
-    SimpleTCASSensorOutput
+    SimpleTCASSensorOutput,
+
+    ACASXSensor,
+    ACASXSensorState,
+    ACASXSensorInput,
+    ACASXSensorOutput
 
 
 using AbstractSensorImpl
 
 using SimpleTCASSensorImpl
+
+using ACASXSensorImpl
 
 end
 

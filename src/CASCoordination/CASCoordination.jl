@@ -6,21 +6,21 @@ module CASCoordination
 
 export
     AbstractCASCoord,
+    AbstractCoordRecord,
 
     initialize,
     step,
 
-    updateCoordObj,
-    getCoordObj,
+    setRecord,
+    getRecord,
     getAllRecords,
-    getAll,
 
-    SimpleCASCoord,
-    SimpleCASCoordRecord
+    GenericCoord,
+    GenericCoordRecord
 
 using AbstractCASCoordImpl
 
-using SimpleCASCoordImpl
+using GenericCoordImpl
 
 end
 
