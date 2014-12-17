@@ -4,6 +4,10 @@
 
 module SimpleTCAS_EvU_Impl
 
+using AbstractGenerativeModelImpl
+using CommonInterfaces
+using ObserverImpl
+
 using Base.Test
 using Encounter
 using EncounterDBN
@@ -14,11 +18,9 @@ using Sensor
 using CollisionAvoidanceSystem
 using Simulator
 
-using RNGTools
-
 import Base.convert
 
-export SimpleTCAS_EvU_params, SimpleTCAS_EvU, initialize, step, get
+export SimpleTCAS_EvU_params,SimpleTCAS_EvU, initialize, step, get, isEndState
 
 type SimpleTCAS_EvU_params
   #global params: remains constant per sim
@@ -26,10 +28,8 @@ type SimpleTCAS_EvU_params
   nmac_r::Float64 #NMAC radius in feet
   nmac_h::Float64 #NMAC vertical separation, in feet
   maxsteps::Int64 #maximum number of steps in sim
-  nmac_reward::Float64 #reward bonus for achieving an NMAC
-  number_of_aircraft::Int64 #number of aircraft  #FIXME: This scenario will break if number_of_aircraft != 2
+  number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
-  action_seed::Union(Nothing,Uint32) #Seed for generating actions, nothing=don't reset
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
@@ -39,9 +39,11 @@ type SimpleTCAS_EvU_params
   encounter_file::String #Path to encounter file
   initial_sample_file::String #Path to initial sample file
   transition_sample_file::String #Path to transition sample file
+
+  SimpleTCAS_EvU_params() = new()
 end
 
-type SimpleTCAS_EvU
+type SimpleTCAS_EvU <: AbstractGenerativeModel
   params::SimpleTCAS_EvU_params
 
   #sim objects: contains state that changes throughout sim run
@@ -53,15 +55,11 @@ type SimpleTCAS_EvU
   cas::Vector{Union(SimpleTCAS,Nothing)}
 
   #sim states: changes throughout simulation run
-  action_counter::Uint32 #global for new random seed
   t::Int64 #current time in the simulation
-  vmd::Float64 #minimum vertical distance so far
-  hmd::Float64 #minimum horizontal distance so far
-  md::Float64 #combined miss distance metric
 
   #empty constructor
   function SimpleTCAS_EvU(p::SimpleTCAS_EvU_params)
-    @test p.number_of_aircraft == 2 #Only supports 2 aircraft for now
+    @test p.number_of_aircraft == 2 #need to revisit the code if this is not true
 
     sim = new()
     sim.params = p
@@ -84,11 +82,7 @@ type SimpleTCAS_EvU
     sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), nothing ]
     sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
 
-    sim.action_counter = uint32(0)
     sim.t = 0
-    sim.vmd = typemax(Float64)
-    sim.hmd = typemax(Float64)
-    sim.md = typemax(Float64)
 
     return sim
   end
@@ -113,30 +107,18 @@ function isNMAC(sim::SimpleTCAS_EvU)
   return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
 end
 
-function isTerminal(sim::SimpleTCAS_EvU)
-  states_1,states_2 = WorldModel.getAll(sim.wm) #states::Vector{ASWMState}
-  t = states_1.t
-
-  return t >= sim.params.maxsteps
-end
+isTerminal(sim::SimpleTCAS_EvU) = sim.t >= sim.params.maxsteps
 
 isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
 
 function initialize(sim::SimpleTCAS_EvU)
 
-  if sim.params.action_seed != nothing #reset if specified
-    sim.action_counter = sim.params.action_seed
-  else #otherwise, randomize
-    sim.action_counter = uint32(hash(time()))
-  end
-
-  aem = sim.em
-  wm, pr, adm, cas, sr = sim.wm, sim.pr, sim.dm, sim.cas, sim.sr
+  wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   EncounterDBN.initialize(aem)
 
   for i = 1:sim.params.number_of_aircraft
-    initial = EncounterDBN.getInitialSample(aem, i)
+    initial = EncounterDBN.getInitialState(aem, i)
     state = DynamicModel.initialize(adm[i], convert(SimpleADMInitialState, initial))
     WorldModel.initialize(wm, i, convert(ASWMState, state))
 
@@ -152,24 +134,20 @@ function initialize(sim::SimpleTCAS_EvU)
   sim.t = 0
   EncounterDBN.initialize(aem)
 
-  sim.vmd, sim.hmd = getvhdist(wm)
-  sim.md = getMissDistance(sim.params.nmac_h,sim.params.nmac_r,sim.vmd,sim.hmd)
-
   return
 end
 
 function step(sim::SimpleTCAS_EvU)
-  wm, pr, adm, cas, sr = sim.wm, sim.pr, sim.dm, sim.cas, sim.sr
+  wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   logProb = 0.0 #track the probabilities in this update
 
   cmdLogProb = EncounterDBN.step(aem)
-  logProb += cmdLogProb #TODO? distribute this by aircraft?
+  logProb += cmdLogProb #TODO: decompose this by aircraft?
 
   states = WorldModel.getAll(wm)
 
   for i = 1:sim.params.number_of_aircraft
-
     #intended command
     command = EncounterDBN.get(aem,i)
 
@@ -182,7 +160,8 @@ function step(sim::SimpleTCAS_EvU)
     end
 
     response = PilotResponse.step(pr[i], convert(StochasticLinearPRCommand, command), convert(SimplePRResolutionAdvisory, RA))
-    logProb += log(response.prob) #this will break if response is not SimplePRCommand
+    logProb += response.logProb #this will break if response is not SimplePRCommand
+
     state = DynamicModel.step(adm[i], convert(SimpleADMCommand, response))
     WorldModel.step(wm, i, convert(ASWMState, state))
   end
@@ -193,8 +172,6 @@ function step(sim::SimpleTCAS_EvU)
 
   return logProb
 end
-
-getMissDistance(nmac_h,nmac_r,vmd,hmd) = max(hmd*(nmac_h/nmac_r),vmd)
 
 end #module
 

@@ -8,7 +8,7 @@ export
     AbstractEncounterDBN,
     AddObserver,
 
-    getInitialSample,
+    getInitialState,
     initialize,
     step,
     get,

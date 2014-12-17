@@ -26,37 +26,7 @@ import AbstractPilotResponseInterfaces.updatePilotResponse
 
 import SimplePilotResponseImpl: SimplePRResolutionAdvisory
 
-type StochasticLinearPRCommand
-
-    t::Float64
-    v_d::Float64
-    h_d::Float64
-    psi_d::Float64
-
-    prob::Float64 #probability of generating this command
-end
-
-type StochasticLinearPR <: AbstractPilotResponse
-
-  activeRA::Symbol #RA currently displaying = [:none, :climb, :descend]
-  response::Symbol #current pilot response = [:none, :climb, :descend]
-  reversal::Bool #is the activeRA a reversal?
-  probability::Float64 #cumulative probability
-  probTable::Dict{(Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
-
-  function StochasticLinearPR()
-
-    obj = new()
-    obj.activeRA = :none
-    obj.response = :none
-    obj.reversal = false
-    obj.probTable = getProbabilityDict() #generate it once and store it
-
-    return obj
-  end
-end
-
-function getProbabilityDict()
+function generateProbabilityDict()
   #key = (activeRA,response,currentRA,reversal_true/false)
   #value = (probability vector, output values vector)
   # where output values vector is an array of tuples (activeRA,response) corresponding
@@ -96,6 +66,38 @@ function getProbabilityDict()
   return d
 end
 
+const probabilityDict = generateProbabilityDict() #generate it once and store it
+
+type StochasticLinearPRCommand
+
+    t::Float64
+    v_d::Float64
+    h_d::Float64
+    psi_d::Float64
+
+    logProb::Float64 #log probability of generating this command
+end
+
+type StochasticLinearPR <: AbstractPilotResponse
+
+  activeRA::Symbol #RA currently displaying = [:none, :climb, :descend]
+  response::Symbol #current pilot response = [:none, :climb, :descend]
+  reversal::Bool #is the activeRA a reversal?
+
+  probTable::Dict{(Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
+
+  function StochasticLinearPR()
+
+    obj = new()
+    obj.activeRA = :none
+    obj.response = :none
+    obj.reversal = false
+    obj.probTable = probabilityDict
+
+    return obj
+  end
+end
+
 function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing))
 
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
@@ -116,7 +118,7 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
     h_d = RA.h_d
   end
 
-  return StochasticLinearPRCommand(t, v_d, h_d, psi_d, probabilities[index])
+  return StochasticLinearPRCommand(t, v_d, h_d, psi_d, log(probabilities[index]))
 end
 
 step(pr::StochasticLinearPR, update::StochasticLinearPRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing)) = updatePilotResponse(pr, update, RA)
@@ -126,7 +128,6 @@ function initialize(pr::StochasticLinearPR)
     pr.activeRA = :none
     pr.response = :none
     pr.reversal = false
-    pr.probability = 1.0
 
 end
 

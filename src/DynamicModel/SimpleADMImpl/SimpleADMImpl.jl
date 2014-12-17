@@ -137,6 +137,7 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     end
     t_curr, v_d_curr, h_d_curr, psi_d_curr = update.t, update.v_d, update.h_d, update.psi_d
 
+
     @test t == t_curr
     @test t_prev + 1 == t_curr
 

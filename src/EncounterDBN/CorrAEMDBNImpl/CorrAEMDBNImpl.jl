@@ -10,7 +10,7 @@ module CorrAEMDBNImpl
 export
     AddObserver,
 
-    getInitialSample,
+    getInitialState,
     initialize,
     step,
     get,
@@ -29,6 +29,7 @@ import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractEncounterDBNInterfaces.get
+import CorrAEMImpl.getInitialState
 
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 
@@ -57,14 +58,14 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
   #pre-allocated output to avoid constant reallocation
   output_commands::Vector{CorrAEMCommand}
-  logProb::Float64
+  logProb::Float64 #log probability of output
 
   function CorrAEMDBN(number_of_aircraft::Int,encounter_file::String,initial_sample_file::String,
                       transition_sample_file::String,
                       encounter_number::Int,command_method::Symbol)
     dbn = new()
 
-    @test number_of_aircraft == 2 #a lot of things will break if this is not true
+    @test number_of_aircraft == 2 #need to revisit the code if this is not true
     dbn.number_of_aircraft     = number_of_aircraft
 
     dbn.encounter_file         = encounter_file
@@ -107,23 +108,28 @@ function initialize(dbn::CorrAEMDBN)
   dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
 end
 
-function getInitialSample(dbn::CorrAEMDBN, index::Int)
-    return dbn.aem.initial[index]
+function getInitialState(dbn::CorrAEMDBN, index::Int)
+  return getInitialState(dbn.aem,index)
 end
 
 function step(dbn::CorrAEMDBN)
   if dbn.command_method == :DBN
-    dbn_step(dbn)
+    logProb = dbn_step(dbn)
   elseif dbn.command_method == :ENC
-    enc_step(dbn)
+    logProb = enc_step(dbn)
   else
     error("CorrAEMDBNImpl::Step: No such command method")
   end
+  dbn.t += 1
+
+  return logProb
 end
 
 function dbn_step(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
+  aem_dstate = dbn.aem_dstate
+  aem_dyn_cstate = dbn.aem_dyn_cstate
 
   logProb = 0.0
   dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
@@ -131,20 +137,20 @@ function dbn_step(dbn::CorrAEMDBN)
     parents = p.G_transition[:, i]
     j = 1
     if !isempty(find(parents))
-      j = asub2ind(r[parents], aem_dstate[parents]')
+      j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
       weights /= sum(weights)
       aem_dstate[i] = select_random(weights)
       logProb += log(weights[aem_dstate[i]])
       #Resampling and dediscretizing process
-      i_t = temporal_map[o,1]
+      i_t = p.temporal_map[o,1]
       if aem_dstate[i] != aem_dstate[i_t] #compare to state at last time step
         #Different bin, do resample
         aem_dyn_cstate[o] = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
         if in(i,[17,18]) #these need unit conversion
           aem_dyn_cstate[o] /= 60 #convert units
         end
-      elseif rand() < resample_rates[i_t]
+      elseif rand() < p.resample_rates[i_t]
         #Same bin and meets probabilistic rate, do resample
         aem_dyn_cstate[o] = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
         if in(i,[17,18]) #these need unit conversion. TODO: remove hardcoding
@@ -272,18 +278,18 @@ function unconvertUnitsDynVars(v)
   return [v[1:2]*60.0,v[3:end]]
 end
 
-function unconvertUnitsAemState(state0)
-  state1 = deepcopy(state0)
+function unconvertUnitsAemState(state_)
+  state = deepcopy(state_)
 
-  state1[7] /= 1.68780
-  state1[8] /= 1.68780
-  state1[9] /= 1.68780
-  state1[10] /= 1.68780
-  state1[11] *= 60
-  state1[12] *= 60
-  state1[15] /= 6076.12
+  state[7] /= 1.68780
+  state[8] /= 1.68780
+  state[9] /= 1.68780
+  state[10] /= 1.68780
+  state[11] *= 60
+  state[12] *= 60
+  state[15] /= 6076.12
 
-  return state1
+  return state
 end
 
 function asub2ind(siz, x)
