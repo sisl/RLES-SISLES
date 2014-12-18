@@ -22,6 +22,7 @@ using AbstractEncounterDBNInterfaces
 using CommonInterfaces
 using ObserverImpl
 using Util
+using Encounter
 using CorrAEMImpl
 using Base.Test
 
@@ -209,13 +210,13 @@ function enc_step(dbn::CorrAEMDBN)
     parents = p.G_transition[:, i]
     j = 1
     if !isempty(find(parents))
-      j = asub2ind(r[parents], aem_dstate[parents]')
+      j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
       weights /= sum(weights)
       logProb += log(weights[aem_dstate[i]]) #probability from discrete sampling process
 
       #probability from continuous sampling process
-      i_t = temporal_map[o,1]
+      i_t = p.temporal_map[o,1]
       if aem_dstate[i] == aem_dstate[i_t]
         if isapprox(aem_dyn_cstate[o],dbn.aem_dyn_cstate[o],atol=0.0001)
           #Same bin and no resample

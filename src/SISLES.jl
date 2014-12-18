@@ -24,7 +24,7 @@ export
     addObserver,
     outputGFormatString,
 
-    # Encoutner
+    # Encounter
     getTrajectory,
     setInitialDistributions,
     validate,

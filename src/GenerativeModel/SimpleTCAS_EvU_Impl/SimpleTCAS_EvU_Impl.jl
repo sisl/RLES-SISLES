@@ -5,6 +5,7 @@
 module SimpleTCAS_EvU_Impl
 
 using AbstractGenerativeModelImpl
+using AbstractGenerativeModelInterfaces
 using CommonInterfaces
 using ObserverImpl
 
@@ -18,6 +19,11 @@ using Sensor
 using CollisionAvoidanceSystem
 using Simulator
 
+import CommonInterfaces.addObserver
+import CommonInterfaces.initialize
+import CommonInterfaces.step
+import AbstractGenerativeModelInterfaces.get
+import AbstractGenerativeModelInterfaces.isEndState
 import Base.convert
 
 export SimpleTCAS_EvU_params,SimpleTCAS_EvU, initialize, step, get, isEndState
@@ -27,7 +33,7 @@ type SimpleTCAS_EvU_params
   encounter_number::Int64 #encounter number in file
   nmac_r::Float64 #NMAC radius in feet
   nmac_h::Float64 #NMAC vertical separation, in feet
-  maxsteps::Int64 #maximum number of steps in sim
+  maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
@@ -103,11 +109,11 @@ function getvhdist(wm::AbstractWorldModel)
 end
 
 function isNMAC(sim::SimpleTCAS_EvU)
-  vdist,hdist = getvhdist(sim.wm,s)
+  vdist,hdist = getvhdist(sim.wm)
   return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
 end
 
-isTerminal(sim::SimpleTCAS_EvU) = sim.t >= sim.params.maxsteps
+isTerminal(sim::SimpleTCAS_EvU) = sim.t >= sim.params.maxSteps
 
 isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
 

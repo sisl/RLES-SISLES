@@ -8,6 +8,19 @@ export AbstractGenerativeModel
 
 abstract AbstractGenerativeModel
 
+end #module
+
+module AbstractGenerativeModelInterfaces
+
+export get,
+       isEndState
+
+function get()
 end
+
+function isEndState()
+end
+
+end #module
 
 

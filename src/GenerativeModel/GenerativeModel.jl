@@ -9,6 +9,7 @@ export
     initialize,
     step,
     get,
+    isEndState,
 
     SimpleTCAS_EvU_params,
     SimpleTCAS_EvU
