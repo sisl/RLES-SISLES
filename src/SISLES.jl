@@ -79,6 +79,7 @@ using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
 using GenerativeModel
+using ObserverImpl
 
 end
 

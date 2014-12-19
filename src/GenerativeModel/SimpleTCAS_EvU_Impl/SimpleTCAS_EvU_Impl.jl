@@ -7,7 +7,6 @@ module SimpleTCAS_EvU_Impl
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using Base.Test
 using Encounter
@@ -19,7 +18,6 @@ using Sensor
 using CollisionAvoidanceSystem
 using Simulator
 
-import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
@@ -88,7 +86,8 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
     sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), nothing ]
     sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
 
-    sim.t = 0
+    #Start time at 1 for easier indexing into arrays according to time
+    sim.t = 1
 
     return sim
   end
@@ -113,13 +112,16 @@ function isNMAC(sim::SimpleTCAS_EvU)
   return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
 end
 
-isTerminal(sim::SimpleTCAS_EvU) = sim.t >= sim.params.maxSteps
+isTerminal(sim::SimpleTCAS_EvU) = sim.t > sim.params.maxSteps
 
 isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
 
 function initialize(sim::SimpleTCAS_EvU)
 
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
+
+  #Start time at 1 for easier indexing into arrays according to time
+  sim.t = 1
 
   EncounterDBN.initialize(aem)
 
@@ -136,9 +138,6 @@ function initialize(sim::SimpleTCAS_EvU)
 
     PilotResponse.initialize(pr[i])
   end
-
-  sim.t = 0
-  EncounterDBN.initialize(aem)
 
   return
 end
@@ -170,6 +169,7 @@ function step(sim::SimpleTCAS_EvU)
 
     state = DynamicModel.step(adm[i], convert(SimpleADMCommand, response))
     WorldModel.step(wm, i, convert(ASWMState, state))
+
   end
 
   WorldModel.updateAll(wm)
