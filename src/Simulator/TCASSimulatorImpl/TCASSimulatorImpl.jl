@@ -76,7 +76,7 @@ convert(::Type{SimpleADMInitialState}, state::Union(CorrAEMInitialState, LLAEMIn
 
 convert(::Type{ASWMState}, state::SimpleADMOutputState) = ASWMState(state.t, state.x, state.y, state.h, state.vx, state.vy, state.vh)
 
-convert(::Type{SimplePRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = SimplePRCommand(command.t, command.v_d, command.h_d, command.psi_d)
+convert(::Type{SimplePRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = SimplePRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
 
 convert(::Type{SimpleADMCommand}, command::SimplePRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
 

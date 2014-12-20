@@ -61,6 +61,9 @@ type AirSpace <: AbstractWorldModel
     end
 end
 
+function initialize(as::AirSpace, aircraft_number::Int, state)
+  initialize(as,aircraft_number,convert(ASWMState, state))
+end
 
 function initialize(as::AirSpace, aircraft_number::Int, state::ASWMState)
 
@@ -71,6 +74,8 @@ function updateObjectState(as::AirSpace, aircraft_number::Int, state::ASWMState)
 
     as.states_update[aircraft_number] = state
 end
+
+step(as::AirSpace, aircraft_number::Int, state) = step(as, aircraft_number, convert(ASWMState,state))
 
 step(as::AirSpace, aircraft_number::Int, state::ASWMState) = updateObjectState(as, aircraft_number, state)
 

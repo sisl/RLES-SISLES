@@ -121,6 +121,8 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
   return StochasticLinearPRCommand(t, v_d, h_d, psi_d, log(probabilities[index]))
 end
 
+step(pr::StochasticLinearPR, update, RA) = step(pr,convert(StochasticLinearPRCommand, update), convert(SimplePRResolutionAdvisory,RA))
+
 step(pr::StochasticLinearPR, update::StochasticLinearPRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing)) = updatePilotResponse(pr, update, RA)
 
 function initialize(pr::StochasticLinearPR)

@@ -107,6 +107,8 @@ function updateSensor(sr::SimpleTCASSensor, input::SimpleTCASSensorInput)
     return SimpleTCASSensorOutput(t, r, r_d, a, a_d, h, h_d)
 end
 
+step(sr::SimpleTCASSensor, input) = step(sr,convert(SimpleTCASSensorInput, input))
+
 step(sr::SimpleTCASSensor, input::SimpleTCASSensorInput) = updateSensor(sr, input)
 
 function initialize(sr::SimpleTCASSensor)

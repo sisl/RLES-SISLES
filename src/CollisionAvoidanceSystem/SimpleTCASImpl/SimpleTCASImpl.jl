@@ -234,6 +234,8 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
     return resolution_advisory
 end
 
+step(cas::SimpleTCAS, input) = step(cas,convert(SimpleTCASInput, input))
+
 function step(cas::SimpleTCAS, input::SimpleTCASInput)
 
     if cas.b_TCAS_activated == false

@@ -25,55 +25,57 @@ import AbstractPilotResponseInterfaces.updatePilotResponse
 
 
 type SimplePRResolutionAdvisory
-
-    h_d::Float64
+  h_d::Float64
 end
 
 type SimplePRCommand
 
-    t::Float64
-    v_d::Float64
-    h_d::Float64
-    psi_d::Float64
+  t::Float64
+  v_d::Float64
+  h_d::Float64
+  psi_d::Float64
 
+  logProb::Float64
 end
 
 type SimplePilotResponse <: AbstractPilotResponse
 
-    b_CAS_activated::Bool
-    RA::SimplePRResolutionAdvisory
+  b_CAS_activated::Bool
+  RA::SimplePRResolutionAdvisory
 
-    function SimplePilotResponse()
+  function SimplePilotResponse()
 
-        obj = new()
+    obj = new()
 
-        obj.b_CAS_activated = false
+    obj.b_CAS_activated = false
 
-        return obj
-    end
+    return obj
+  end
 end
 
 function updatePilotResponse(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing))
 
-    t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
+  t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
-    if RA != nothing && pr.b_CAS_activated == false
-        pr.RA = RA
-        pr.b_CAS_activated = true
-    end
+  if RA != nothing && pr.b_CAS_activated == false
+    pr.RA = RA
+    pr.b_CAS_activated = true
+  end
 
-    if pr.b_CAS_activated
-        h_d = pr.RA.h_d
-    end
+  if pr.b_CAS_activated
+    h_d = pr.RA.h_d
+  end
 
-    return SimplePRCommand(t, v_d, h_d, psi_d)
+  return SimplePRCommand(t, v_d, h_d, psi_d, 0.0)
 end
+
+step(pr::SimplePilotResponse, update, RA) = step(pr,convert(SimplePRCommand, update), convert(SimplePRResolutionAdvisory,RA))
 
 step(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing)) = updatePilotResponse(pr, update, RA)
 
 function initialize(pr::SimplePilotResponse)
 
-    pr.b_CAS_activated = false
+  pr.b_CAS_activated = false
 end
 
 end

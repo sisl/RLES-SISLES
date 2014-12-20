@@ -124,6 +124,8 @@ function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)
     return SimpleADMOutputState(adm.state.t, adm.state.x, adm.state.y, adm.state.h, vx, vy, vh)
 end
 
+initialize(adm::SimpleADM, state) = initialize(adm,convert(SimpleADMInitialState, state))
+
 initialize(adm::SimpleADM, state::SimpleADMInitialState) = initializeDynamicModel(adm, state)
 
 function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
@@ -210,6 +212,8 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     adm.state = SimpleADMState(t_curr + adm.timestep, x_n, y_n, h_n, v_n, psi_n)
     adm.update = update
 end
+
+step(adm::SimpleADM, update) = step(adm,convert(SimpleADMCommand, update))
 
 function step(adm::SimpleADM, update::SimpleADMCommand)
 

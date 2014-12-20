@@ -59,7 +59,8 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
   cas::Vector{Union(SimpleTCAS,Nothing)}
 
   #sim states: changes throughout simulation run
-  t::Int64 #current time in the simulation
+  t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
+  #This is different from t which starts at 0 and could increment in the reals.
 
   #empty constructor
   function SimpleTCAS_EvU(p::SimpleTCAS_EvU_params)
@@ -87,12 +88,14 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
     sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
 
     #Start time at 1 for easier indexing into arrays according to time
-    sim.t = 1
+    sim.t_index = 1
 
     return sim
   end
 end
 
+#The fact that these are distributed between the simulators (i.e., TCASSimulatorImpl.jl),
+#is a bit messy.
 convert(::Type{StochasticLinearPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = StochasticLinearPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 1.0)
 convert(::Type{SimpleADMCommand}, command::StochasticLinearPRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
 
@@ -112,7 +115,7 @@ function isNMAC(sim::SimpleTCAS_EvU)
   return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
 end
 
-isTerminal(sim::SimpleTCAS_EvU) = sim.t > sim.params.maxSteps
+isTerminal(sim::SimpleTCAS_EvU) = sim.t_index > sim.params.maxSteps
 
 isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
 
@@ -121,14 +124,14 @@ function initialize(sim::SimpleTCAS_EvU)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   #Start time at 1 for easier indexing into arrays according to time
-  sim.t = 1
+  sim.t_index = 1
 
   EncounterDBN.initialize(aem)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
-    state = DynamicModel.initialize(adm[i], convert(SimpleADMInitialState, initial))
-    WorldModel.initialize(wm, i, convert(ASWMState, state))
+    state = DynamicModel.initialize(adm[i], initial)
+    WorldModel.initialize(wm, i, state)
 
     # If aircraft has a CAS
     if sr[i] != nothing && cas[i] != nothing
@@ -158,23 +161,23 @@ function step(sim::SimpleTCAS_EvU)
 
     #If aircraft is equipped with a CAS
     if sr[i] != nothing && cas[i] != nothing
-      output = Sensor.step(sr[i], convert(SimpleTCASSensorInput, states))
-      RA = CollisionAvoidanceSystem.step(cas[i], convert(SimpleTCASInput, output))
+      output = Sensor.step(sr[i], states)
+      RA = CollisionAvoidanceSystem.step(cas[i], output)
     else
       RA = nothing
     end
 
-    response = PilotResponse.step(pr[i], convert(StochasticLinearPRCommand, command), convert(SimplePRResolutionAdvisory, RA))
+    response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb #this will break if response is not SimplePRCommand
 
-    state = DynamicModel.step(adm[i], convert(SimpleADMCommand, response))
-    WorldModel.step(wm, i, convert(ASWMState, state))
+    state = DynamicModel.step(adm[i], response)
+    WorldModel.step(wm, i, state)
 
   end
 
   WorldModel.updateAll(wm)
 
-  sim.t += 1
+  sim.t_index += 1
 
   return logProb
 end
