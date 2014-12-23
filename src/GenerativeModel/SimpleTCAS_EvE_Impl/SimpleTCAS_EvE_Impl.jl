@@ -55,8 +55,8 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
   dm::Vector{SimpleADM}
   wm::AirSpace
   coord::GenericCoord
-  sr::Vector{Union(SimpleTCASSensor,Nothing)}
-  cas::Vector{Union(CoordSimpleTCAS,Nothing)}
+  sr::Vector{SimpleTCASSensor}
+  cas::Vector{CoordSimpleTCAS}
 
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
@@ -130,7 +130,6 @@ function initialize(sim::SimpleTCAS_EvE)
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
 
-    # If aircraft has a CAS
     Sensor.initialize(sr[i])
     CollisionAvoidanceSystem.initialize(cas[i])
 
@@ -154,13 +153,8 @@ function step(sim::SimpleTCAS_EvE)
     #intended command
     command = EncounterDBN.get(aem,i)
 
-    #If aircraft is equipped with a CAS
-    if sr[i] != nothing && cas[i] != nothing
-      output = Sensor.step(sr[i], states)
-      RA = CollisionAvoidanceSystem.step(cas[i], output)
-    else
-      RA = nothing
-    end
+    output = Sensor.step(sr[i], states)
+    RA = CollisionAvoidanceSystem.step(cas[i], output)
 
     response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb #this will break if response is not SimplePRCommand
