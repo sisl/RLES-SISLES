@@ -17,8 +17,7 @@ export
     CoordSimpleTCAS,
     ACASX,
     TCASSimulator,
-    SimpleTCAS_EvU,
-    SimpleTCAS_EvE,
+    SimpleTCAS_EvEU,
     ACASX_EvE,
 
     addObserver,
@@ -64,7 +63,6 @@ push!(LOAD_PATH, "$PACKAGE_PATH/Simulator")
 push!(LOAD_PATH, "$PACKAGE_PATH/Simulator/TCASSimulatorImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_EvE_Impl")
-push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvE_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvU_Impl")
 
 
