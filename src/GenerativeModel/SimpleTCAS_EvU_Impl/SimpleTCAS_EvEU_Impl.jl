@@ -34,6 +34,7 @@ type SimpleTCAS_EvU_params
   maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
+  intruder_equipped::Bool
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
@@ -47,7 +48,8 @@ type SimpleTCAS_EvU_params
   SimpleTCAS_EvU_params() = new()
 end
 
-type SimpleTCAS_EvU <: AbstractGenerativeModel
+using Debug
+@debug type SimpleTCAS_EvU <: AbstractGenerativeModel
   params::SimpleTCAS_EvU_params
 
   #sim objects: contains state that changes throughout sim run
@@ -84,8 +86,14 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
 
     sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1) for i=1:p.number_of_aircraft ]
     sim.wm = AirSpace(p.number_of_aircraft)
-    sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), nothing ]
-    sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
+@bp
+    sr_1 = SimpleTCASSensor(1)
+    sr_2 = p.SimpleTCAS_EvU ? SimpleTCASSensor(2) : nothing
+    sim.sr = Union(SimpleTCASSensor,Nothing)[ sr_1, sr_2 ]
+
+    cas_1 = SimpleTCAS()
+    cas_2 = p.intruder_equipped ? SimpleTCAS() : nothing
+    sim.cas = Union(SimpleTCAS,Nothing)[ cas_1, cas_2 ]
 
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
