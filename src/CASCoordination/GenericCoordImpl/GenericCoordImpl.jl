@@ -26,7 +26,7 @@ import AbstractCASCoordInterfaces.getRecord
 import AbstractCASCoordInterfaces.getAllRecords
 
 type GenericCoordRecord
-  record::Union(AbstractCoordRecord,Nothing)
+  record
 end
 
 GenericCoordRecord() = GenericCoordRecord(nothing) #defaults to nothing = no sync objects
@@ -46,12 +46,12 @@ type GenericCoord <: AbstractCASCoord
   end
 end
 
-function setRecord(coord::GenericCoord, record_number::Int, record::AbstractCoordRecord)
+function setRecord(coord::GenericCoord, record_number::Int, record)
 
     coord.records[record_number].record = record
 end
 
-step(coord::GenericCoord, record_number::Int, record::AbstractCoordRecord) = setRecord(coord, record_number, coord_obj)
+step(coord::GenericCoord, record_number::Int, record) = setRecord(coord, record_number, coord_obj)
 
 function initialize(coord::GenericCoord)
 

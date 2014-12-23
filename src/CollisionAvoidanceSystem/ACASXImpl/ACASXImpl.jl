@@ -35,7 +35,7 @@ using CCAS
 typealias ACASXInput InputVals
 typealias ACASXOutput OutputVals
 
-type ACASXCoordRecord <: AbstractCoordRecord
+type ACASXCoordRecord
   id::Uint32
   modes::Uint32
   cvc::Uint8

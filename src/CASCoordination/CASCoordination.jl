@@ -6,7 +6,6 @@ module CASCoordination
 
 export
     AbstractCASCoord,
-    AbstractCoordRecord,
 
     initialize,
     step,
@@ -15,8 +14,7 @@ export
     getRecord,
     getAllRecords,
 
-    GenericCoord,
-    GenericCoordRecord
+    GenericCoord
 
 using AbstractCASCoordImpl
 

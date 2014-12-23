@@ -12,12 +12,19 @@ export
     isEndState,
 
     SimpleTCAS_EvU_params,
-    SimpleTCAS_EvU
+    SimpleTCAS_EvU,
+
+    SimpleTCAS_EvE_params,
+    SimpleTCAS_EvE
 
 
 using AbstractGenerativeModelImpl
 
+include("common/common.jl")
+
 using SimpleTCAS_EvU_Impl
+
+using SimpleTCAS_EvE_Impl
 
 end
 

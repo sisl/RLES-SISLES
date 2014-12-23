@@ -1,7 +1,7 @@
 # Author: Ritchie Lee, ritchie.lee@sv.cmu.@schedule
 # Date: 12/11/2014
 
-module SimpleTCAS_EvU_Impl
+module SimpleTCAS_EvE_Impl
 
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
@@ -14,6 +14,7 @@ using PilotResponse
 using DynamicModel
 using WorldModel
 using Sensor
+using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
 
@@ -22,9 +23,9 @@ import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isEndState
 
-export SimpleTCAS_EvU_params, SimpleTCAS_EvU, initialize, step, get, isEndState
+export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isEndState
 
-type SimpleTCAS_EvU_params
+type SimpleTCAS_EvE_params
   #global params: remains constant per sim
   encounter_number::Int64 #encounter number in file
   nmac_r::Float64 #NMAC radius in feet
@@ -42,26 +43,27 @@ type SimpleTCAS_EvU_params
   initial_sample_file::String #Path to initial sample file
   transition_sample_file::String #Path to transition sample file
 
-  SimpleTCAS_EvU_params() = new()
+  SimpleTCAS_EvE_params() = new()
 end
 
-type SimpleTCAS_EvU <: AbstractGenerativeModel
-  params::SimpleTCAS_EvU_params
+type SimpleTCAS_EvE <: AbstractGenerativeModel
+  params::SimpleTCAS_EvE_params
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
   pr::Vector{Union(SimplePilotResponse,StochasticLinearPR)}
   dm::Vector{SimpleADM}
   wm::AirSpace
+  coord::GenericCoord
   sr::Vector{Union(SimpleTCASSensor,Nothing)}
-  cas::Vector{Union(SimpleTCAS,Nothing)}
+  cas::Vector{Union(CoordSimpleTCAS,Nothing)}
 
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
 
   #empty constructor
-  function SimpleTCAS_EvU(p::SimpleTCAS_EvU_params)
+  function SimpleTCAS_EvE(p::SimpleTCAS_EvE_params)
     @test p.number_of_aircraft == 2 #need to revisit the code if this is not true
 
     sim = new()
@@ -77,14 +79,15 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
     elseif p.pilotResponseModel == :StochasticLinear
       sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.number_of_aircraft ]
     else
-      error("SimpleTCAS_EvU_Impl: No such pilot response model")
+      error("SimpleTCAS_EvE_Impl: No such pilot response model")
     end
 
     sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1) for i=1:p.number_of_aircraft ]
     sim.wm = AirSpace(p.number_of_aircraft)
 
-    sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), nothing ]
-    sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
+    sim.coord = GenericCoord(p.number_of_aircraft)
+    sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), SimpleTCASSensor(2) ]
+    sim.cas = Union(CoordSimpleTCAS,Nothing)[ CoordSimpleTCAS(1,sim.coord), CoordSimpleTCAS(2,sim.coord) ]
 
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
@@ -104,16 +107,16 @@ function getvhdist(wm::AbstractWorldModel)
   return vdist,hdist
 end
 
-function isNMAC(sim::SimpleTCAS_EvU)
+function isNMAC(sim::SimpleTCAS_EvE)
   vdist,hdist = getvhdist(sim.wm)
   return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
 end
 
-isTerminal(sim::SimpleTCAS_EvU) = sim.t_index > sim.params.maxSteps
+isTerminal(sim::SimpleTCAS_EvE) = sim.t_index > sim.params.maxSteps
 
-isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
+isEndState(sim::SimpleTCAS_EvE) = isNMAC(sim) || isTerminal(sim)
 
-function initialize(sim::SimpleTCAS_EvU)
+function initialize(sim::SimpleTCAS_EvE)
 
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
@@ -128,10 +131,8 @@ function initialize(sim::SimpleTCAS_EvU)
     WorldModel.initialize(wm, i, state)
 
     # If aircraft has a CAS
-    if sr[i] != nothing && cas[i] != nothing
-      Sensor.initialize(sr[i])
-      CollisionAvoidanceSystem.initialize(cas[i])
-    end
+    Sensor.initialize(sr[i])
+    CollisionAvoidanceSystem.initialize(cas[i])
 
     PilotResponse.initialize(pr[i])
   end
@@ -139,7 +140,7 @@ function initialize(sim::SimpleTCAS_EvU)
   return
 end
 
-function step(sim::SimpleTCAS_EvU)
+function step(sim::SimpleTCAS_EvE)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   logProb = 0.0 #track the probabilities in this update

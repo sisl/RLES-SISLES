@@ -4,11 +4,9 @@
 
 module AbstractCASCoordImpl
 
-export AbstractCASCoord, AbstractCoordRecord
+export AbstractCASCoord
 
 abstract AbstractCASCoord
-
-abstract AbstractCoordRecord
 
 end
 
