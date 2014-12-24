@@ -8,7 +8,6 @@ using AbstractGenerativeModelInterfaces
 using CommonInterfaces
 
 using Base.Test
-using Encounter
 using EncounterDBN
 using PilotResponse
 using DynamicModel
@@ -93,26 +92,6 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
   end
 end
 
-function getvhdist(wm::AbstractWorldModel)
-  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
-  x1, y1, h1 = states_1.x, states_1.y, states_1.h
-  x2, y2, h2 = states_2.x, states_2.y, states_2.h
-
-  vdist = abs(h2-h1)
-  hdist = norm([(x2-x1),(y2-y1)])
-
-  return vdist,hdist
-end
-
-function isNMAC(sim::SimpleTCAS_EvU)
-  vdist,hdist = getvhdist(sim.wm)
-  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
-end
-
-isTerminal(sim::SimpleTCAS_EvU) = sim.t_index > sim.params.maxSteps
-
-isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
-
 function initialize(sim::SimpleTCAS_EvU)
 
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
@@ -175,6 +154,26 @@ function step(sim::SimpleTCAS_EvU)
 
   return logProb
 end
+
+function getvhdist(wm::AbstractWorldModel)
+  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
+  x1, y1, h1 = states_1.x, states_1.y, states_1.h
+  x2, y2, h2 = states_2.x, states_2.y, states_2.h
+
+  vdist = abs(h2-h1)
+  hdist = norm([(x2-x1),(y2-y1)])
+
+  return vdist,hdist
+end
+
+function isNMAC(sim::SimpleTCAS_EvU)
+  vdist,hdist = getvhdist(sim.wm)
+  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
+end
+
+isTerminal(sim::SimpleTCAS_EvU) = sim.t_index > sim.params.maxSteps
+
+isEndState(sim::SimpleTCAS_EvU) = isNMAC(sim) || isTerminal(sim)
 
 end #module
 

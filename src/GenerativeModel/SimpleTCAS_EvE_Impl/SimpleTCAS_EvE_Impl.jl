@@ -8,7 +8,6 @@ using AbstractGenerativeModelInterfaces
 using CommonInterfaces
 
 using Base.Test
-using Encounter
 using EncounterDBN
 using PilotResponse
 using DynamicModel
@@ -86,8 +85,8 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
     sim.wm = AirSpace(p.number_of_aircraft)
 
     sim.coord = GenericCoord(p.number_of_aircraft)
-    sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), SimpleTCASSensor(2) ]
-    sim.cas = Union(CoordSimpleTCAS,Nothing)[ CoordSimpleTCAS(1,sim.coord), CoordSimpleTCAS(2,sim.coord) ]
+    sim.sr = SimpleTCASSensor[ SimpleTCASSensor(1), SimpleTCASSensor(2) ]
+    sim.cas = CoordSimpleTCAS[ CoordSimpleTCAS(1,sim.coord), CoordSimpleTCAS(2,sim.coord) ]
 
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
@@ -95,26 +94,6 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
     return sim
   end
 end
-
-function getvhdist(wm::AbstractWorldModel)
-  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
-  x1, y1, h1 = states_1.x, states_1.y, states_1.h
-  x2, y2, h2 = states_2.x, states_2.y, states_2.h
-
-  vdist = abs(h2-h1)
-  hdist = norm([(x2-x1),(y2-y1)])
-
-  return vdist,hdist
-end
-
-function isNMAC(sim::SimpleTCAS_EvE)
-  vdist,hdist = getvhdist(sim.wm)
-  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
-end
-
-isTerminal(sim::SimpleTCAS_EvE) = sim.t_index > sim.params.maxSteps
-
-isEndState(sim::SimpleTCAS_EvE) = isNMAC(sim) || isTerminal(sim)
 
 function initialize(sim::SimpleTCAS_EvE)
 
@@ -170,6 +149,26 @@ function step(sim::SimpleTCAS_EvE)
 
   return logProb
 end
+
+function getvhdist(wm::AbstractWorldModel)
+  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
+  x1, y1, h1 = states_1.x, states_1.y, states_1.h
+  x2, y2, h2 = states_2.x, states_2.y, states_2.h
+
+  vdist = abs(h2-h1)
+  hdist = norm([(x2-x1),(y2-y1)])
+
+  return vdist,hdist
+end
+
+function isNMAC(sim::SimpleTCAS_EvE)
+  vdist,hdist = getvhdist(sim.wm)
+  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
+end
+
+isTerminal(sim::SimpleTCAS_EvE) = sim.t_index > sim.params.maxSteps
+
+isEndState(sim::SimpleTCAS_EvE) = isNMAC(sim) || isTerminal(sim)
 
 end #module
 

@@ -16,7 +16,7 @@ module AbstractCASCoordInterfaces
 export
     setRecord,
     getRecord,
-    getAllRecords
+    getAll
 
 function setRecord()
 end
@@ -24,7 +24,7 @@ end
 function getRecord()
 end
 
-function getAllRecords()
+function getAll()
 end
 
 end

@@ -12,7 +12,7 @@ export
 
     setRecord,
     getRecord,
-    getAllRecords,
+    getAll,
 
     GenericCoord
 

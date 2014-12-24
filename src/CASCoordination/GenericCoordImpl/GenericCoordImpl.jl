@@ -9,7 +9,7 @@ export
 
     setRecord,
     getRecord,
-    getAllRecords,
+    getAll,
 
     GenericCoord,
     GenericCoordRecord
@@ -23,24 +23,18 @@ import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractCASCoordInterfaces.setRecord
 import AbstractCASCoordInterfaces.getRecord
-import AbstractCASCoordInterfaces.getAllRecords
-
-type GenericCoordRecord
-  record
-end
-
-GenericCoordRecord() = GenericCoordRecord(nothing) #defaults to nothing = no sync objects
+import AbstractCASCoordInterfaces.getAll
 
 type GenericCoord <: AbstractCASCoord
 
   num_records::Int64
-  records::Vector{GenericCoordRecord}
+  records::Vector{Any}
 
   function GenericCoord(num_records::Int)
     obj = new()
 
     obj.num_records = num_records
-    obj.records = GenericCoordRecord[ GenericCoordRecord() for i=1:num_records]
+    obj.records = [nothing for i=1:num_records]
 
     return obj
   end
@@ -48,21 +42,19 @@ end
 
 function setRecord(coord::GenericCoord, record_number::Int, record)
 
-    coord.records[record_number].record = record
+    coord.records[record_number] = record
 end
 
-step(coord::GenericCoord, record_number::Int, record) = setRecord(coord, record_number, coord_obj)
+step(coord::GenericCoord, record_number::Int, data) = setRecord(coord, record_number, record)
 
 function initialize(coord::GenericCoord)
 
-  for r in coord.records
-    r.record = nothing  #reset to nothing
-  end
+  fill!(coord.records, nothing)
 end
 
-getRecord(coord::GenericCoord,record_number::Int) = coord.records[record_number].record
+getRecord(coord::GenericCoord,record_number::Int) = coord.records[record_number]
 
-getAllRecords(coord::GenericCoord) = coord.records
+getAll(coord::GenericCoord) = coord.records
 
 end
 

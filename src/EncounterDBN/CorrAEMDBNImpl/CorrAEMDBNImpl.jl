@@ -184,6 +184,7 @@ function dbn_step(dbn::CorrAEMDBN)
   dbn.logProb = logProb
 end
 
+import Base.convert
 convert(::Type{Vector{Float64}},command_1::CorrAEMCommand,command_2::CorrAEMCommand) =
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]
 
