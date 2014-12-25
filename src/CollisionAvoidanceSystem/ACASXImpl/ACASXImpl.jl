@@ -140,6 +140,13 @@ function step(cas::ACASX, inputVals::ACASXInput)
 
   setRecord(cas.coord, cas.my_id, my_record) #push back to coord
 
+  #debug:
+  #if cas.outputVals.alarm && cas.outputVals.target_rate != 0.0
+  #  @show cas.my_id
+  #  xdump(cas.outputVals)
+  #  xdump(cas.outputVals.intruders[1])
+  #end
+
   return cas.outputVals
 end
 

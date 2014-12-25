@@ -17,7 +17,8 @@ export
     SimplePRCommand,
 
     StochasticLinearPR,
-    StochasticLinearPRCommand
+    StochasticLinearPRCommand,
+    StochasticLinearPRRA
 
 
 using AbstractPilotResponseImpl

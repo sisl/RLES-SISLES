@@ -21,6 +21,10 @@ function convert(::Type{ACASXSensorInput}, states::Vector{ASWMState})
   return ACASXSensorInput(sr_states)
 end
 
-function convert(::Type{SimplePRResolutionAdvisory},RA::ACASXOutput)
-  return SimplePRResolutionAdvisory(RA.target_rate)
+function convert(::Type{StochasticLinearPRRA},RA::ACASXOutput)
+  return StochasticLinearPRRA(false,RA.target_rate,RA.dh_min,RA.dh_max)
+end
+
+function convert(::Type{StochasticLinearPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
+  return StochasticLinearPRRA(RA!=nothing,RA.h_d,-9999.0,9999.0)
 end

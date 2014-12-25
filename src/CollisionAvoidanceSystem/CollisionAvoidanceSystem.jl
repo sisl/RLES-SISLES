@@ -21,7 +21,7 @@ export
 
     ACASX,
     ACASXInput,
-    ACASXResolutionAdvisory
+    ACASXOutput
 
 
 using AbstractCollisionAvoidanceSystemImpl
