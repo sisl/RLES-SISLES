@@ -59,52 +59,59 @@ end
 
 type SimpleTCASSensor <: AbstractSensor
 
-    aircraft_number::Int
+  aircraft_number::Int
+  states::Vector{SimpleTCASSRState}
+  output::SimpleTCASSensorOutput
 
-    states::Vector{SimpleTCASSRState}
+  function SimpleTCASSensor(aircraft_number::Int)
+    obj = new()
 
+    obj.aircraft_number = aircraft_number
+    obj.output = SimpleTCASSensorOutput(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
 
-    function SimpleTCASSensor(aircraft_number::Int)
-
-        obj = new()
-
-        obj.aircraft_number = aircraft_number
-
-        return obj
-    end
+    return obj
+  end
 end
 
 
 function updateSensor(sr::SimpleTCASSensor, input::SimpleTCASSensorInput)
 
-    sr.states = input.states
+  sr.states = input.states
 
-    if sr.aircraft_number == 1
-        intruder_number = 2
-    else
-        intruder_number = 1
-    end
+  if sr.aircraft_number == 1
+    intruder_number = 2
+  else
+    intruder_number = 1
+  end
 
-    t1, x1, y1, h1, vx1, vy1, vh1 = sr.states[sr.aircraft_number].t, sr.states[sr.aircraft_number].x, sr.states[sr.aircraft_number].y, sr.states[sr.aircraft_number].h, sr.states[sr.aircraft_number].vx, sr.states[sr.aircraft_number].vy, sr.states[sr.aircraft_number].vh
+  t1, x1, y1, h1, vx1, vy1, vh1 = sr.states[sr.aircraft_number].t, sr.states[sr.aircraft_number].x, sr.states[sr.aircraft_number].y, sr.states[sr.aircraft_number].h, sr.states[sr.aircraft_number].vx, sr.states[sr.aircraft_number].vy, sr.states[sr.aircraft_number].vh
 
-    t2, x2, y2, h2, vx2, vy2, vh2 = sr.states[intruder_number].t, sr.states[intruder_number].x, sr.states[intruder_number].y, sr.states[intruder_number].h, sr.states[intruder_number].vx, sr.states[intruder_number].vy, sr.states[intruder_number].vh
+  t2, x2, y2, h2, vx2, vy2, vh2 = sr.states[intruder_number].t, sr.states[intruder_number].x, sr.states[intruder_number].y, sr.states[intruder_number].h, sr.states[intruder_number].vx, sr.states[intruder_number].vy, sr.states[intruder_number].vh
 
-    #@test t1 == t2
+  #@test t1 == t2
 
-    t = t1
+  t = t1
 
-    dxy = [(x2 - x1), (y2 - y1)]
-    dvxy = [(vx2 - vx1), (vy2 - vy1)]
-    r = norm(dxy)
-    r_d = dot(dxy,dvxy) / norm(dxy)
+  dxy = [(x2 - x1), (y2 - y1)]
+  dvxy = [(vx2 - vx1), (vy2 - vy1)]
+  r = norm(dxy)
+  r_d = dot(dxy,dvxy) / norm(dxy)
 
-    a = abs(h1 - h2)
-    a_d = sign(h2 - h1) * (vh2 - vh1)
+  a = abs(h1 - h2)
+  a_d = sign(h2 - h1) * (vh2 - vh1)
 
-    h = [h1, h2]
-    h_d = [vh1, vh2]
+  h = [h1, h2]
+  h_d = [vh1, vh2]
 
-    return SimpleTCASSensorOutput(t, r, r_d, a, a_d, h, h_d)
+  output.t = t
+  output.r = r
+  output.r_d = r_d
+  output.a = a
+  output.a_d = a_d
+  output.h = h
+  output.h_d = h_d
+
+  return output
 end
 
 step(sr::SimpleTCASSensor, input) = step(sr,convert(SimpleTCASSensorInput, input))

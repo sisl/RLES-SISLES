@@ -6,6 +6,7 @@ module ACASX_EvE_Impl
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces
+using ObserverImpl
 
 using Base.Test
 using EncounterDBN
@@ -22,7 +23,9 @@ import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isEndState
 
-export ACASX_EvE_params, ACASX_EvE, initialize, step, get, isEndState
+import CommonInterfaces.addObserver
+
+export addObserver, ACASX_EvE_params, ACASX_EvE, initialize, step, get, isEndState
 
 type ACASX_EvE_params
   #global params: remains constant per sim
@@ -65,6 +68,8 @@ type ACASX_EvE <: AbstractGenerativeModel
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
 
+  observer::Observer
+
   #empty constructor
   function ACASX_EvE(p::ACASX_EvE_params)
     @test p.number_of_aircraft == 2 #need to revisit the code if this is not true
@@ -95,12 +100,16 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.cas = ACASX[ ACASX(1,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord),
                     ACASX(2,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord) ]
 
+
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
 
     return sim
   end
 end
+
+addObserver(sim::ACASX_EvE, f::Function) = _addObserver(sim, f)
+addObserver(sim::ACASX_EvE, tag::String, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim::ACASX_EvE)
 
@@ -143,7 +152,7 @@ function step(sim::ACASX_EvE)
     RA = CollisionAvoidanceSystem.step(cas[i], output)
 
     response = PilotResponse.step(pr[i], command, RA)
-    logProb += response.logProb #this will break if response is not SimplePRCommand
+    logProb += response.logProb
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
