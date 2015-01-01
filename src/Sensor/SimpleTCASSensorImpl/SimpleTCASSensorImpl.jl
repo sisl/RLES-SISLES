@@ -67,7 +67,7 @@ type SimpleTCASSensor <: AbstractSensor
     obj = new()
 
     obj.aircraft_number = aircraft_number
-    obj.output = SimpleTCASSensorOutput(0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+    obj.output = SimpleTCASSensorOutput(0.0,0.0,0.0,0.0,0.0,Float64[],Float64[])
 
     return obj
   end
@@ -103,15 +103,15 @@ function updateSensor(sr::SimpleTCASSensor, input::SimpleTCASSensorInput)
   h = [h1, h2]
   h_d = [vh1, vh2]
 
-  output.t = t
-  output.r = r
-  output.r_d = r_d
-  output.a = a
-  output.a_d = a_d
-  output.h = h
-  output.h_d = h_d
+  sr.output.t = t
+  sr.output.r = r
+  sr.output.r_d = r_d
+  sr.output.a = a
+  sr.output.a_d = a_d
+  sr.output.h = h
+  sr.output.h_d = h_d
 
-  return output
+  return sr.output
 end
 
 step(sr::SimpleTCASSensor, input) = step(sr,convert(SimpleTCASSensorInput, input))

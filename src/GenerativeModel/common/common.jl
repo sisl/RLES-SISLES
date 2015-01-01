@@ -26,5 +26,6 @@ function convert(::Type{StochasticLinearPRRA},RA::ACASXOutput)
 end
 
 function convert(::Type{StochasticLinearPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
-  return StochasticLinearPRRA(RA!=nothing,RA.h_d,-9999.0,9999.0)
+  ra_active = RA != nothing
+  return StochasticLinearPRRA(ra_active,ra_active ? RA.h_d : 0.0,-9999.0,9999.0)
 end

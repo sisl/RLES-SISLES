@@ -121,6 +121,8 @@ end
 function step(sim::SimpleTCAS_EvU)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
+  sim.t_index += 1
+
   logProb = 0.0 #track the probabilities in this update
 
   cmdLogProb = EncounterDBN.step(aem)
@@ -149,8 +151,6 @@ function step(sim::SimpleTCAS_EvU)
   end
 
   WorldModel.updateAll(wm)
-
-  sim.t_index += 1
 
   return logProb
 end

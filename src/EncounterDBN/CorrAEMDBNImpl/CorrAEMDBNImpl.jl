@@ -57,8 +57,9 @@ type CorrAEMDBN <: AbstractEncounterDBN
   aem_dstate::Vector{Int64} #discrete current state
   aem_dyn_cstate::Vector{Float64} #continuous of current dynamic variables
 
-  #pre-allocated output to avoid constant reallocation
+  #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
+
   logProb::Float64 #log probability of output
 
   function CorrAEMDBN(number_of_aircraft::Int,encounter_file::String,initial_sample_file::String,
@@ -83,13 +84,12 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
     #compute initial states of variables
     dynamic_variables0 = dbn.aem.parameters.temporal_map[:,1]
-    aem_initial_unconverted = unconvertUnitsAemState(dbn.aem.initial) #FIXME: do these need to be deepcopied?
+    aem_initial_unconverted = unconvertUnitsAemState(dbn.aem.initial)
     aem_initial_dstate = Int64[ val2ind(dbn.aem.parameters.boundaries[i],
                                         dbn.aem.parameters.r_transition[i],val)
                                for (i,val) in enumerate(aem_initial_unconverted)]
     dbn.init_aem_dstate = [aem_initial_dstate,aem_initial_dstate[dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
-    dbn.init_aem_dyn_cstate = dbn.aem.initial[11:14] #continuous variables.  FIXME: remove hardcoding
-
+    dbn.init_aem_dyn_cstate = dbn.aem.initial[dynamic_variables0] #continuous variables.
     dbn.dirichlet_transition = bn_dirichlet_prior(dbn.aem.parameters.N_transition)
 
     dbn.output_commands = CorrAEMCommand[ CorrAEMCommand(0.,0.,0.,0.) for i = 1:number_of_aircraft ]
@@ -107,6 +107,7 @@ function initialize(dbn::CorrAEMDBN)
   #reset to initial state
   dbn.aem_dstate = deepcopy(dbn.init_aem_dstate)
   dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
+  dbn.t = 0
 end
 
 function getInitialState(dbn::CorrAEMDBN, index::Int)
@@ -129,14 +130,16 @@ end
 function dbn_step(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
-  aem_dstate = dbn.aem_dstate
-  aem_dyn_cstate = dbn.aem_dyn_cstate
+  aem_dstate = dbn.aem_dstate #entire state, discrete bins
+  aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
   logProb = 0.0
+
+  dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
   dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
+
   for (o,i) in enumerate(dynamic_variables1)
     parents = p.G_transition[:, i]
-    j = 1
     if !isempty(find(parents))
       j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
@@ -144,17 +147,11 @@ function dbn_step(dbn::CorrAEMDBN)
       aem_dstate[i] = select_random(weights)
       logProb += log(weights[aem_dstate[i]])
       #Resampling and dediscretizing process
-      i_t = p.temporal_map[o,1]
-      if aem_dstate[i] != aem_dstate[i_t] #compare to state at last time step
-        #Different bin, do resample
+      i_t = dynamic_variables0[o]
+      if (aem_dstate[i] != aem_dstate[i_t]) || #compare to state at last time step, #Different bin, do resample
+        (aem_dstate[i] == aem_dstate[i_t] && rand() < p.resample_rates[i_t]) #Same bin but meets resample rate
         aem_dyn_cstate[o] = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
         if in(i,[17,18]) #these need unit conversion
-          aem_dyn_cstate[o] /= 60 #convert units
-        end
-      elseif rand() < p.resample_rates[i_t]
-        #Same bin and meets probabilistic rate, do resample
-        aem_dyn_cstate[o] = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
-        if in(i,[17,18]) #these need unit conversion. TODO: remove hardcoding
           aem_dyn_cstate[o] /= 60 #convert units
         end
       end
@@ -163,13 +160,15 @@ function dbn_step(dbn::CorrAEMDBN)
   end
 
   # update x(t) with x(t+1)
-  aem_dstate[p.temporal_map[:, 1]] = aem_dstate[p.temporal_map[:, 2]]
+  aem_dstate[dynamic_variables0] = aem_dstate[dynamic_variables1]
 
   #push to sim
   dbn.aem_dstate = aem_dstate
   dbn.aem_dyn_cstate = aem_dyn_cstate
 
-  #FIXME: this will break if number_of_aircraft != 2
+  #Just a reminder, this will break if number_of_aircraft != 2
+  @test dbn.number_of_aircraft == 2
+
   dbn.output_commands[1].t = dbn.t
   dbn.output_commands[1].v_d = aem.initial[9]
   dbn.output_commands[1].h_d = dbn.aem_dyn_cstate[1]
@@ -191,25 +190,31 @@ convert(::Type{Vector{Float64}},command_1::CorrAEMCommand,command_2::CorrAEMComm
 function enc_step(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
+
+  #Just a reminder, this will break if number_of_aircraft != 2
+  @test dbn.number_of_aircraft == 2
+
   command_1 = Encounter.step(aem,1)
   command_2 = Encounter.step(aem,2)
 
-  dynamic_variables0 = p.temporal_map[:,1]
+  dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
+  dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
+
+  #prepare t+1 from encounter commands
   aem_dyn_cstate = convert(Vector{Float64},command_1,command_2)
-  aem_dstate = dbn.aem_dstate
+  aem_dstate = dbn.aem_dstate #only copies pointer
   #load into the (t+1) slots
+  #boundaries are specified at t though
   aem_dyn_cstate_unconverted = unconvertUnitsDynVars(aem_dyn_cstate) #need to unconvert units
-  aem_dstate[dynamic_variables0] = Int64[ val2ind(aem.parameters.boundaries[i],
+  aem_dstate[dynamic_variables1] = Int64[ val2ind(aem.parameters.boundaries[i],
                                                  aem.parameters.r_transition[i],
                                                  aem_dyn_cstate_unconverted[o])
                                         for (o,i) in enumerate(dynamic_variables0) ]
 
   # compute the probability of this transition
   logProb = 0.0
-  dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
   for (o,i) in enumerate(dynamic_variables1)
     parents = p.G_transition[:, i]
-    j = 1
     if !isempty(find(parents))
       j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
@@ -217,8 +222,8 @@ function enc_step(dbn::CorrAEMDBN)
       logProb += log(weights[aem_dstate[i]]) #probability from discrete sampling process
 
       #probability from continuous sampling process
-      i_t = p.temporal_map[o,1]
-      if aem_dstate[i] == aem_dstate[i_t]
+      i_t = dynamic_variables0[o]
+      if aem_dstate[i] == aem_dstate[i_t] != p.zero_bins[i_t] #same bin but not the zero bin
         if isapprox(aem_dyn_cstate[o],dbn.aem_dyn_cstate[o],atol=0.0001)
           #Same bin and no resample
           logProb += log(1.0-p.resample_rates[i_t])
@@ -231,20 +236,22 @@ function enc_step(dbn::CorrAEMDBN)
   end
 
   # update x(t) with x(t+1)
-  aem_dstate[p.temporal_map[:, 1]] = aem_dstate[p.temporal_map[:, 2]]
+  aem_dstate[dynamic_variables0] = aem_dstate[dynamic_variables1]
 
   #push to sim
   dbn.aem_dstate = aem_dstate
   dbn.aem_dyn_cstate = aem_dyn_cstate
 
-  #FIXME: this will break if number_of_aircraft != 2
+  #Just a reminder, this will break if number_of_aircraft != 2
+  @test dbn.number_of_aircraft == 2
+
   dbn.output_commands[1].t = dbn.t
-  dbn.output_commands[1].v_d = aem.initial[9]
+  dbn.output_commands[1].v_d = aem.v_init[1]
   dbn.output_commands[1].h_d = dbn.aem_dyn_cstate[1]
   dbn.output_commands[1].psi_d = dbn.aem_dyn_cstate[3]
 
   dbn.output_commands[2].t = dbn.t
-  dbn.output_commands[2].v_d = aem.initial[10]
+  dbn.output_commands[2].v_d = aem.v_init[2]
   dbn.output_commands[2].h_d = dbn.aem_dyn_cstate[2]
   dbn.output_commands[2].psi_d = dbn.aem_dyn_cstate[4]
 

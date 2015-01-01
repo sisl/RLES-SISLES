@@ -1,4 +1,4 @@
-# Author: Ritchie Lee, ritchie.lee@sv.cmu.@schedule
+# Author: Ritchie Lee, ritchie.lee@sv.cmu.edu
 # Date: 12/11/2014
 
 module ACASX_EvE_Impl
@@ -112,7 +112,6 @@ addObserver(sim::ACASX_EvE, f::Function) = _addObserver(sim, f)
 addObserver(sim::ACASX_EvE, tag::String, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim::ACASX_EvE)
-
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   #Start time at 1 for easier indexing into arrays according to time
@@ -136,6 +135,8 @@ end
 
 function step(sim::ACASX_EvE)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
+
+  sim.t_index += 1
 
   logProb = 0.0 #track the probabilities in this update
 
@@ -161,8 +162,6 @@ function step(sim::ACASX_EvE)
 
   WorldModel.updateAll(wm)
 
-  sim.t_index += 1
-
   return logProb
 end
 
@@ -184,7 +183,9 @@ end
 
 isTerminal(sim::ACASX_EvE) = sim.t_index > sim.params.maxSteps
 
-isEndState(sim::ACASX_EvE) = isNMAC(sim) || isTerminal(sim)
+function isEndState(sim::ACASX_EvE)
+  return isNMAC(sim) || isTerminal(sim)
+end
 
 end #module
 
