@@ -30,7 +30,7 @@ import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractEncounterDBNInterfaces.get
-import CorrAEMImpl.getInitialState
+import AbstractEncounterDBNInterfaces.getInitialState
 
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 
@@ -64,7 +64,7 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
   function CorrAEMDBN(number_of_aircraft::Int,encounter_file::String,initial_sample_file::String,
                       transition_sample_file::String,
-                      encounter_number::Int,command_method::Symbol)
+                      encounter_number::Int,encounter_seed::Uint64,command_method::Symbol)
     dbn = new()
 
     @test number_of_aircraft == 2 #need to revisit the code if this is not true
@@ -80,6 +80,7 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
     dbn.t = 0
 
+    srand(encounter_seed) #There's a rand inside generateEncounter
     generateEncounter(dbn.aem,sample_number=encounter_number) #To optimize: This allocates a lot of memory
 
     #compute initial states of variables
@@ -108,17 +109,20 @@ function initialize(dbn::CorrAEMDBN)
   dbn.aem_dstate = deepcopy(dbn.init_aem_dstate)
   dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
   dbn.t = 0
+
+  #reset aem indices
+  initialize(dbn.aem)
 end
 
 function getInitialState(dbn::CorrAEMDBN, index::Int)
-  return getInitialState(dbn.aem,index)
+  return Encounter.getInitialState(dbn.aem,index)
 end
 
 function step(dbn::CorrAEMDBN)
   if dbn.command_method == :DBN
-    logProb = dbn_step(dbn)
+    logProb = step_dbn(dbn)
   elseif dbn.command_method == :ENC
-    logProb = enc_step(dbn)
+    logProb = step_enc(dbn)
   else
     error("CorrAEMDBNImpl::Step: No such command method")
   end
@@ -127,11 +131,13 @@ function step(dbn::CorrAEMDBN)
   return logProb
 end
 
-function dbn_step(dbn::CorrAEMDBN)
+function step_dbn(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
   aem_dstate = dbn.aem_dstate #entire state, discrete bins
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
+
+  commands = [Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
 
   logProb = 0.0
 
@@ -170,12 +176,12 @@ function dbn_step(dbn::CorrAEMDBN)
   @test dbn.number_of_aircraft == 2
 
   dbn.output_commands[1].t = dbn.t
-  dbn.output_commands[1].v_d = aem.initial[9]
+  dbn.output_commands[1].v_d = commands[1].v_d
   dbn.output_commands[1].h_d = dbn.aem_dyn_cstate[1]
   dbn.output_commands[1].psi_d = dbn.aem_dyn_cstate[3]
 
   dbn.output_commands[2].t = dbn.t
-  dbn.output_commands[2].v_d = aem.initial[10]
+  dbn.output_commands[2].v_d = commands[2].v_d
   dbn.output_commands[2].h_d = dbn.aem_dyn_cstate[2]
   dbn.output_commands[2].psi_d = dbn.aem_dyn_cstate[4]
 
@@ -187,21 +193,20 @@ import Base.convert
 convert(::Type{Vector{Float64}},command_1::CorrAEMCommand,command_2::CorrAEMCommand) =
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]
 
-function enc_step(dbn::CorrAEMDBN)
+function step_enc(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
 
-  #Just a reminder, this will break if number_of_aircraft != 2
-  @test dbn.number_of_aircraft == 2
-
-  command_1 = Encounter.step(aem,1)
-  command_2 = Encounter.step(aem,2)
+  commands = [Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
 
   dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
   dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
 
+  #Just a reminder, this will break if number_of_aircraft != 2
+  @test dbn.number_of_aircraft == 2
+
   #prepare t+1 from encounter commands
-  aem_dyn_cstate = convert(Vector{Float64},command_1,command_2)
+  aem_dyn_cstate = convert(Vector{Float64},commands[1],commands[2])
   aem_dstate = dbn.aem_dstate #only copies pointer
   #load into the (t+1) slots
   #boundaries are specified at t though
@@ -242,18 +247,9 @@ function enc_step(dbn::CorrAEMDBN)
   dbn.aem_dstate = aem_dstate
   dbn.aem_dyn_cstate = aem_dyn_cstate
 
-  #Just a reminder, this will break if number_of_aircraft != 2
-  @test dbn.number_of_aircraft == 2
-
-  dbn.output_commands[1].t = dbn.t
-  dbn.output_commands[1].v_d = aem.v_init[1]
-  dbn.output_commands[1].h_d = dbn.aem_dyn_cstate[1]
-  dbn.output_commands[1].psi_d = dbn.aem_dyn_cstate[3]
-
-  dbn.output_commands[2].t = dbn.t
-  dbn.output_commands[2].v_d = aem.v_init[2]
-  dbn.output_commands[2].h_d = dbn.aem_dyn_cstate[2]
-  dbn.output_commands[2].psi_d = dbn.aem_dyn_cstate[4]
+  for i=1:dbn.number_of_aircraft
+    dbn.output_commands[i] = commands[i]
+  end
 
   #return
   dbn.logProb = logProb

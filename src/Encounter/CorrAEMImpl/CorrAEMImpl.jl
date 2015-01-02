@@ -10,6 +10,7 @@ module CorrAEMImpl
 export
     AddObserver,
 
+    initialize,
     step,
 
     generateEncounter,
@@ -35,6 +36,7 @@ using Util
 using Base.Test
 
 import CommonInterfaces.addObserver
+import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
@@ -365,11 +367,9 @@ function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
 
         transform_regarding_TCA(aem, aem.L, aem.geometry_at_TCA)
 
-
         for i = 1:aem.number_of_aircraft
             aem.state_index[i] = 0
         end
-
 
         #for i = 1:(aem.number_of_transition_samples + 1)
         #    print(reshape(aem.dynamic_states[1, i, :], 6)')
@@ -493,6 +493,14 @@ function getInitialState(aem::CorrAEM, aircraft_number::Int)
 end
 
 getNextCommand(aem::CorrAEM, aircraft_number::Int) = get_next_state(aem, aircraft_number)
+
+function initialize(aem::CorrAEM)
+
+  for i = 1:aem.number_of_aircraft
+    aem.state_index[i] = 0
+  end
+
+end
 
 function step(aem::CorrAEM, aircraft_number::Int)
 

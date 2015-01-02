@@ -15,12 +15,16 @@ module AbstractEncounterDBNInterfaces
 
 export
        # common
-       get
+       get,
+       getInitialState
 
 
 # common
 
 function get()
+end
+
+function getInitialState()
 end
 
 

@@ -66,10 +66,9 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
     sim = new()
     sim.params = p
 
-    srand(p.encounter_seed) #There's a rand inside generateEncounter, need to control it
     sim.em = CorrAEMDBN(p.number_of_aircraft, p.encounter_file, p.initial_sample_file,
                     p.transition_sample_file,
-                    p.encounter_number,p.command_method)
+                    p.encounter_number,p.encounter_seed,p.command_method)
 
     if p.pilotResponseModel == :SimplePR
       sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.number_of_aircraft ]
@@ -92,7 +91,8 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
   end
 end
 
-function initialize(sim::SimpleTCAS_EvU)
+using Debug
+@debug function initialize(sim::SimpleTCAS_EvU)
 
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
