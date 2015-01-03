@@ -26,49 +26,64 @@ import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 function generateProbabilityDict()
-  #key = (activeRA,response,currentRA,reversal_true/false)
+
+  #key = (state,displayRA,response,currentRA,diffStrength)
   #value = (probability vector, output values vector)
-  # where output values vector is an array of tuples (activeRA,response) corresponding
+  # where output values vector is an array of tuples (nextState,response) corresponding
   # to each probability given in probability vector
-  d = Dict{(Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})}()
+  #state = {:coc = clear of conflict, :first = first RA, :multi = change in RA}
+  #displayRA = {:none = no RA, :climb, :level, :descend}
+  #response = {:none = not following, :stay = following last displayRA, :follow = following latest displayRA}
+  #currentRA = incoming RA, values are same as displayRA
+  #diffStrength = {true=currentRA has same symbol but different target_rate, false=same target_Rate}
+  d = Dict{(Symbol,Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})}()
 
   # all entries going to :none go there with prob 1
-  d[(:none,:none,:none,true)] = ([1.0],[(:none,:none)])
-  d[(:none,:none,:none,false)] = ([1.0],[(:none,:none)])
-  d[(:climb,:none,:none,true)] = ([1.0],[(:none,:none)])
-  d[(:climb,:none,:none,false)] = ([1.0],[(:none,:none)])
-  d[(:climb,:climb,:none,true)] = ([1.0],[(:none,:none)])
-  d[(:climb,:climb,:none,false)] = ([1.0],[(:none,:none)])
-  d[(:descend,:none,:none,true)] = ([1.0],[(:none,:none)])
-  d[(:descend,:none,:none,false)] = ([1.0],[(:none,:none)])
-  d[(:descend,:descend,:none,true)] = ([1.0],[(:none,:none)])
-  d[(:descend,:descend,:none,false)] = ([1.0],[(:none,:none)])
+  for state = [:coc,:first,:multi]
+    for displayRA = [:none,:climb,:level,:descend]
+      for response = [:none,:stay,:follow]
+        for strength_change = [true,false]
+          d[(state,displayRA,response,:none,strength_change)] = ([1.0],[(:coc,:none)])
+        end
+      end
+    end
+  end
 
-  # first RA - climb
-  d[(:none,:none,:climb,false)] = ([1/6,5/6],[(:climb,:climb),(:climb,:none)])
-  d[(:climb,:none,:climb,false)] = ([1/6,5/6],[(:climb,:climb),(:climb,:none)])
-  d[(:climb,:none,:descend,false)] = ([1/4,3/4],[(:descend,:descend),(:descend,:none)])
-  d[(:climb,:climb,:climb,false)] = ([1.0],[(:climb,:climb)])
-  d[(:climb,:climb,:descend,false)] = ([1/4,3/4],[(:descend,:descend),(:descend,:none)])
+  # First RA
+  for currentRA = [:climb,:level,:descend]
+    #transition from coc to first
+    d[(:coc,:none,:none,currentRA,false)] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #first time presenting RA
 
-  # first RA - descend
-  d[(:none,:none,:descend,false)] = ([1/6,5/6],[(:descend,:descend),(:descend,:none)])
-  d[(:descend,:none,:descend,false)] = ([1/6,5/6],[(:descend,:descend),(:descend,:none)])
-  d[(:descend,:none,:climb,false)] = ([1/4,3/4],[(:climb,:climb),(:climb,:none)])
-  d[(:descend,:descend,:descend,false)] = ([1.0],[(:descend,:descend)])
-  d[(:descend,:descend,:climb,false)] = ([1/4,3/4],[(:climb,:climb),(:climb,:none)])
+    #staying in first
+    d[(:first,currentRA,:none,currentRA,false)] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #already active, but not following yet
+    d[(:first,currentRA,:follow,currentRA,false)] = ([1.0],[(:first,:follow)]) #already following
 
-  # reversal RA
-  d[(:descend,:none,:descend,true)] = ([1/4,3/4],[(:descend,:descend),(:descend,:none)])
-  d[(:descend,:descend,:descend,true)] = ([1.0],[(:descend,:descend)])
-  d[(:climb,:none,:climb,true)] = ([1/4,3/4],[(:climb,:climb),(:climb,:none)])
-  d[(:climb,:climb,:climb,true)] = ([1.0],[(:climb,:climb)])
+  end
 
-  # reversal RA - not explicit in paper
-  d[(:climb,:none,:descend,true)] = ([1/4,3/4],[(:descend,:descend),(:descend,:none)])
-  d[(:climb,:climb,:descend,true)] = ([1/4,3/4],[(:descend,:descend),(:descend,:none)])
-  d[(:descend,:none,:climb,true)] = ([1/4,3/4],[(:climb,:climb),(:climb,:none)])
-  d[(:descend,:descend,:climb,true)] = ([1/4,3/4],[(:climb,:climb),(:climb,:none)])
+  # Transition into multi
+  for displayRA = [:climb,:level,:descend]
+    for currentRA = [:climb,:level,:descend]
+      for state = [:first,:multi]
+        if displayRA != currentRA #reversals
+          d[(state,displayRA,:none,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #change already active, but not following yet
+          d[(state,displayRA,:stay,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
+          d[(state,displayRA,:follow,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
+        #displayRA == currentRA
+        else #strengthenings
+          d[(state,currentRA,:none,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #change already active, but not following yet
+          d[(state,currentRA,:stay,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
+          d[(state,currentRA,:follow,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
+        end
+      end
+    end
+  end
+
+  # Staying in multi
+  for currentRA = [:climb,:level,:descend]
+    d[(:multi,currentRA,:none,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #already active, but not following yet
+    d[(:multi,currentRA,:stay,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #already active, but not following yet
+    d[(:multi,currentRA,:follow,currentRA,false)] = ([1.0],[(:multi,:follow)]) #already following
+  end
 
   return d
 end
@@ -86,7 +101,7 @@ type StochasticLinearPRCommand
 end
 
 type StochasticLinearPRRA
-  explicit_ra::Bool #true to force target_rate to be followed
+  ra_active::Bool #true if RA is on
   target_rate::Float64
   dh_min::Float64 #min bound on h_d
   dh_max::Float64 #max bound on h_d
@@ -94,18 +109,22 @@ end
 
 type StochasticLinearPR <: AbstractPilotResponse
 
-  activeRA::Symbol #RA currently displaying = [:none, :climb, :descend]
-  response::Symbol #current pilot response = [:none, :climb, :descend]
-  reversal::Bool #is the activeRA a reversal?
+  state::Symbol #[:coc,:first,:multi]
+  displayRA::Symbol #RA currently displaying = [:none, :climb, :descend]
+  target_rate::Union(Nothing,Float64) #target_rate of currently following, used for :stay
+  response::Symbol #current pilot response = [:none, :stay, :follow]
+  output::StochasticLinearPRCommand
 
-  probTable::Dict{(Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
+  probTable::Dict{(Symbol,Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
 
   function StochasticLinearPR()
 
     obj = new()
-    obj.activeRA = :none
+    obj.state = :coc
+    obj.displayRA = :none
+    obj.target_rate = nothing
     obj.response = :none
-    obj.reversal = false
+    obj.output = StochasticLinearPRCommand(0.0, 0.0, 0.0, 0.0, 0.0)
     obj.probTable = probabilityDict
 
     return obj
@@ -116,35 +135,36 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
 
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
-  #Two ways to signal an active RA
-  #1. explicit_ra is true.  e.g., SimpleTCAS will use this signal that commanded h_d is valid
-  #2. if intended h_d is outside of RA bounds, then consider RA as active.  e.g., ACASX
-  # provides dh_min and dh_max as well as a target_rate
-  if RA.explicit_ra || !(RA.dh_min <= update.h_d <= RA.dh_max)
-
-    ra = RA.target_rate >= 0 ? :climb : :descend
-
-    #Debug
-    #@show ra
-    #@show pr.reversal
-    #@show pr.activeRA
-    #@show RA.h_d
-
-    pr.reversal |=  (pr.activeRA == :descend && ra == :climb) || (pr.activeRA == :climb && ra == :descend)
+  if RA.ra_active
+    ra = RA.target_rate == 0 ? :level : RA.target_rate > 0 ? :climb : :descend
   else
     ra = :none
-    pr.reversal = false
   end
 
-  probabilities,values = pr.probTable[(pr.activeRA,pr.response,ra,pr.reversal)]
+  strengthening = (pr.displayRA == ra != :coc) && (nothing != pr.target_rate != RA.target_rate)
+  probabilities,values = pr.probTable[(pr.state,pr.displayRA,pr.response,ra,strengthening)]
   index = select_random(probabilities)
-  pr.activeRA,pr.response = values[index]
+  pr.state,pr.response = values[index]
+  pr.displayRA = ra
 
-  if pr.response != :none
-    h_d = RA.target_rate
+  if pr.response == :stay
+    h_d = pr.target_rate
+  elseif pr.response == :follow
+    h_d = pr.target_rate = RA.target_rate
+  elseif pr.response == :none
+    pr.target_rate = nothing
+  else
+    error("StochasticLinearPRImpl::updatePilotResponse: No such response!")
   end
 
-  return StochasticLinearPRCommand(t, v_d, h_d, psi_d, log(probabilities[index]))
+  #Assign to output
+  pr.output.t = t
+  pr.output.v_d = v_d
+  pr.output.h_d = h_d
+  pr.output.psi_d = psi_d
+  pr.output.logProb = log(probabilities[index])
+
+  return pr.output
 end
 
 step(pr::StochasticLinearPR, update, RA) = step(pr,
@@ -156,11 +176,9 @@ step(pr::StochasticLinearPR,
      RA::StochasticLinearPRRA) = updatePilotResponse(pr, update, RA)
 
 function initialize(pr::StochasticLinearPR)
-
-    pr.activeRA = :none
-    pr.response = :none
-    pr.reversal = false
-
+  pr.state = :coc
+  pr.displayRA = :none
+  pr.response = :none
 end
 
 function select_random(weights)
