@@ -25,7 +25,7 @@ import AbstractGenerativeModelInterfaces.isEndState
 
 import CommonInterfaces.addObserver
 
-export addObserver, ACASX_EvE_params, ACASX_EvE, initialize, step, get, isEndState
+export ACASX_EvE_params, ACASX_EvE, initialize, step, get, isEndState, addObserver
 
 type ACASX_EvE_params
   #global params: remains constant per sim
@@ -64,11 +64,11 @@ type ACASX_EvE <: AbstractGenerativeModel
   sr::Vector{ACASXSensor}
   cas::Vector{ACASX}
 
+  observer::Observer
+
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
-
-  observer::Observer
 
   #empty constructor
   function ACASX_EvE(p::ACASX_EvE_params)
@@ -100,6 +100,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.cas = ACASX[ ACASX(1,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord),
                     ACASX(2,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord) ]
 
+    sim.observer = Observer()
 
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
@@ -121,14 +122,23 @@ function initialize(sim::ACASX_EvE)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
+    notifyObserver(sim,"Command",[i, sim.t_index, initial])
+
     state = DynamicModel.initialize(adm[i], initial)
+
     WorldModel.initialize(wm, i, state)
 
     Sensor.initialize(sr[i])
+    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+
     CollisionAvoidanceSystem.initialize(cas[i])
+    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
 
     PilotResponse.initialize(pr[i])
+    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
   end
+
+  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
 
   return
 end
@@ -146,14 +156,20 @@ function step(sim::ACASX_EvE)
   states = WorldModel.getAll(wm)
 
   for i = 1:sim.params.number_of_aircraft
+
     #intended command
     command = EncounterDBN.get(aem,i)
+    notifyObserver(sim,"Command",[i, sim.t_index, command])
 
     output = Sensor.step(sr[i], states)
+    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+
     RA = CollisionAvoidanceSystem.step(cas[i], output)
+    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
 
     response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb
+    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
@@ -161,6 +177,7 @@ function step(sim::ACASX_EvE)
   end
 
   WorldModel.updateAll(wm)
+  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
 
   return logProb
 end

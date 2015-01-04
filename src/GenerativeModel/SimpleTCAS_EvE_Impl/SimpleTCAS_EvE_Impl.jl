@@ -6,6 +6,7 @@ module SimpleTCAS_EvE_Impl
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces
+using ObserverImpl
 
 using Base.Test
 using EncounterDBN
@@ -22,7 +23,9 @@ import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isEndState
 
-export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isEndState
+import CommonInterfaces.addObserver
+
+export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isEndState, addObserver
 
 type SimpleTCAS_EvE_params
   #global params: remains constant per sim
@@ -57,6 +60,8 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
   sr::Vector{SimpleTCASSensor}
   cas::Vector{CoordSimpleTCAS}
 
+  observer::Observer
+
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
@@ -88,12 +93,17 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
     sim.sr = SimpleTCASSensor[ SimpleTCASSensor(1), SimpleTCASSensor(2) ]
     sim.cas = CoordSimpleTCAS[ CoordSimpleTCAS(1,sim.coord), CoordSimpleTCAS(2,sim.coord) ]
 
+    sim.observer = Observer()
+
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
 
     return sim
   end
 end
+
+addObserver(sim::SimpleTCAS_EvE, f::Function) = _addObserver(sim, f)
+addObserver(sim::SimpleTCAS_EvE, tag::String, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim::SimpleTCAS_EvE)
 
@@ -106,14 +116,22 @@ function initialize(sim::SimpleTCAS_EvE)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
+    notifyObserver(sim,"Command",[i, sim.t_index, initial])
+
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
 
     Sensor.initialize(sr[i])
+    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+
     CollisionAvoidanceSystem.initialize(cas[i])
+    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
 
     PilotResponse.initialize(pr[i])
+    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
   end
+
+  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
 
   return
 end
@@ -133,12 +151,17 @@ function step(sim::SimpleTCAS_EvE)
   for i = 1:sim.params.number_of_aircraft
     #intended command
     command = EncounterDBN.get(aem,i)
+    notifyObserver(sim,"Command",[i, sim.t_index, command])
 
     output = Sensor.step(sr[i], states)
+    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+
     RA = CollisionAvoidanceSystem.step(cas[i], output)
+    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
 
     response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb #this will break if response is not SimplePRCommand
+    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
@@ -146,6 +169,7 @@ function step(sim::SimpleTCAS_EvE)
   end
 
   WorldModel.updateAll(wm)
+  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
 
   return logProb
 end
