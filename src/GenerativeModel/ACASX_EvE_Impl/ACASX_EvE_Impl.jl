@@ -35,7 +35,7 @@ type ACASX_EvE_params
   maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
-  pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
+  pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
   command_method::Symbol #:DBN=sampled from DBN or :ENC=from encounter file
@@ -57,7 +57,7 @@ type ACASX_EvE <: AbstractGenerativeModel
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
-  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR)}
+  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,DeterministicPR)}
   dm::Vector{SimpleADM}
   wm::AirSpace
   coord::GenericCoord
@@ -86,6 +86,9 @@ type ACASX_EvE <: AbstractGenerativeModel
       sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.number_of_aircraft ]
     elseif p.pilotResponseModel == :StochasticLinear
       sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.number_of_aircraft ]
+    elseif p.pilotResponseModel == :FiveVsNone
+      sim.pr = DeterministicPR[ i==1 ? DeterministicPR(5) :
+                                 DeterministicPR(-1) for i=1:p.number_of_aircraft]
     else
       error("ACASX_EvE_Impl: No such pilot response model")
     end

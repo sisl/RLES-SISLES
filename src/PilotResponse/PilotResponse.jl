@@ -18,7 +18,11 @@ export
 
     StochasticLinearPR,
     StochasticLinearPRCommand,
-    StochasticLinearPRRA
+    StochasticLinearPRRA,
+
+    DeterministicPR,
+    DeterministicPRCommand,
+    DeterministicPRRA
 
 
 using AbstractPilotResponseImpl
@@ -26,6 +30,8 @@ using AbstractPilotResponseImpl
 using SimplePilotResponseImpl
 
 using StochasticLinearPRImpl
+
+using DeterministicPRImpl
 
 end
 

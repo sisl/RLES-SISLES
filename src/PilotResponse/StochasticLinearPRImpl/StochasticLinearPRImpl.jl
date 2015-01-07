@@ -113,6 +113,7 @@ type StochasticLinearPR <: AbstractPilotResponse
   displayRA::Symbol #RA currently displaying = [:none, :climb, :descend]
   target_rate::Union(Nothing,Float64) #target_rate of currently following, used for :stay
   response::Symbol #current pilot response = [:none, :stay, :follow]
+  response_time::Int64 #for first RA
   output::StochasticLinearPRCommand
 
   probTable::Dict{(Symbol,Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
@@ -125,6 +126,7 @@ type StochasticLinearPR <: AbstractPilotResponse
     obj.target_rate = nothing
     obj.response = :none
     obj.output = StochasticLinearPRCommand(0.0, 0.0, 0.0, 0.0, 0.0)
+    obj.response_time = 0
     obj.probTable = probabilityDict
 
     return obj
@@ -146,6 +148,10 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
   index = select_random(probabilities)
   pr.state,pr.response = values[index]
   pr.displayRA = ra
+
+  if pr.state == :first && pr.response == :none
+    pr.response_time += 1
+  end
 
   if pr.response == :stay
     h_d = pr.target_rate
@@ -179,6 +185,7 @@ function initialize(pr::StochasticLinearPR)
   pr.state = :coc
   pr.displayRA = :none
   pr.response = :none
+  pr.response_time = 0
 end
 
 function select_random(weights)

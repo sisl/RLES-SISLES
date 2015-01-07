@@ -9,9 +9,13 @@ import Base.convert
 
 #The fact that these are distributed between the simulators (i.e., TCASSimulatorImpl.jl),
 #is a bit messy.
-convert(::Type{StochasticLinearPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = StochasticLinearPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 1.0)
+convert(::Type{StochasticLinearPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = StochasticLinearPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
+
+convert(::Type{DeterministicPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = DeterministicPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
 
 convert(::Type{SimpleADMCommand}, command::StochasticLinearPRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
+
+convert(::Type{SimpleADMCommand}, command::DeterministicPRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
 
 function convert(::Type{ACASXSensorInput}, states::Vector{ASWMState})
 
@@ -29,4 +33,14 @@ end
 function convert(::Type{StochasticLinearPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
   ra_active = RA != nothing
   return StochasticLinearPRRA(ra_active,ra_active ? RA.h_d : 0.0,-9999.0,9999.0)
+end
+
+function convert(::Type{DeterministicPRRA},RA::ACASXOutput)
+  ra_active = (RA.dh_min > -9999.0 || RA.dh_max < 9999.0)
+  return DeterministicPRRA(RA.alarm,ra_active,RA.target_rate,RA.dh_min,RA.dh_max)
+end
+
+function convert(::Type{DeterministicPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
+  ra_active = RA != nothing
+  return DeterministicPRRA(false,ra_active,ra_active ? RA.h_d : 0.0,-9999.0,9999.0)
 end
