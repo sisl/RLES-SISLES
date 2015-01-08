@@ -116,7 +116,7 @@ function initialize(sim::SimpleTCAS_EvE)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Command",[i, sim.t_index, initial])
+    notifyObserver(sim,"Initial",[i, sim.t_index, initial])
 
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
