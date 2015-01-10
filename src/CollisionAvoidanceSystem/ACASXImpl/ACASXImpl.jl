@@ -151,7 +151,20 @@ function step(cas::ACASX, inputVals::ACASXInput)
 end
 
 function initialize(cas::ACASX)
-    reset(cas.casShared)
+
+  #TODO: could be more efficient here by avoiding reallocation
+  cas.outputVals = OutputVals(cas.max_intruders)
+
+  setRecord(cas.coord, cas.my_id,
+            ACASXCoordRecord(cas.my_id,
+                             cas.my_id,
+                             EQUIPAGE.EQUIPAGE_ATCRBS,
+                             25,
+                             0x0,
+                             0x0,
+                             ACASXCoordRecordIntruder[ACASXCoordRecordIntruder(i)
+                                                      for i=1:cas.max_intruders]))
+  reset(cas.casShared)
 end
 
 end
