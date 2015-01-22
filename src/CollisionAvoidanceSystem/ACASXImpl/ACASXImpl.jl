@@ -68,7 +68,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
     cas.my_id = aircraft_number
     cas.max_intruders = nAircraft - 1
     cas.constants = Constants(quant, config_file, cas.max_intruders)
-    cas.casShared = CASShared(cas.constants,CCAS.LIBCAS)
+    cas.casShared = CASShared(cas.constants)
 
     @test cas.max_intruders == max_intruders(cas.casShared) #Will fail if library did not open properly
 
