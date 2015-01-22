@@ -149,7 +149,7 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
   pr.state,pr.response = values[index]
   pr.displayRA = ra
 
-  if pr.state == :first && pr.response == :none
+  if pr.displayRA != :none && pr.response == :none
     pr.response_time += 1
   end
 
