@@ -13,12 +13,15 @@ export
     step,
     get,
 
-    CorrAEMDBN
+    CorrAEMDBN,
+    StarDBN
 
 
 using AbstractEncounterDBNImpl
 
 using CorrAEMDBNImpl
+
+using StarDBNImpl
 
 end
 

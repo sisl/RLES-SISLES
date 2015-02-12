@@ -49,6 +49,8 @@ type ACASX_EvE_params
   quant::Int64 #quantization. Typ. quant=25
   libcas_config_file::String #Path to libcas config file
 
+  string_id::String
+
   ACASX_EvE_params() = new()
 end
 
@@ -77,7 +79,6 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim = new()
     sim.params = p
 
-    srand(p.encounter_seed) #There's a rand inside generateEncounter, need to control it
     sim.em = CorrAEMDBN(p.number_of_aircraft, p.encounter_file, p.initial_sample_file,
                     p.transition_sample_file,
                     p.encounter_number,p.encounter_seed,p.command_method)
@@ -99,9 +100,9 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.coord = GenericCoord(p.number_of_aircraft)
 
     max_intruders = p.number_of_aircraft-1
-    sim.sr = ACASXSensor[ ACASXSensor(1,max_intruders), ACASXSensor(2,max_intruders) ]
-    sim.cas = ACASX[ ACASX(1,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord),
-                    ACASX(2,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord) ]
+    sim.sr = ACASXSensor[ ACASXSensor(i,max_intruders) for i=1:p.number_of_aircraft ]
+    sim.cas = ACASX[ ACASX(i,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord)
+                    for i=1:p.number_of_aircraft ]
 
     sim.observer = Observer()
 
@@ -186,19 +187,21 @@ function step(sim::ACASX_EvE)
 end
 
 function getvhdist(wm::AbstractWorldModel)
-  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
-  x1, y1, h1 = states_1.x, states_1.y, states_1.h
-  x2, y2, h2 = states_2.x, states_2.y, states_2.h
+  states = WorldModel.getAll(wm) #states::Vector{ASWMState}
 
-  vdist = abs(h2-h1)
-  hdist = norm([(x2-x1),(y2-y1)])
+  #[(vdist,hdist)]
+  vhdist = [(abs(s2.h-s1.h),norm([(s2.x-s1.x),(s2.y-s1.y)])) for s1 = states, s2 = states]
+  for i = 1:length(states)
+    vhdist[i,i] = (typemax(Float64),typemax(Float64))
+  end
 
-  return vdist,hdist
+  return vhdist
 end
 
 function isNMAC(sim::ACASX_EvE)
-  vdist,hdist = getvhdist(sim.wm)
-  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
+  vhdist = getvhdist(sim.wm)
+  nmac_test = map((vhd)->vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h,vhdist)
+  return any(nmac_test)
 end
 
 isTerminal(sim::ACASX_EvE) = sim.t_index > sim.params.maxSteps

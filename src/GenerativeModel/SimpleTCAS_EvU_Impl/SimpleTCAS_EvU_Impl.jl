@@ -44,6 +44,8 @@ type SimpleTCAS_EvU_params
   initial_sample_file::String #Path to initial sample file
   transition_sample_file::String #Path to transition sample file
 
+  string_id::String
+
   SimpleTCAS_EvU_params() = new()
 end
 
@@ -179,19 +181,21 @@ function step(sim::SimpleTCAS_EvU)
 end
 
 function getvhdist(wm::AbstractWorldModel)
-  states_1,states_2 = WorldModel.getAll(wm) #states::Vector{ASWMState}
-  x1, y1, h1 = states_1.x, states_1.y, states_1.h
-  x2, y2, h2 = states_2.x, states_2.y, states_2.h
+  states = WorldModel.getAll(wm) #states::Vector{ASWMState}
 
-  vdist = abs(h2-h1)
-  hdist = norm([(x2-x1),(y2-y1)])
+  #[(vdist,hdist)]
+  vhdist = [(abs(s2.h-s1.h),norm([(s2.x-s1.x),(s2.y-s1.y)])) for s1 = states, s2 = states]
+  for i = 1:length(states)
+    vhdist[i,i] = (typemax(Float64),typemax(Float64))
+  end
 
-  return vdist,hdist
+  return vhdist
 end
 
 function isNMAC(sim::SimpleTCAS_EvU)
-  vdist,hdist = getvhdist(sim.wm)
-  return  hdist <= sim.params.nmac_r && vdist <= sim.params.nmac_h
+  vhdist = getvhdist(sim.wm)
+  nmac_test = map((vhd)->vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h,vhdist)
+  return any(nmac_test)
 end
 
 isTerminal(sim::SimpleTCAS_EvU) = sim.t_index > sim.params.maxSteps

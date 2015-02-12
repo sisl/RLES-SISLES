@@ -7,18 +7,22 @@ module SISLES
 export
     CorrAEM,
     LLAEM,
+    CorrAEMDBN,
+    StarDBN,
     SimplePilotResponse,
     StochasticLinearPR,
     SimpleADM,
     AirSpace,
     SimpleTCASSensor,
-    SimpleCASCoord,
+    GenericCoord,
     SimpleTCAS,
     CoordSimpleTCAS,
     ACASX,
     TCASSimulator,
-    SimpleTCAS_EvEU,
+    SimpleTCAS_EvU,
+    SimpleTCAS_EvE,
     ACASX_EvE,
+    ACASX_Multi,
 
     addObserver,
     outputGFormatString,
@@ -43,6 +47,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/CorrAEMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/LLAEMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN")
 push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/CorrAEMDBNImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/StarDBNImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/SimplePilotResponseImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/StochasticLinearPRImpl")
@@ -66,6 +71,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvU_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvE_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_EvE_Impl")
+push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_Multi_Impl")
 
 using Util
 using Encounter
