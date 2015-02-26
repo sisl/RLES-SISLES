@@ -9,6 +9,7 @@ export
     LLAEM,
     CorrAEMDBN,
     StarDBN,
+    PairwiseCorrAEMDBN,
     SimplePilotResponse,
     StochasticLinearPR,
     SimpleADM,
@@ -48,6 +49,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/LLAEMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN")
 push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/CorrAEMDBNImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/StarDBNImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/PairwiseCorrAEMDBNImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/SimplePilotResponseImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/StochasticLinearPRImpl")

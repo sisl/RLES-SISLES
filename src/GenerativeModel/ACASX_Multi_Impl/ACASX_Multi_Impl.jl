@@ -35,6 +35,7 @@ type ACASX_Multi_params
   maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
+  encounterModel::Symbol #{:PairwiseCorrAEMDBN, :StarDBN}
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
 
   #these are to define AEM:
@@ -53,7 +54,7 @@ type ACASX_Multi <: AbstractGenerativeModel
   params::ACASX_Multi_params
 
   #sim objects: contains state that changes throughout sim run
-  em::StarDBN
+  em::Union(StarDBN,PairwiseCorrAEMDBN)
   pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,DeterministicPR)}
   dm::Vector{SimpleADM}
   wm::AirSpace
@@ -72,7 +73,13 @@ type ACASX_Multi <: AbstractGenerativeModel
     sim = new()
     sim.params = p
 
-    sim.em = StarDBN(p.number_of_aircraft, p.encounter_file, p.encounter_seed)
+    if p.encounterModel == :PairwiseCorrAEMDBN
+      sim.em = PairwiseCorrAEMDBN(p.number_of_aircraft, p.encounter_file, p.encounter_seed)
+    elseif p.encounterModel == :StarDBN
+      sim.em = StarDBN(p.number_of_aircraft, p.encounter_file, p.encounter_seed)
+    else
+      error("ACASX_Multi_Impl: No such encounter model")
+    end
 
     if p.pilotResponseModel == :SimplePR
       sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.number_of_aircraft ]

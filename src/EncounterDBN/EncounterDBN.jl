@@ -14,7 +14,8 @@ export
     get,
 
     CorrAEMDBN,
-    StarDBN
+    StarDBN,
+    PairwiseCorrAEMDBN
 
 
 using AbstractEncounterDBNImpl
@@ -22,6 +23,8 @@ using AbstractEncounterDBNImpl
 using CorrAEMDBNImpl
 
 using StarDBNImpl
+
+using PairwiseCorrAEMDBNImpl
 
 end
 

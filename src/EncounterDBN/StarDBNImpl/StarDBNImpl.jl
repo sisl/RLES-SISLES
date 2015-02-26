@@ -15,6 +15,7 @@ export
     step,
     get,
 
+    StarDBNParams,
     StarDBN
 
 using AbstractEncounterDBNImpl
@@ -49,14 +50,41 @@ const PSIDOT_MAX = 0.0
 const L_MIN = 1
 const L_MAX = 5
 
+type StarDBNParams
+  tca::Float64 #time of closest approach in seconds
+  v_min::Float64
+  v_max::Float64
+  vdot_min::Float64
+  vdot_max::Float64
+  h_min::Float64 #feet
+  h_max::Float64 #feet
+  hdot_min::Float64 #feet per second
+  hdot_max::Float64 #feet per second
+  psidot_min::Float64 #degrees
+  psidot_max::Float64 #degrees
+  l_min::Int64
+  l_max::Int64
+end
+
+StarDBNParams(; tca::Float64=40.0, v_min::Float64=400.0, v_max::Float64=600.0,
+              vdot_min::Float64=-2.0, vdot_max::Float64=2.0, h_min::Float64=7000.0,
+              h_max::Float64=8000.0, hdot_min::Float64=-10.0, hdot_max::Float64=10.0,
+              psidot_min::Float64=0.0, psidot_max::Float64=0.0, l_min::Int64=1,
+              l_max::Int64=5) =
+  StarDBNParams(tca,v_min,v_max,vdot_min,vdot_max,h_min,h_max,hdot_min,hdot_max,
+                psidot_min,psidot_max,l_min,l_max)
+
 type StarDBN <: AbstractEncounterDBN
 
   number_of_aircraft::Int64
 
-  parameter_file::String
-  parameters::CorrAEMParameters
+  parameters::StarDBNParams
 
-  dirichlet_initial
+  parameter_file::String
+  aem_parameters::CorrAEMParameters
+
+  encounter_seed::Uint64
+
   dirichlet_transition
 
   t::Int64
@@ -77,18 +105,23 @@ type StarDBN <: AbstractEncounterDBN
 
   logProb::Float64 #log probability of output
 
-  function StarDBN(number_of_aircraft::Int, parameter_file::String, encounter_seed::Uint64)
+  function StarDBN(number_of_aircraft::Int,
+                   parameter_file::String,
+                   encounter_seed::Uint64, p::StarDBNParams=StarDBNParams())
 
     dbn = new()
 
     dbn.number_of_aircraft     = number_of_aircraft
 
-    dbn.parameter_file = parameter_file
-    dbn.parameters = CorrAEMParameters()
-    em_read(dbn.parameters,dbn.parameter_file)
+    dbn.parameters = p
 
-    dbn.dirichlet_initial = bn_dirichlet_prior(dbn.parameters.N_initial)
-    dbn.dirichlet_transition = bn_dirichlet_prior(dbn.parameters.N_transition)
+    dbn.parameter_file = parameter_file
+    dbn.aem_parameters = CorrAEMParameters()
+    em_read(dbn.aem_parameters,dbn.parameter_file)
+
+    dbn.encounter_seed = encounter_seed
+
+    dbn.dirichlet_transition = bn_dirichlet_prior(dbn.aem_parameters.N_transition)
 
     dbn.t = 0
 
@@ -137,18 +170,21 @@ function unconvert_units(x::Float64,var::Symbol)
 end
 
 function generateEncounter(dbn::StarDBN)
+
+  p = dbn.parameters
+
   #initial aircraft states - place in star pattern heading towards origin
   dbn.initial_states = Array(CorrAEMInitialState,dbn.number_of_aircraft)
 
   for i = 1:dbn.number_of_aircraft
 
     t = 0
-    v = V_MIN + rand() * (V_MAX - V_MIN)
-    h = H_MIN + rand() * (H_MAX - H_MIN)
-    h_d = HDOT_MIN + rand() * (HDOT_MAX - HDOT_MIN)
+    v = p.v_min + rand() * (p.v_max - p.v_min)
+    h = p.h_min + rand() * (p.h_max - p.h_min)
+    h_d = p.hdot_min + rand() * (p.hdot_max - p.hdot_min)
     psi = (i-1)*360.0/dbn.number_of_aircraft #absolute approach angle to collision point
-    x = v * TCA * cosd(psi+180)
-    y = v * TCA * sind(psi+180)
+    x = v * p.tca * cosd(psi+180)
+    y = v * p.tca * sind(psi+180)
 
     dbn.initial_states[i] = CorrAEMInitialState(t,x,y,h,v,psi,h_d)
   end
@@ -159,12 +195,12 @@ function generateEncounter(dbn::StarDBN)
 
   for i = 1:dbn.number_of_aircraft
     h_d = dbn.initial_states[i].h_d         #defined before
-    psi_d = PSIDOT_MIN + rand() * (PSIDOT_MAX - PSIDOT_MIN)
-    L = rand(L_MIN:L_MAX) #randint
-    v_d = VDOT_MIN + rand() * (VDOT_MAX - VDOT_MIN)
+    psi_d = p.psidot_min + rand() * (p.psidot_max - p.psidot_min)
+    L = rand(p.l_min:p.l_max) #randint
+    v_d = p.vdot_min + rand() * (p.vdot_max - p.vdot_min)
 
     dbn.initial_commands[i] = Float64[L, v_d, h_d, psi_d]
-    initial_commands_d = discretize(dbn.parameters,unconvert_units(dbn.initial_commands[i]))
+    initial_commands_d = discretize(dbn.aem_parameters,unconvert_units(dbn.initial_commands[i]))
 
     dynamic_variables1 = temporal_map[:,2]
     dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dynamic_variables1)) ]
@@ -190,7 +226,7 @@ function step(dbn::StarDBN)
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft
-    logProb += step_dbn(dbn.parameters,dbn.dirichlet_transition,
+    logProb += step_dbn(dbn.aem_parameters,dbn.dirichlet_transition,
                         dbn.commands_d[i],dbn.commands[i])
 
     dbn.output_commands[i].t = dbn.t
