@@ -45,14 +45,14 @@ end
 
 type DeterministicPR <: AbstractPilotResponse
 
+  initial_resp_time::Int64 #parameter
+  subsequent_resp_time::Int64 #parameter
   follow::Bool
-  initial_resp_time::Int64
-  subsequent_resp_time::Int64
   timer::Int64
   currentRA::Union(DeterministicPRRA,Nothing)
   queuedRA::Union(DeterministicPRRA,Nothing)
   initialRA::Bool
-  output::DeterministicPRCommand
+  output::DeterministicPRCommand #preallocate
 
   function DeterministicPR(initial_resp_time::Int64,subsequent_resp_time::Int64)
 
