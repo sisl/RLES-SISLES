@@ -86,8 +86,10 @@ type ACASX_Multi <: AbstractGenerativeModel
     elseif p.pilotResponseModel == :StochasticLinear
       sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.number_of_aircraft ]
     elseif p.pilotResponseModel == :FiveVsNone
-      sim.pr = DeterministicPR[ i==1 ? DeterministicPR(5) :
-                                 DeterministicPR(-1) for i=1:p.number_of_aircraft]
+      sim.pr = DeterministicPR[ i==1 ? DeterministicPR(5,3) :
+                                 DeterministicPR(-1,-1) for i=1:p.number_of_aircraft]
+    elseif p.pilotResponseModel == :ICAO_all
+      sim.pr = DeterministicPR[ DeterministicPR(5,3) for i=1:p.number_of_aircraft]
     else
       error("ACASX_Multi_Impl: No such pilot response model")
     end

@@ -46,20 +46,24 @@ end
 type DeterministicPR <: AbstractPilotResponse
 
   follow::Bool
-  target_resp_time::Int64
+  initial_resp_time::Int64
+  subsequent_resp_time::Int64
   timer::Int64
   currentRA::Union(DeterministicPRRA,Nothing)
   queuedRA::Union(DeterministicPRRA,Nothing)
+  initialRA::Bool
   output::DeterministicPRCommand
 
-  function DeterministicPR(target_resp_time::Int64)
+  function DeterministicPR(initial_resp_time::Int64,subsequent_resp_time::Int64)
 
     obj = new()
     obj.follow = false
-    obj.target_resp_time = target_resp_time
+    obj.initial_resp_time = initial_resp_time
+    obj.subsequent_resp_time = subsequent_resp_time
     obj.timer = -1 #use -1 as timer off state
     obj.currentRA = nothing
     obj.queuedRA = nothing
+    obj.initialRA = true #first RA
     obj.output = DeterministicPRCommand(0.0, 0.0, 0.0, 0.0, 0.0)
 
     return obj
@@ -73,9 +77,14 @@ function updatePilotResponse(pr::DeterministicPR, update::DeterministicPRCommand
   #decrement the timer
   pr.timer = max(-1,pr.timer-1) #don't go lower than -1=off
 
-  if RA.ra_active && (pr.queuedRA==nothing || RA.alarm) #there was a change in the RA
+  if RA.ra_active && RA.alarm #there was a change in the RA
     pr.queuedRA = deepcopy(RA) #do this RA when timer finishes
-    pr.timer = pr.target_resp_time #set the timer
+    if pr.initialRA
+      pr.timer = pr.initial_resp_time #set the timer
+      pr.initialRA = false
+    else
+      pr.timer = pr.subsequent_resp_time
+    end
   end
 
   # timer is activated
@@ -90,6 +99,7 @@ function updatePilotResponse(pr::DeterministicPR, update::DeterministicPRCommand
     pr.currentRA = nothing
     pr.queuedRA = nothing
     pr.timer = -1
+    pr.initialRA = true
   end
 
   if pr.follow
