@@ -306,18 +306,18 @@ function dediscretize(dval::Int64,boundaries::Vector{Float64},zero_bin::Int64)
   return dval == zero_bin ? 0.0 : val_min +  rand() * (val_max - val_min)
 end
 
-function asub2ind(siz, x)
+function asub2ind(siz::Array{Int64,1}, x::Array{Int64,2})
 # ASUB2IND Linear index from multiple subscripts.
-#   Returns a linear index from multiple subscripts assuming a matrix of a
+#   Returns a linder index from multiple subscripts assuming a matrix of a
 #   specified size.
 #
 #   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
 #   matrix of dimension SIZ associated with subscripts specified in X.
 
-    k = [1, cumprod(siz[1:end-1])]
-    ndx = k' * (x' - 1) + 1
+  k = [[1], cumprod(siz[1:end-1])]
+  ndx = k' * (x' - 1) + 1
 
-    return ndx[1]
+  return ndx[1]
 end
 
 #=

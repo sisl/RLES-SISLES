@@ -137,7 +137,7 @@ function step_dbn(dbn::CorrAEMDBN)
   aem_dstate = dbn.aem_dstate #entire state, discrete bins
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
-  commands = [Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
+  commands = CorrAEMCommand[Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
 
   logProb = 0.0
 
@@ -147,7 +147,7 @@ function step_dbn(dbn::CorrAEMDBN)
   for (o,i) in enumerate(dynamic_variables1)
     parents = p.G_transition[:, i]
     if !isempty(find(parents))
-      j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
+      j = asub2ind(p.r_transition[parents],aem_dstate[parents])
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
       weights /= sum(weights)
       aem_dstate[i] = select_random(weights)
@@ -197,7 +197,7 @@ function step_enc(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
 
-  commands = [Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
+  commands = CorrAEMCommand[Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
 
   dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
   dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
@@ -221,7 +221,7 @@ function step_enc(dbn::CorrAEMDBN)
   for (o,i) in enumerate(dynamic_variables1)
     parents = p.G_transition[:, i]
     if !isempty(find(parents))
-      j = asub2ind(p.r_transition[parents], aem_dstate[parents]')
+      j = asub2ind(p.r_transition[parents], aem_dstate[parents])
       weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
       weights /= sum(weights)
       logProb += log(weights[aem_dstate[i]]) #probability from discrete sampling process
@@ -297,7 +297,7 @@ function unconvertUnitsAemState(state_)
   return state
 end
 
-function asub2ind(siz, x)
+function asub2ind(siz::Array{Int64,1}, x::Array{Int64,1})
 # ASUB2IND Linear index from multiple subscripts.
 #   Returns a linder index from multiple subscripts assuming a matrix of a
 #   specified size.
@@ -305,10 +305,11 @@ function asub2ind(siz, x)
 #   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
 #   matrix of dimension SIZ associated with subscripts specified in X.
 
-    k = [1, cumprod(siz[1:end-1])]
-    ndx = k' * (x' - 1) + 1
 
-    return ndx[1]
+  k = [[1], cumprod(siz[1:end-1])]
+  ndx = k' * (x - 1) + 1
+
+  return ndx[1]
 end
 
 #=

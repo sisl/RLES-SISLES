@@ -126,23 +126,23 @@ function initialize(sim::ACASX_Multi)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Initial",[i, sim.t_index, initial])
+    notifyObserver(sim,"Initial", Any[i, sim.t_index, initial])
 
     state = DynamicModel.initialize(adm[i], initial)
 
     WorldModel.initialize(wm, i, state)
 
     Sensor.initialize(sr[i])
-    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+    notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
 
     CollisionAvoidanceSystem.initialize(cas[i])
-    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
+    notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
 
     PilotResponse.initialize(pr[i])
-    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
+    notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
   end
 
-  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
+  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
   return
 end
@@ -163,17 +163,17 @@ function step(sim::ACASX_Multi)
 
     #intended command
     command = EncounterDBN.get(aem,i)
-    notifyObserver(sim,"Command",[i, sim.t_index, command])
+    notifyObserver(sim,"Command", Any[i, sim.t_index, command])
 
     output = Sensor.step(sr[i], states)
-    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+    notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
 
     RA = CollisionAvoidanceSystem.step(cas[i], output)
-    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
+    notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
 
     response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb
-    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
+    notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
@@ -181,7 +181,7 @@ function step(sim::ACASX_Multi)
   end
 
   WorldModel.updateAll(wm)
-  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
+  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
   return logProb
 end
