@@ -156,7 +156,7 @@ function step(sim::ACASX_EvE)
 
   logProb = 0.0 #track the probabilities in this update
 
-  cmdLogProb = EncounterDBN.step(aem)
+  @show @time cmdLogProb = EncounterDBN.step(aem)
   logProb += cmdLogProb #TODO: decompose this by aircraft?
 
   states = WorldModel.getAll(wm)
@@ -167,17 +167,17 @@ function step(sim::ACASX_EvE)
     command = EncounterDBN.get(aem,i)
     notifyObserver(sim,"Command",Any[i, sim.t_index, command])
 
-    output = Sensor.step(sr[i], states)
+    @show @time output = Sensor.step(sr[i], states)
     notifyObserver(sim,"Sensor",Any[i, sim.t_index, sr[i]])
 
-    RA = CollisionAvoidanceSystem.step(cas[i], output)
+    @show @time RA = CollisionAvoidanceSystem.step(cas[i], output)
     notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
 
-    response = PilotResponse.step(pr[i], command, RA)
+    @show @time response = PilotResponse.step(pr[i], command, RA)
     logProb += response.logProb
     notifyObserver(sim,"Response",Any[i, sim.t_index, pr[i]])
 
-    state = DynamicModel.step(adm[i], response)
+    @show @time state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
 
   end
