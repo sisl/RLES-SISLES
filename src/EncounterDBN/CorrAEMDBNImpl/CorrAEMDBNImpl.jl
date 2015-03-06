@@ -57,6 +57,13 @@ type CorrAEMDBN <: AbstractEncounterDBN
   aem_dstate::Vector{Int64} #discrete current state
   aem_dyn_cstate::Vector{Float64} #continuous of current dynamic variables
 
+  dynamic_variables0::Vector{Int64}
+  dynamic_variables1::Vector{Int64}
+
+  parents_cache::Dict{Int64,Vector{Bool}}
+  weights_cache::Dict{(Int64,Int64),Vector{Float64}}
+  cumweights_cache::Dict{(Int64,Int64),Vector{Float64}}
+
   #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
 
@@ -84,21 +91,38 @@ type CorrAEMDBN <: AbstractEncounterDBN
     generateEncounter(dbn.aem,sample_number=encounter_number) #To optimize: This allocates a lot of memory
 
     #compute initial states of variables
-    dynamic_variables0 = dbn.aem.parameters.temporal_map[:,1]
+    dbn.dynamic_variables0 = dbn.aem.parameters.temporal_map[:,1]
+    dbn.dynamic_variables1 = dbn.aem.parameters.temporal_map[:,2]
+
     aem_initial_unconverted = unconvertUnitsAemState(dbn.aem.initial)
     aem_initial_dstate = Int64[ val2ind(dbn.aem.parameters.boundaries[i],
                                         dbn.aem.parameters.r_transition[i],val)
                                for (i,val) in enumerate(aem_initial_unconverted)]
-    dbn.init_aem_dstate = [aem_initial_dstate,aem_initial_dstate[dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
-    dbn.init_aem_dyn_cstate = dbn.aem.initial[dynamic_variables0] #continuous variables.
+    dbn.init_aem_dstate = [aem_initial_dstate,aem_initial_dstate[dbn.dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
+    dbn.init_aem_dyn_cstate = dbn.aem.initial[dbn.dynamic_variables0] #continuous variables.
     dbn.dirichlet_transition = bn_dirichlet_prior(dbn.aem.parameters.N_transition)
+
+    dbn.aem_dstate = deepcopy(dbn.init_aem_dstate)
+    dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
+
+    #precompute and cache these quantities
+    dbn.parents_cache = Dict{Int64,Vector{Bool}}()
+    dbn.weights_cache = Dict{(Int64,Int64),Vector{Float64}}()
+    dbn.cumweights_cache = Dict{(Int64,Int64),Vector{Float64}}()
+    for i = 1:length(dbn.aem.parameters.N_transition)
+      dbn.parents_cache[i] = dbn.aem.parameters.G_transition[:, i]
+      for j = 1:1:size(dbn.dirichlet_transition[i],2)
+        dbn.weights_cache[(i,j)] = dbn.aem.parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
+        dbn.weights_cache[(i,j)] /= sum(dbn.weights_cache[(i,j)])
+        dbn.cumweights_cache[(i,j)] = cumsum(dbn.weights_cache[(i,j)])
+      end
+    end
 
     dbn.output_commands = CorrAEMCommand[ CorrAEMCommand(0.,0.,0.,0.) for i = 1:number_of_aircraft ]
     dbn.logProb = 0.0
 
     return dbn
   end
-
 end
 
 addObserver(dbn::CorrAEMDBN, f::Function) = _addObserver(aem, f)
@@ -106,8 +130,8 @@ addObserver(dbn::CorrAEMDBN, tag::String, f::Function) = _addObserver(aem, tag, 
 
 function initialize(dbn::CorrAEMDBN)
   #reset to initial state
-  dbn.aem_dstate = deepcopy(dbn.init_aem_dstate)
-  dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
+  copy!(dbn.aem_dstate,dbn.init_aem_dstate)
+  copy!(dbn.aem_dyn_cstate, dbn.init_aem_dyn_cstate)
   dbn.t = 0
 
   #reset aem indices
@@ -137,23 +161,15 @@ function step_dbn(dbn::CorrAEMDBN)
   aem_dstate = dbn.aem_dstate #entire state, discrete bins
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
-  commands = CorrAEMCommand[Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
-
   logProb = 0.0
 
-  dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
-  dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
-
-  for (o,i) in enumerate(dynamic_variables1)
-    parents = p.G_transition[:, i]
-    if !isempty(find(parents))
-      j = asub2ind(p.r_transition[parents],aem_dstate[parents])
-      weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
-      weights /= sum(weights)
-      aem_dstate[i] = select_random(weights)
-      logProb += log(weights[aem_dstate[i]])
+  for (o,i) in enumerate(dbn.dynamic_variables1)
+    if !isempty(find(dbn.parents_cache[i]))
+      j = sub2ind(p.r_transition[dbn.parents_cache[i]],aem_dstate[dbn.parents_cache[i]])
+      aem_dstate[i] = select_random_cumweights(dbn.cumweights_cache[(i,j)])
+      logProb += log(dbn.weights_cache[(i,j)][aem_dstate[i]])
       #Resampling and dediscretizing process
-      i_t = dynamic_variables0[o]
+      i_t = dbn.dynamic_variables0[o]
       if (aem_dstate[i] != aem_dstate[i_t]) || #compare to state at last time step, #Different bin, do resample
         (aem_dstate[i] == aem_dstate[i_t] && rand() < p.resample_rates[i_t]) #Same bin but meets resample rate
         aem_dyn_cstate[o] = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
@@ -166,7 +182,7 @@ function step_dbn(dbn::CorrAEMDBN)
   end
 
   # update x(t) with x(t+1)
-  aem_dstate[dynamic_variables0] = aem_dstate[dynamic_variables1]
+  aem_dstate[dbn.dynamic_variables0] = aem_dstate[dbn.dynamic_variables1]
 
   #push to sim
   dbn.aem_dstate = aem_dstate
@@ -176,12 +192,12 @@ function step_dbn(dbn::CorrAEMDBN)
   @test dbn.number_of_aircraft == 2
 
   dbn.output_commands[1].t = dbn.t
-  dbn.output_commands[1].v_d = commands[1].v_d
+  dbn.output_commands[1].v_d = getInitialSample(dbn.aem, :v1d)
   dbn.output_commands[1].h_d = dbn.aem_dyn_cstate[1]
   dbn.output_commands[1].psi_d = dbn.aem_dyn_cstate[3]
 
   dbn.output_commands[2].t = dbn.t
-  dbn.output_commands[2].v_d = commands[2].v_d
+  dbn.output_commands[2].v_d = getInitialSample(dbn.aem, :v2d)
   dbn.output_commands[2].h_d = dbn.aem_dyn_cstate[2]
   dbn.output_commands[2].psi_d = dbn.aem_dyn_cstate[4]
 
@@ -197,37 +213,33 @@ function step_enc(dbn::CorrAEMDBN)
   aem = dbn.aem
   p = aem.parameters
 
-  commands = CorrAEMCommand[Encounter.step(aem,i) for i=1:dbn.number_of_aircraft]
-
-  dynamic_variables0 = p.temporal_map[:,1] #[hdot_1(t), hdot_2(t), psidot_1(t), psidot_2(t)]
-  dynamic_variables1 = p.temporal_map[:,2] #[hdot_1(t+1), hdot_2(t+1), psidot_1(t+1), psidot_2(t+1)]
+  for i=1:dbn.number_of_aircraft
+    dbn.output_commands[i] = Encounter.step(aem,i)
+  end
 
   #Just a reminder, this will break if number_of_aircraft != 2
   @test dbn.number_of_aircraft == 2
 
   #prepare t+1 from encounter commands
-  aem_dyn_cstate = convert(Vector{Float64},commands[1],commands[2])
+  aem_dyn_cstate = convert(Vector{Float64},dbn.output_commands[1],dbn.output_commands[2])
   aem_dstate = dbn.aem_dstate #only copies pointer
   #load into the (t+1) slots
   #boundaries are specified at t though
   aem_dyn_cstate_unconverted = unconvertUnitsDynVars(aem_dyn_cstate) #need to unconvert units
-  aem_dstate[dynamic_variables1] = Int64[ val2ind(aem.parameters.boundaries[i],
+  aem_dstate[dbn.dynamic_variables1] = Int64[ val2ind(aem.parameters.boundaries[i],
                                                  aem.parameters.r_transition[i],
                                                  aem_dyn_cstate_unconverted[o])
                                         for (o,i) in enumerate(dynamic_variables0) ]
 
   # compute the probability of this transition
   logProb = 0.0
-  for (o,i) in enumerate(dynamic_variables1)
-    parents = p.G_transition[:, i]
-    if !isempty(find(parents))
-      j = asub2ind(p.r_transition[parents], aem_dstate[parents])
-      weights = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
-      weights /= sum(weights)
-      logProb += log(weights[aem_dstate[i]]) #probability from discrete sampling process
+  for (o,i) in enumerate(dbn.dynamic_variables1)
+    if !isempty(find(dbn.parents_cache[i]))
+      j = sub2ind(p.r_transition[dbn.parents_cache[i]],aem_dstate[dbn.parents_cache[i]])
+      logProb += log(dbn.weights_cache[(i,j)][aem_dstate[i]])
 
       #probability from continuous sampling process
-      i_t = dynamic_variables0[o]
+      i_t = dbn.dynamic_variables0[o]
       if aem_dstate[i] == aem_dstate[i_t] != p.zero_bins[i_t] #same bin but not the zero bin
         if isapprox(aem_dyn_cstate[o],dbn.aem_dyn_cstate[o],atol=0.0001)
           #Same bin and no resample
@@ -241,15 +253,11 @@ function step_enc(dbn::CorrAEMDBN)
   end
 
   # update x(t) with x(t+1)
-  aem_dstate[dynamic_variables0] = aem_dstate[dynamic_variables1]
+  aem_dstate[dbn.dynamic_variables0] = aem_dstate[dbn.dynamic_variables1]
 
   #push to sim
   dbn.aem_dstate = aem_dstate
   dbn.aem_dyn_cstate = aem_dyn_cstate
-
-  for i=1:dbn.number_of_aircraft
-    dbn.output_commands[i] = commands[i]
-  end
 
   #return
   dbn.logProb = logProb
@@ -297,38 +305,10 @@ function unconvertUnitsAemState(state_)
   return state
 end
 
-function asub2ind(siz::Array{Int64,1}, x::Array{Int64,1})
-# ASUB2IND Linear index from multiple subscripts.
-#   Returns a linder index from multiple subscripts assuming a matrix of a
-#   specified size.
-#
-#   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
-#   matrix of dimension SIZ associated with subscripts specified in X.
-
-
-  k = [[1], cumprod(siz[1:end-1])]
-  ndx = k' * (x - 1) + 1
-
-  return ndx[1]
+function select_random_cumweights(cweights::Vector{Float64})
+  r = cweights[end] * rand()
+  return findfirst(x -> (x >= r), cweights)
 end
-
-#=
-function fastcopy(em::CorrAEM)
-  emcopy = CorrAEM()
-
-  for sym in names(em)
-    if isdefined(em,sym)
-      if sym == :parameters
-        #:parameters is very big.  Since it does not change once loaded, just copy the pointer
-        emcopy.(sym) = em.(sym)
-      else
-        emcopy.(sym) = deepcopy(em.(sym)) #deepcopy everything else
-      end
-    end
-  end
-  return emcopy
-end
-=#
 
 end #module
 
