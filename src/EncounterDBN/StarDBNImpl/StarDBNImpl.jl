@@ -100,6 +100,13 @@ type StarDBN <: AbstractEncounterDBN
   commands_d::Vector{Vector{Int64}} #discrete current state
   commands::Vector{Vector{Float64}} #continuous of current dynamic variables
 
+  #caching and reuse
+  dynamic_variables0::Vector{Int64}
+  dynamic_variables1::Vector{Int64}
+  parents_cache::Dict{Int64,Vector{Bool}}
+  weights_cache::Dict{(Int64,Int64),Vector{Float64}}
+  cumweights_cache::Dict{(Int64,Int64),Vector{Float64}}
+
   #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
 
@@ -125,8 +132,28 @@ type StarDBN <: AbstractEncounterDBN
 
     dbn.t = 0
 
+    #compute initial states of variables
+    dbn.dynamic_variables0 = temporal_map[:,1]
+    dbn.dynamic_variables1 = temporal_map[:,2]
+
     srand(encounter_seed) #There's a rand inside generateEncounter
     generateEncounter(dbn) #sets initial_states, initial_commands_d, initial_commands
+
+    dbn.commands_d = deepcopy(dbn.initial_commands_d)
+    dbn.commands = deepcopy(dbn.initial_commands)
+
+    #precompute and cache these quantities
+    dbn.parents_cache = Dict{Int64,Vector{Bool}}()
+    dbn.weights_cache = Dict{(Int64,Int64),Vector{Float64}}()
+    dbn.cumweights_cache = Dict{(Int64,Int64),Vector{Float64}}()
+    for i = 1:length(dbn.aem_parameters.N_transition)
+      dbn.parents_cache[i] = dbn.aem_parameters.G_transition[:, i]
+      for j = 1:1:size(dbn.dirichlet_transition[i],2)
+        dbn.weights_cache[(i,j)] = dbn.aem_parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
+        dbn.weights_cache[(i,j)] /= sum(dbn.weights_cache[(i,j)])
+        dbn.cumweights_cache[(i,j)] = cumsum(dbn.weights_cache[(i,j)])
+      end
+    end
 
     dbn.output_commands = CorrAEMCommand[ CorrAEMCommand(0.,0.,0.,0.) for i = 1:number_of_aircraft ]
     dbn.logProb = 0.0
@@ -170,7 +197,6 @@ function unconvert_units(x::Float64,var::Symbol)
 end
 
 function generateEncounter(dbn::StarDBN)
-
   p = dbn.parameters
 
   #initial aircraft states - place in star pattern heading towards origin
@@ -202,8 +228,7 @@ function generateEncounter(dbn::StarDBN)
     dbn.initial_commands[i] = Float64[L, v_d, h_d, psi_d]
     initial_commands_d = discretize(dbn.aem_parameters,unconvert_units(dbn.initial_commands[i]))
 
-    dynamic_variables1 = temporal_map[:,2]
-    dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dynamic_variables1)) ]
+    dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dbn.dynamic_variables1)) ]
   end
 end
 
@@ -212,8 +237,8 @@ addObserver(dbn::StarDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::StarDBN)
   #reset to initial state
-  dbn.commands_d = deepcopy(dbn.initial_commands_d)
-  dbn.commands = deepcopy(dbn.initial_commands)
+  copy!(dbn.commands_d,dbn.initial_commands_d)
+  copy!(dbn.commands,dbn.initial_commands)
   dbn.t = 0
 
 end
@@ -226,8 +251,7 @@ function step(dbn::StarDBN)
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft
-    logProb += step_dbn(dbn.aem_parameters,dbn.dirichlet_transition,
-                        dbn.commands_d[i],dbn.commands[i])
+    logProb += step_dbn(dbn, dbn.commands_d[i],dbn.commands[i])
 
     dbn.output_commands[i].t = dbn.t
     dbn.output_commands[i].v_d = dbn.commands[i][map_var2ind_L[:v_d]]
@@ -240,25 +264,20 @@ function step(dbn::StarDBN)
   return logProb
 end
 
-function step_dbn(p::CorrAEMParameters, dirichlet_transition,
-                         command_d::Vector{Int64}, command::Vector{Float64})
+function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float64})
+  p = dbn.aem_parameters
+
   logProb = 0.0
 
-  dynamic_variables0 = temporal_map[:,1] #[hdot_1(t), psidot_1(t)]
-  dynamic_variables1 = temporal_map[:,2] #[hdot_1(t+1), psidot_1(t+1)]
-
-  for (o,i_L) in enumerate(dynamic_variables1)
+  for (o,i_L) in enumerate(dbn.dynamic_variables1)
     i_G = map_L2G[i_L]
-    parents_G = p.G_transition[:, i_G]
-    if !isempty(find(parents_G))
-      parents_L = Int64[map_G2L[iparents] for iparents in find(parents_G)]
-      j_G = asub2ind(p.r_transition[parents_G], command_d[parents_L]')
-      weights = p.N_transition[i_G][:, j_G] + dirichlet_transition[i_G][:, j_G]
-      weights /= sum(weights)
-      command_d[i_L] = select_random(weights)
-      logProb += log(weights[command_d[i_L]])
+    if !isempty(find(dbn.parents_cache[i_G]))
+      parents_L = Int64[map_G2L[iparents] for iparents in find(dbn.parents_cache[i_G])]
+      j_G = sub2ind(p.r_transition[dbn.parents_cache[i_G]], command_d[parents_L])
+      command_d[i_L] = select_random_cumweights(dbn.cumweights_cache[(i_G,j_G)])
+      logProb += log(dbn.weights_cache[(i_G,j_G)][command_d[i_L]])
       #Resampling and dediscretizing process
-      i0_L = dynamic_variables0[o]
+      i0_L = dbn.dynamic_variables0[o]
       i0_G = map_L2G[i0_L]
       if (command_d[i_L] != command_d[i0_L]) || #compare to state at last time step, #Different bin, do resample
         (command_d[i_L] == command_d[i0_L] && rand() < p.resample_rates[i0_G]) #Same bin but meets resample rate
@@ -270,7 +289,7 @@ function step_dbn(p::CorrAEMParameters, dirichlet_transition,
   end
 
   # update x(t) with x(t+1)
-  command_d[dynamic_variables0] = command_d[dynamic_variables1]
+  command_d[dbn.dynamic_variables0] = command_d[dbn.dynamic_variables1]
 
   #return
   return logProb
@@ -306,37 +325,11 @@ function dediscretize(dval::Int64,boundaries::Vector{Float64},zero_bin::Int64)
   return dval == zero_bin ? 0.0 : val_min +  rand() * (val_max - val_min)
 end
 
-function asub2ind(siz::Array{Int64,1}, x::Array{Int64,2})
-# ASUB2IND Linear index from multiple subscripts.
-#   Returns a linder index from multiple subscripts assuming a matrix of a
-#   specified size.
-#
-#   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
-#   matrix of dimension SIZ associated with subscripts specified in X.
-
-  k = [[1], cumprod(siz[1:end-1])]
-  ndx = k' * (x' - 1) + 1
-
-  return ndx[1]
+function select_random_cumweights(cweights::Vector{Float64})
+  r = cweights[end] * rand()
+  return findfirst(x -> (x >= r), cweights)
 end
 
-#=
-function fastcopy(em::CorrAEM)
-  emcopy = CorrAEM()
-
-  for sym in names(em)
-    if isdefined(em,sym)
-      if sym == :parameters
-        #:parameters is very big.  Since it does not change once loaded, just copy the pointer
-        emcopy.(sym) = em.(sym)
-      else
-        emcopy.(sym) = deepcopy(em.(sym)) #deepcopy everything else
-      end
-    end
-  end
-  return emcopy
-end
-=#
 
 end #module
 

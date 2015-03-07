@@ -57,9 +57,9 @@ type CorrAEMDBN <: AbstractEncounterDBN
   aem_dstate::Vector{Int64} #discrete current state
   aem_dyn_cstate::Vector{Float64} #continuous of current dynamic variables
 
+  #caching and reuse
   dynamic_variables0::Vector{Int64}
   dynamic_variables1::Vector{Int64}
-
   parents_cache::Dict{Int64,Vector{Bool}}
   weights_cache::Dict{(Int64,Int64),Vector{Float64}}
   cumweights_cache::Dict{(Int64,Int64),Vector{Float64}}
