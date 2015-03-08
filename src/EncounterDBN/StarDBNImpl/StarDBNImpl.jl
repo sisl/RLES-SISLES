@@ -237,8 +237,10 @@ addObserver(dbn::StarDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::StarDBN)
   #reset to initial state
-  copy!(dbn.commands_d,dbn.initial_commands_d)
-  copy!(dbn.commands,dbn.initial_commands)
+  for i=1:dbn.number_of_aircraft
+    copy!(dbn.commands_d[i], dbn.initial_commands_d[i])
+    copy!(dbn.commands[i], dbn.initial_commands[i])
+  end
   dbn.t = 0
 
 end

@@ -156,8 +156,7 @@ function step(dbn::CorrAEMDBN)
 end
 
 function step_dbn(dbn::CorrAEMDBN)
-  aem = dbn.aem
-  p = aem.parameters
+  p = dbn.aem.parameters
   aem_dstate = dbn.aem_dstate #entire state, discrete bins
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
