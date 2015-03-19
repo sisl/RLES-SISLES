@@ -228,7 +228,7 @@ function step_enc(dbn::CorrAEMDBN)
   aem_dstate[dbn.dynamic_variables1] = Int64[ val2ind(aem.parameters.boundaries[i],
                                                  aem.parameters.r_transition[i],
                                                  aem_dyn_cstate_unconverted[o])
-                                        for (o,i) in enumerate(dynamic_variables0) ]
+                                        for (o,i) in enumerate(dbn.dynamic_variables0) ]
 
   # compute the probability of this transition
   logProb = 0.0

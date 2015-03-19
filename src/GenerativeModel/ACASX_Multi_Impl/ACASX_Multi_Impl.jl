@@ -63,6 +63,7 @@ type ACASX_Multi <: AbstractGenerativeModel
   cas::Vector{ACASX}
 
   observer::Observer
+  string_id::String
 
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
@@ -105,6 +106,7 @@ type ACASX_Multi <: AbstractGenerativeModel
                     for i=1:p.number_of_aircraft ]
 
     sim.observer = Observer()
+    sim.string_id = "ACASX_Multi_$(p.encounter_seed)"
 
     #Start time at 1 for easier indexing into arrays according to time
     sim.t_index = 1
