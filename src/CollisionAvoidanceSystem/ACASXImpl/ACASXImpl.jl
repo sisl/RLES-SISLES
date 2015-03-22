@@ -31,6 +31,7 @@ using AbstractCASCoordImpl
 
 using CASCoordination
 using CCAS
+import CCAS.reset!
 
 typealias ACASXInput InputVals
 typealias ACASXOutput OutputVals
@@ -72,9 +73,10 @@ type ACASX <: AbstractCollisionAvoidanceSystem
 
     @test cas.max_intruders == max_intruders(cas.casShared) #Will fail if library did not open properly
 
-    cas.outputVals = OutputVals(cas.max_intruders)
+
     cas.coord = coord
 
+    cas.outputVals = OutputVals(cas.max_intruders)
     setRecord(cas.coord, cas.my_id,
               ACASXCoordRecord(cas.my_id,
                                cas.my_id,
@@ -152,19 +154,27 @@ end
 
 function initialize(cas::ACASX)
 
-  #TODO: could be more efficient here by avoiding reallocation
-  cas.outputVals = OutputVals(cas.max_intruders)
+  reset!(cas.outputVals)
 
-  setRecord(cas.coord, cas.my_id,
-            ACASXCoordRecord(cas.my_id,
-                             cas.my_id,
-                             EQUIPAGE.EQUIPAGE_ATCRBS,
-                             25,
-                             0x0,
-                             0x0,
-                             ACASXCoordRecordIntruder[ACASXCoordRecordIntruder(i)
-                                                      for i=1:cas.max_intruders]))
+  reset!(cas,getRecord(cas.coord, cas.my_id))
+
   reset(cas.casShared)
+end
+
+function reset!(cas::ACASX,rec::ACASXCoordRecord)
+  rec.my_id = cas.my_id
+  rec.modes = cas.my_id
+  rec.equipage = EQUIPAGE.EQUIPAGE_ATCRBS
+  rec.quant = 25
+  rec.sensitivity_index = 0x0
+  rec.protection_mode = 0x0
+
+  for i=1:endof(rec.intruders)
+    rec.intruders[i].id = uint32(i)
+    rec.intruders[i].cvc = 0x0
+    rec.intruders[i].vrc = 0x0
+    rec.intruders[i].vsb = 0x0
+  end
 end
 
 end
