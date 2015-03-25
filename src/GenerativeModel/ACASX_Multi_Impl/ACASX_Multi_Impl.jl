@@ -128,7 +128,7 @@ function initialize(sim::ACASX_Multi)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Initial", Any[i, sim.t_index, initial])
+    notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
 
     state = DynamicModel.initialize(adm[i], initial)
 

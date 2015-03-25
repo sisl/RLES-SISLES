@@ -61,6 +61,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
   max_intruders::Int64
   constants::Constants
   casShared::CASShared
+  inputVals::InputVals
   outputVals::OutputVals
   coord::AbstractCASCoord
 
@@ -76,11 +77,12 @@ type ACASX <: AbstractCollisionAvoidanceSystem
 
     cas.coord = coord
 
+    cas.inputVals = InputVals(cas.max_intruders)
     cas.outputVals = OutputVals(cas.max_intruders)
     setRecord(cas.coord, cas.my_id,
               ACASXCoordRecord(cas.my_id,
                                cas.my_id,
-                               EQUIPAGE.EQUIPAGE_ATCRBS,
+                               EQUIPAGE.EQUIPAGE_TCAS,
                                25,
                                0x0,
                                0x0,
@@ -130,7 +132,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
   #update my record in coordination object
   #intruder-shared
   my_record.sensitivity_index = cas.outputVals.sensitivity_index
-  #others don't need to be update...
+  #others (equipage,quant,protection_mode) don't need to be updated...
 
   #intruder-specific
   for i = 1:endof(my_record.intruders)
@@ -142,12 +144,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
 
   setRecord(cas.coord, cas.my_id, my_record) #push back to coord
 
-  #debug:
-  #if cas.outputVals.alarm && cas.outputVals.target_rate != 0.0
-  #  @show cas.my_id
-  #  xdump(cas.outputVals)
-  #  xdump(cas.outputVals.intruders[1])
-  #end
+  cas.inputVals = inputVals #keep a record
 
   return cas.outputVals
 end
@@ -164,7 +161,7 @@ end
 function reset!(cas::ACASX,rec::ACASXCoordRecord)
   rec.my_id = cas.my_id
   rec.modes = cas.my_id
-  rec.equipage = EQUIPAGE.EQUIPAGE_ATCRBS
+  rec.equipage = EQUIPAGE.EQUIPAGE_TCAS
   rec.quant = 25
   rec.sensitivity_index = 0x0
   rec.protection_mode = 0x0

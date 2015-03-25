@@ -143,6 +143,7 @@ function getInitialState(dbn::CorrAEMDBN, index::Int)
 end
 
 function step(dbn::CorrAEMDBN)
+
   if dbn.command_method == :DBN
     logProb = step_dbn(dbn)
   elseif dbn.command_method == :ENC
@@ -150,6 +151,7 @@ function step(dbn::CorrAEMDBN)
   else
     error("CorrAEMDBNImpl::Step: No such command method")
   end
+
   dbn.t += 1
 
   return logProb
