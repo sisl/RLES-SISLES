@@ -45,8 +45,6 @@ type ACASX_Multi_params
   quant::Int64 #quantization. Typ. quant=25
   libcas_config_file::String #Path to libcas config file
 
-  string_id::String
-
   ACASX_Multi_params() = new()
 end
 

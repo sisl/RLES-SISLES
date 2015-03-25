@@ -49,7 +49,6 @@ type ACASX_EvE_params
   quant::Int64 #quantization. Typ. quant=25
   libcas_config_file::String #Path to libcas config file
 
-
   ACASX_EvE_params() = new()
 end
 
