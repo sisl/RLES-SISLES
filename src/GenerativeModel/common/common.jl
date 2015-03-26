@@ -36,11 +36,27 @@ function convert(::Type{StochasticLinearPRRA},RA::Union(SimpleTCASResolutionAdvi
 end
 
 function convert(::Type{DeterministicPRRA},RA::ACASXOutput)
-  ra_active = (RA.dh_min > -9999.0 || RA.dh_max < 9999.0)
-  return DeterministicPRRA(RA.alarm,ra_active,RA.target_rate,RA.dh_min,RA.dh_max)
+  return DeterministicPRRA(RA.dh_min,RA.dh_max,RA.target_rate)
 end
 
 function convert(::Type{DeterministicPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
   ra_active = RA != nothing
-  return DeterministicPRRA(false,ra_active,ra_active ? RA.h_d : 0.0,-9999.0,9999.0)
+  if !ra_active
+    #not active
+    return DeterministicPRRA(-9999.0,9999.0,0.0)
+  else
+    #RA
+    if RA.h_d > 0
+      #climb
+      return DeterministicPRRA(RA.h_d, 9999.0, RA.h_d)
+    elseif RA.h_d < 0
+      #descend
+      return DeterministicPRRA(-9999.0, RA.h_d, RA.h_d)
+    else
+      #level
+      return DeterministicPRRA(RA.h_d, RA.h_d, RA.h_d)
+    end
+  end
+
+  error("Shouldn't have gotten here")
 end

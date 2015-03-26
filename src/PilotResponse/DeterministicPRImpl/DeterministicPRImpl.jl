@@ -14,7 +14,6 @@ export
     DeterministicPRRA,
     DeterministicPRCommand
 
-
 using AbstractPilotResponseImpl
 using AbstractPilotResponseInterfaces
 using CommonInterfaces
@@ -23,6 +22,8 @@ import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
+using Base.Test
+import Base.isequal
 
 type DeterministicPRCommand
 
@@ -36,74 +37,113 @@ end
 
 type DeterministicPRRA
 
-  alarm::Bool #alarm flags changes in RA
-  ra_active::Bool #true if RA is on
-  target_rate::Float64
   dh_min::Float64
   dh_max::Float64
+  target_rate::Float64
+end
+
+type QueueEntry
+  t::Int64
+  RA::DeterministicPRRA
 end
 
 type DeterministicPR <: AbstractPilotResponse
 
   initial_resp_time::Int64 #parameter
   subsequent_resp_time::Int64 #parameter
-  follow::Bool
+
+  state::Symbol #{none,follow,stay}
+  queue::Vector{QueueEntry}
   timer::Int64
-  currentRA::Union(DeterministicPRRA,Nothing)
-  queuedRA::Union(DeterministicPRRA,Nothing)
-  initialRA::Bool
+
   output::DeterministicPRCommand #preallocate
 
   function DeterministicPR(initial_resp_time::Int64,subsequent_resp_time::Int64)
 
     obj = new()
-    obj.follow = false
     obj.initial_resp_time = initial_resp_time
     obj.subsequent_resp_time = subsequent_resp_time
-    obj.timer = -1 #use -1 as timer off state
-    obj.currentRA = nothing
-    obj.queuedRA = nothing
-    obj.initialRA = true #first RA
+
+    obj.state = :none
+    obj.queue = QueueEntry[]
+    obj.timer = 0
+
     obj.output = DeterministicPRCommand(0.0, 0.0, 0.0, 0.0, 0.0)
 
     return obj
   end
 end
 
-function updatePilotResponse(pr::DeterministicPR, update::DeterministicPRCommand, RA::DeterministicPRRA)
+function isequal(x::DeterministicPRRA,y::DeterministicPRRA)
+  return x.dh_min == y.dh_min && x.dh_max == y.dh_max && x.target_rate == y.target_rate
+end
 
+function add_to_queue!(pr::DeterministicPR,q::Vector{QueueEntry},RA::DeterministicPRRA)
+  t_left = isempty(q) ? pr.initial_resp_time : pr.subsequent_resp_time
+
+  filter!(x->x.t < t_left,q) #all elements should have a time smaller than what's being added
+
+  el = QueueEntry(t_left,RA)
+  push!(q,el)
+end
+
+#TODO: replace with findlast in 0.4
+function findlastzero(q::Vector{QueueEntry})
+  idx = find(x->x.t==0,q)
+  return length(idx) > 0 ? idx[end] : 0 #index of the last zero.  Returns 0 if empty.
+end
+
+function ischange(q::Vector{QueueEntry},RA::DeterministicPRRA)
+  if isempty(q)
+    return true
+  end
+
+  return !isequal(q[end].RA,RA)
+end
+
+function updatePilotResponse(pr::DeterministicPR, update::DeterministicPRCommand, RA::DeterministicPRRA)
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
-  #decrement the timer
-  pr.timer = max(-1,pr.timer-1) #don't go lower than -1=off
+  @test RA.dh_min <= RA.target_rate <= RA.dh_max #this should always hold
 
-  if RA.ra_active && RA.alarm #there was a change in the RA
-    pr.queuedRA = deepcopy(RA) #do this RA when timer finishes
-    if pr.initialRA
-      pr.timer = pr.initial_resp_time #set the timer
-      pr.initialRA = false
+  #decrement timer for all ra's in queue
+  for i=1:endof(pr.queue)
+    pr.queue[i].t = max(0,pr.queue[i].t-1)
+  end
+
+  #incorporate the new RA
+  if RA.dh_min <= -9999.0 && 9999.0 <= RA.dh_max
+    #coc
+    empty!(pr.queue)
+    pr.state = :none
+  elseif ischange(pr.queue,RA)
+    #RA
+    add_to_queue!(pr,pr.queue,RA)
+  end
+
+  #shift items to the next one with time 0
+  last_index = findlastzero(pr.queue)
+  splice!(pr.queue,1:last_index-1)
+
+  pr.timer = 0
+
+  if !isempty(pr.queue)
+    if pr.queue[1].t == 0 #there is an ra in the queue and its time has expired
+      h_d = pr.queue[1].RA.target_rate
+
+      if length(pr.queue) > 1
+        #this is not the last item
+        pr.state = :stay
+        pr.timer = pr.queue[2].t
+      else
+        #this is the last item
+        pr.state = :follow
+      end
     else
-      pr.timer = pr.subsequent_resp_time
+      #still waiting for the first item
+      pr.state = :none
+      pr.timer = pr.queue[1].t
     end
-  end
-
-  # timer is activated
-  if pr.timer == 0
-    pr.follow = true
-    pr.currentRA = pr.queuedRA
-  end
-
-  # coc, then reset
-  if !RA.ra_active
-    pr.follow = false
-    pr.currentRA = nothing
-    pr.queuedRA = nothing
-    pr.timer = -1
-    pr.initialRA = true
-  end
-
-  if pr.follow
-    h_d = pr.currentRA.target_rate
   end
 
   pr.output.t = t
@@ -121,11 +161,14 @@ step(pr::DeterministicPR, update::DeterministicPRCommand, RA::DeterministicPRRA)
 
 function initialize(pr::DeterministicPR)
 
-  pr.follow = false
-  pr.currentRA = nothing
-  pr.queuedRA = nothing
-  pr.timer = -1
+  pr.state = :none
+  empty!(pr.queue)
 
+  pr.output.t = 0.0
+  pr.output.v_d = 0.0
+  pr.output.h_d = 0.0
+  pr.output.psi_d = 0.0
+  pr.output.logProb = 0.0
 end
 
 end
