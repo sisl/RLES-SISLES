@@ -84,11 +84,17 @@ type SimpleADM <: AbstractDynamicModel
 
     theta_regulated::Int
 
+    v_d_max::Float64 #feet per second squared
+    h_dd_max::Float64 #feet per second squared
+    psi_d_max::Float64 #degrees per second
 
     observer::Observer
 
 
-    function SimpleADM(;timestep = 1., number_of_substeps = 10)
+    function SimpleADM(;timestep = 1., number_of_substeps = 10,
+                       v_d_max::Float64=typemax(Float64),
+                       h_dd_max::Float64=typemax(Float64),
+                       psi_d_max::Float64=typemax(Float64))
 
         obj = new()
 
@@ -96,6 +102,10 @@ type SimpleADM <: AbstractDynamicModel
         obj.timestep = timestep
         obj.number_of_substeps = number_of_substeps
         obj.theta_regulated = 45    # degree
+
+        obj.v_d_max = v_d_max
+        obj.h_dd_max = h_dd_max
+        obj.psi_d_max = psi_d_max
 
         obj.observer = Observer()
 
@@ -139,10 +149,17 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     end
     t_curr, v_d_curr, h_d_curr, psi_d_curr = update.t, update.v_d, update.h_d, update.psi_d
 
+    #limit acclerations and rates
+    v_d_curr = min(max(v_d_curr,-adm.v_d_max),adm.v_d_max)
+    psi_d_curr = min(max(psi_d_curr,-adm.psi_d_max),adm.psi_d_max)
+
+    h_dd = (h_d_curr - h_d_prev) / adm.timestep
+    h_dd = min(max(h_dd,-adm.h_dd_max),adm.h_dd_max)
+    h_d_curr = h_d_prev + h_dd * adm.timestep
+    update.h_d = h_d_curr #propagated to the next time step as prev
 
     @test t == t_curr
     @test t_prev + 1 == t_curr
-
 
     dt = adm.timestep / adm.number_of_substeps
 
@@ -210,7 +227,7 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     @test_approx_eq_eps psi_d psi_d_curr 0.001
 
     adm.state = SimpleADMState(t_curr + adm.timestep, x_n, y_n, h_n, v_n, psi_n)
-    adm.update = update
+    adm.update = deepcopy(update)
 end
 
 step(adm::SimpleADM, update) = step(adm,convert(SimpleADMCommand, update))

@@ -49,6 +49,11 @@ type ACASX_EvE_params
   quant::Int64 #quantization. Typ. quant=25
   libcas_config_file::String #Path to libcas config file
 
+  #SimpleADM - accel limits
+  v_d_max::Float64
+  h_dd_max::Float64
+  psi_d_max::Float64
+
   ACASX_EvE_params() = new()
 end
 
@@ -95,7 +100,10 @@ type ACASX_EvE <: AbstractGenerativeModel
       error("ACASX_EvE_Impl: No such pilot response model")
     end
 
-    sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1) for i=1:p.number_of_aircraft ]
+    sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1,
+                                  v_d_max=p.v_d_max,
+                                  h_dd_max=p.h_dd_max,
+                                  psi_d_max=p.psi_d_max) for i=1:p.number_of_aircraft ]
     sim.wm = AirSpace(p.number_of_aircraft)
 
     sim.coord = GenericCoord(p.number_of_aircraft)
