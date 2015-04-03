@@ -26,6 +26,7 @@ export
     ACASX_Multi,
 
     addObserver,
+    notifyObserver,
     outputGFormatString,
 
     # Encounter
