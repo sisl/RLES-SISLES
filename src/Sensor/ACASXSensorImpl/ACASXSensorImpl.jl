@@ -102,7 +102,7 @@ step(sensor::ACASXSensor, input) = step(sensor, convert(ACASXSensorInput,input))
 step(sensor::ACASXSensor, input::ACASXSensorInput) = updateSensor(sensor, input)
 
 function initialize(sensor::ACASXSensor)
-
+  reset!(sensor.outputVals)
 end
 
 end

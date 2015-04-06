@@ -151,10 +151,9 @@ end
 
 function initialize(cas::ACASX)
 
+  reset!(cas.inputVals)
   reset!(cas.outputVals)
-
   reset!(cas,getRecord(cas.coord, cas.my_id))
-
   reset(cas.casShared)
 end
 
