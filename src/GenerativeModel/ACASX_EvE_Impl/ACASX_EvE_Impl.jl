@@ -33,7 +33,7 @@ type ACASX_EvE_params
   nmac_r::Float64 #NMAC radius in feet
   nmac_h::Float64 #NMAC vertical separation, in feet
   maxSteps::Int64 #maximum number of steps in sim
-  number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
+  num_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
 
@@ -49,11 +49,6 @@ type ACASX_EvE_params
   quant::Int64 #quantization. Typ. quant=25
   libcas_config_file::String #Path to libcas config file
 
-  #SimpleADM - accel limits
-  v_d_max::Float64
-  h_dd_max::Float64
-  psi_d_max::Float64
-
   ACASX_EvE_params() = new()
 end
 
@@ -63,7 +58,7 @@ type ACASX_EvE <: AbstractGenerativeModel
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
   pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,DeterministicPR)}
-  dm::Vector{SimpleADM}
+  dm::Vector{LLADM}
   wm::AirSpace
   coord::GenericCoord
   sr::Vector{ACASXSensor}
@@ -78,40 +73,37 @@ type ACASX_EvE <: AbstractGenerativeModel
 
   #empty constructor
   function ACASX_EvE(p::ACASX_EvE_params)
-    @test p.number_of_aircraft == 2 #need to revisit the code if this is not true
+    @test p.num_aircraft == 2 #need to revisit the code if this is not true
 
     sim = new()
     sim.params = p
 
-    sim.em = CorrAEMDBN(p.number_of_aircraft, p.encounter_file, p.initial_sample_file,
+    sim.em = CorrAEMDBN(p.num_aircraft, p.encounter_file, p.initial_sample_file,
                     p.transition_sample_file,
                     p.encounter_number,p.encounter_seed,p.command_method)
 
     if p.pilotResponseModel == :SimplePR
-      sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.number_of_aircraft ]
+      sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.num_aircraft ]
     elseif p.pilotResponseModel == :StochasticLinear
-      sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.number_of_aircraft ]
+      sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.num_aircraft ]
     elseif p.pilotResponseModel == :FiveVsNone
       sim.pr = DeterministicPR[ i==1 ? DeterministicPR(5,3) :
-                                 DeterministicPR(-1,-1) for i=1:p.number_of_aircraft]
+                                 DeterministicPR(-1,-1) for i=1:p.num_aircraft]
     elseif p.pilotResponseModel == :ICAO_all
-      sim.pr = DeterministicPR[ DeterministicPR(5,3) for i=1:p.number_of_aircraft]
+      sim.pr = DeterministicPR[ DeterministicPR(5,3) for i=1:p.num_aircraft]
     else
       error("ACASX_EvE_Impl: No such pilot response model")
     end
 
-    sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1,
-                                  v_d_max=p.v_d_max,
-                                  h_dd_max=p.h_dd_max,
-                                  psi_d_max=p.psi_d_max) for i=1:p.number_of_aircraft ]
-    sim.wm = AirSpace(p.number_of_aircraft)
+    sim.dm = LLADM[ LLADM() for i=1:p.num_aircraft]
 
-    sim.coord = GenericCoord(p.number_of_aircraft)
+    sim.wm = AirSpace(p.num_aircraft)
+    sim.coord = GenericCoord(p.num_aircraft)
 
-    max_intruders = p.number_of_aircraft-1
-    sim.sr = ACASXSensor[ ACASXSensor(i,max_intruders) for i=1:p.number_of_aircraft ]
-    sim.cas = ACASX[ ACASX(i,p.quant,p.libcas_config_file,p.number_of_aircraft,sim.coord)
-                    for i=1:p.number_of_aircraft ]
+    max_intruders = p.num_aircraft-1
+    sim.sr = ACASXSensor[ ACASXSensor(i,max_intruders) for i=1:p.num_aircraft ]
+    sim.cas = ACASX[ ACASX(i,p.quant,p.libcas_config_file,p.num_aircraft,sim.coord)
+                    for i=1:p.num_aircraft ]
 
     sim.observer = Observer()
     sim.string_id = "ACASX_EvE_$(p.encounter_number)"
@@ -134,7 +126,7 @@ function initialize(sim::ACASX_EvE)
 
   EncounterDBN.initialize(aem)
 
-  for i = 1:sim.params.number_of_aircraft
+  for i = 1:sim.params.num_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
     notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
 
@@ -169,7 +161,7 @@ function step(sim::ACASX_EvE)
 
   states = WorldModel.getAll(wm)
 
-  for i = 1:sim.params.number_of_aircraft
+  for i = 1:sim.params.num_aircraft
 
     #intended command
     command = EncounterDBN.get(aem,i)

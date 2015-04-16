@@ -17,12 +17,19 @@ export
     SimpleADM,
     SimpleADMInitialState,
     SimpleADMOutputState,
-    SimpleADMCommand
+    SimpleADMCommand,
+
+    LLADM,
+    LLADMState,
+    LLADMOutputState,
+    LLADMCommand
 
 
 using AbstractDynamicModelImpl
 
 using SimpleADMImpl
+
+using LLADMImpl
 
 end
 

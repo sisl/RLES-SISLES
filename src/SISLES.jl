@@ -13,6 +13,7 @@ export
     SimplePilotResponse,
     StochasticLinearPR,
     SimpleADM,
+    LLADM,
     AirSpace,
     SimpleTCASSensor,
     GenericCoord,
@@ -57,6 +58,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/StochasticLinearPRImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/DeterministicPRImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel/SimpleADMImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel/LLADMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/WorldModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/WorldModel/AirSpaceImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Sensor")

@@ -27,9 +27,9 @@ import CommonInterfaces.step
 import AbstractSensorInterfaces.updateSensor
 
 type ACASXSensorState
-  x::Float64
-  y::Float64
-  z::Float64
+  x::Float64 #East
+  y::Float64 #North
+  z::Float64 #Up
   vx::Float64
   vy::Float64
   vz::Float64
@@ -64,7 +64,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
 
   ownInput.dz = own_state.vz
   ownInput.z = own_state.z #baro alt
-  ownInput.psi = atan2(own_state.vy,own_state.vx) #zero when aligned with x-axis / north
+  ownInput.psi = atan2(own_state.vx,own_state.vy) #zero when aligned with y-axis / north
   ownInput.h = own_state.z #agl alt
   ownInput.modes = uint32(sensor.my_id)
 
@@ -79,7 +79,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
       intruders[intr_i].modes = uint32(i)
       intruders[intr_i].sr = norm([own_state.x,own_state.y,own_state.z]-
                                     [intr_state.x,intr_state.y,intr_state.z]) #slant range (feet)
-      intr_psi = atan2(intr_state.y-own_state.y,intr_state.x-own_state.x)
+      intr_psi = atan2(intr_state.x-own_state.x,intr_state.y-own_state.y)
       intruders[intr_i].chi = mod(intr_psi-ownInput.psi,2pi) #bearing (radians, nose is 0, clockwise is positive)
       intruders[intr_i].z = intr_state.z #altitude (feet)
 

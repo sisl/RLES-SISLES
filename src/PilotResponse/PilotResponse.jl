@@ -20,9 +20,9 @@ export
     StochasticLinearPRCommand,
     StochasticLinearPRRA,
 
-    DeterministicPR,
-    DeterministicPRCommand,
-    DeterministicPRRA
+    LLDetPR,
+    LLDetPRCommand,
+    LLDetPRRA
 
 
 using AbstractPilotResponseImpl
@@ -31,7 +31,7 @@ using SimplePilotResponseImpl
 
 using StochasticLinearPRImpl
 
-using DeterministicPRImpl
+using LLDetPRImpl
 
 end
 
