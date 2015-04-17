@@ -22,7 +22,8 @@ export
 
     LLDetPR,
     LLDetPRCommand,
-    LLDetPRRA
+    LLDetPRRA,
+    LLDetPROutput
 
 
 using AbstractPilotResponseImpl

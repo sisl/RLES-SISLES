@@ -12,6 +12,7 @@ export
     PairwiseCorrAEMDBN,
     SimplePilotResponse,
     StochasticLinearPR,
+    LLDetPR,
     SimpleADM,
     LLADM,
     AirSpace,
@@ -55,7 +56,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/EncounterDBN/PairwiseCorrAEMDBNImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/SimplePilotResponseImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/StochasticLinearPRImpl")
-push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/DeterministicPRImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/PilotResponse/LLDetPRImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel/SimpleADMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/DynamicModel/LLADMImpl")

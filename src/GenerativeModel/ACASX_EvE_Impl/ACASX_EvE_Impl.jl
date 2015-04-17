@@ -57,7 +57,7 @@ type ACASX_EvE <: AbstractGenerativeModel
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
-  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,DeterministicPR)}
+  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,LLDetPR)}
   dm::Vector{LLADM}
   wm::AirSpace
   coord::GenericCoord
@@ -87,10 +87,10 @@ type ACASX_EvE <: AbstractGenerativeModel
     elseif p.pilotResponseModel == :StochasticLinear
       sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.num_aircraft ]
     elseif p.pilotResponseModel == :FiveVsNone
-      sim.pr = DeterministicPR[ i==1 ? DeterministicPR(5,3) :
-                                 DeterministicPR(-1,-1) for i=1:p.num_aircraft]
+      sim.pr = LLDetPR[ i==1 ? LLDetPR(5,3) :
+                                 LLDetPR(-1,-1) for i=1:p.num_aircraft]
     elseif p.pilotResponseModel == :ICAO_all
-      sim.pr = DeterministicPR[ DeterministicPR(5,3) for i=1:p.num_aircraft]
+      sim.pr = LLDetPR[ LLDetPR(5,3) for i=1:p.num_aircraft]
     else
       error("ACASX_EvE_Impl: No such pilot response model")
     end
