@@ -47,7 +47,8 @@ type ACASX_EvE_params
 
   #ACASX config
   quant::Int64 #quantization. Typ. quant=25
-  libcas_config_file::String #Path to libcas config file
+  libcas::String #Path to libcas library
+  libcas_config::String #Path to libcas config file
 
   ACASX_EvE_params() = new()
 end
@@ -80,7 +81,7 @@ type ACASX_EvE <: AbstractGenerativeModel
 
     sim.em = CorrAEMDBN(p.num_aircraft, p.encounter_file, p.initial_sample_file,
                     p.transition_sample_file,
-                    p.encounter_number,p.encounter_seed,p.command_method)
+                    p.encounter_number, p.encounter_seed, p.command_method)
 
     if p.pilotResponseModel == :SimplePR
       sim.pr = SimplePilotResponse[ SimplePilotResponse() for i=1:p.num_aircraft ]
@@ -102,7 +103,7 @@ type ACASX_EvE <: AbstractGenerativeModel
 
     max_intruders = p.num_aircraft-1
     sim.sr = ACASXSensor[ ACASXSensor(i,max_intruders) for i=1:p.num_aircraft ]
-    sim.cas = ACASX[ ACASX(i,p.quant,p.libcas_config_file,p.num_aircraft,sim.coord)
+    sim.cas = ACASX[ ACASX(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord)
                     for i=1:p.num_aircraft ]
 
     sim.observer = Observer()
@@ -127,12 +128,9 @@ function initialize(sim::ACASX_EvE)
   EncounterDBN.initialize(aem)
 
   for i = 1:sim.params.num_aircraft
+    #TODO: clean up this structure
     initial = EncounterDBN.getInitialState(aem, i)
     notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
-
-    state = DynamicModel.initialize(adm[i], initial)
-
-    WorldModel.initialize(wm, i, state)
 
     Sensor.initialize(sr[i])
     notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
@@ -142,6 +140,11 @@ function initialize(sim::ACASX_EvE)
 
     PilotResponse.initialize(pr[i])
     notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
+
+    state = DynamicModel.initialize(adm[i], initial)
+    notifyObserver(sim,"Dynamics",Any[i, sim.t_index, adm[i]])
+
+    WorldModel.initialize(wm, i, state)
   end
 
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
@@ -179,6 +182,7 @@ function step(sim::ACASX_EvE)
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
+    notifyObserver(sim,"Dynamics",Any[i, sim.t_index, adm[i]])
 
   end
 

@@ -68,8 +68,8 @@ function convert(::Type{LLDetPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothin
   error("Shouldn't have gotten here")
 end
 
-convert(::Type{LLADMCommand}, out::LLDetPROutput) = LLADMCommand(out.t, out.v_d, out.h_d, deg2rad(out.psi_d),
-                                                                     out.dh_min,out.dh_max,out.target_rate,out.ddh)
+convert(::Type{LLADMCommand}, out::LLDetPROutput) = LLADMCommand(out.t, out.h_d, deg2rad(out.psi_d), out.v_d,
+                                                                 out.dh_min, out.dh_max, out.target_rate, out.ddh)
 
 convert(::Type{LLADMState}, s::CorrAEMInitialState) = LLADMState(s.t, s.v, s.y, s.x, s.h,
                                                                  deg2rad(s.psi), asin(s.h_d / s.v),
