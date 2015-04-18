@@ -178,9 +178,8 @@ function initialize(adm::LLADM, state::LLADMState)
   return adm.output_state
 end
 
-using Debug
 # Mirrors state_update() from scripted_dynamics.h
-@debug function state_update(C::LLADMConsts, state::LLADMState, ctrl::LLADMCommand, hddcmd::Float64, dt::Float64)
+function state_update(C::LLADMConsts, state::LLADMState, ctrl::LLADMCommand, hddcmd::Float64, dt::Float64)
   # Inputs:
   # C = constants
   # state = current state (adm.state)
