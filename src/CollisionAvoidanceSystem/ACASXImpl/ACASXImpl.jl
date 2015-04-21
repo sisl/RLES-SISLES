@@ -61,6 +61,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
   max_intruders::Int64
   constants::Constants
   casShared::CASShared
+  version::String
   inputVals::InputVals
   outputVals::OutputVals
   coord::AbstractCASCoord
@@ -71,6 +72,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
     cas.max_intruders = num_aircraft - 1
     cas.constants = Constants(quant, config_file, cas.max_intruders)
     cas.casShared = CASShared(libcas, cas.constants)
+    cas.version = version(cas.casShared)
 
     @test cas.max_intruders == max_intruders(cas.casShared) #Will fail if library did not open properly
 

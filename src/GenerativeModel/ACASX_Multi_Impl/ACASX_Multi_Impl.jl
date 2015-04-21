@@ -147,6 +147,8 @@ function initialize(sim::ACASX_Multi)
 
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
+  notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
+
   return
 end
 

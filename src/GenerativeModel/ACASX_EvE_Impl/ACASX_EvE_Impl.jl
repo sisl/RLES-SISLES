@@ -104,7 +104,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     max_intruders = p.num_aircraft-1
     sim.sr = ACASXSensor[ ACASXSensor(i,max_intruders) for i=1:p.num_aircraft ]
     sim.cas = ACASX[ ACASX(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord)
-                    for i=1:p.num_aircraft ]
+                    for i = 1 : p.num_aircraft]
 
     sim.observer = Observer()
     sim.string_id = "ACASX_EvE_$(p.encounter_number)"
@@ -148,6 +148,8 @@ function initialize(sim::ACASX_EvE)
   end
 
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
+
+  notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
 
   return
 end
