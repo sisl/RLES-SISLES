@@ -2,8 +2,6 @@
 # Date: 02/10/2014
 
 module ACASX_Multi_Impl
-#TODO: There's a lot of overlap amongst the GenerativeModels, should consolidate
-# Esp EvE and Multi
 
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
@@ -27,13 +25,13 @@ import AbstractGenerativeModelInterfaces.isEndState
 
 import CommonInterfaces.addObserver
 
-export ACASX_Multi_params, ACASX_Multi, initialize, step, get, isEndState, addObserver
+export ACASX_Multi_params, ACASX_Multi, initialize, step, isEndState, addObserver
 
 type ACASX_Multi_params
   #global params: remains constant per sim
   nmac_r::Float64 #NMAC radius in feet
   nmac_h::Float64 #NMAC vertical separation, in feet
-  maxSteps::Int64 #maximum number of steps in sim
+  max_steps::Int64 #maximum number of steps in sim
   num_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
   encounterModel::Symbol #{:PairwiseCorrAEMDBN, :StarDBN}
@@ -69,6 +67,12 @@ type ACASX_Multi <: AbstractGenerativeModel
   t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
 
+  vmd::Float64 #minimum vertical distance so far
+  hmd::Float64 #minimum horizontal distance so far
+  md::Float64 #combined miss distance metric
+
+  step_logProb::Float64 #cumulative probability of this step()
+
   #empty constructor
   function ACASX_Multi(p::ACASX_Multi_params)
     sim = new()
@@ -87,8 +91,7 @@ type ACASX_Multi <: AbstractGenerativeModel
     elseif p.pilotResponseModel == :StochasticLinear
       sim.pr = StochasticLinearPR[ StochasticLinearPR() for i=1:p.num_aircraft ]
     elseif p.pilotResponseModel == :FiveVsNone
-      sim.pr = LLDetPR[ i==1 ? LLDetPR(5,3) :
-                                 LLDetPR(-1,-1) for i=1:p.num_aircraft]
+      sim.pr = LLDetPR[ i==1 ? LLDetPR(5,3) : LLDetPR(-1,-1) for i=1:p.num_aircraft]
     elseif p.pilotResponseModel == :ICAO_all
       sim.pr = LLDetPR[ LLDetPR(5,3) for i=1:p.num_aircraft]
     else
@@ -105,6 +108,12 @@ type ACASX_Multi <: AbstractGenerativeModel
     sim.cas = ACASX[ ACASX(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord)
                     for i=1:p.num_aircraft ]
 
+    sim.vmd = typemax(Float64)
+    sim.hmd = typemax(Float64)
+    sim.md = typemax(Float64)
+
+    sim.step_logProb = 0.0
+
     sim.observer = Observer()
     sim.string_id = "ACASX_Multi_$(p.encounter_seed)"
 
@@ -115,107 +124,16 @@ type ACASX_Multi <: AbstractGenerativeModel
   end
 end
 
-addObserver(sim::ACASX_Multi, f::Function) = _addObserver(sim, f)
-addObserver(sim::ACASX_Multi, tag::String, f::Function) = _addObserver(sim, tag, f)
+import ACASX_Common
 
-function initialize(sim::ACASX_Multi)
-  wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
+addObserver(sim::ACASX_Multi, f::Function) = ACASX_Common.addObserver(sim, f::Function)
+addObserver(sim::ACASX_Multi, tag::String, f::Function) = ACASX_Common.addObserver(sim, tag::String, f::Function)
 
-  #Start time at 1 for easier indexing into arrays according to time
-  sim.t_index = 1
+initialize(sim::ACASX_Multi) = ACASX_Common.initialize(sim)
 
-  EncounterDBN.initialize(aem)
+step(sim::ACASX_Multi) = ACASX_Common.step(sim)
 
-  for i = 1:sim.params.num_aircraft
-    initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
-
-    Sensor.initialize(sr[i])
-    notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
-
-    CollisionAvoidanceSystem.initialize(cas[i])
-    notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
-
-    PilotResponse.initialize(pr[i])
-    notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
-
-    state = DynamicModel.initialize(adm[i], initial)
-    notifyObserver(sim,"Dynamics",Any[i, sim.t_index, adm[i]])
-
-    WorldModel.initialize(wm, i, state)
-  end
-
-  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
-
-  notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
-
-  return
-end
-
-function step(sim::ACASX_Multi)
-  wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
-
-  sim.t_index += 1
-
-  logProb = 0.0 #track the probabilities in this update
-
-  cmdLogProb = EncounterDBN.step(aem)
-  logProb += cmdLogProb #TODO: decompose this by aircraft?
-
-  states = WorldModel.getAll(wm)
-
-  for i = 1:sim.params.num_aircraft
-
-    #intended command
-    command = EncounterDBN.get(aem,i)
-    notifyObserver(sim,"Command", Any[i, sim.t_index, command])
-
-    output = Sensor.step(sr[i], states)
-    notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
-
-    RA = CollisionAvoidanceSystem.step(cas[i], output)
-    notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
-
-    response = PilotResponse.step(pr[i], command, RA)
-    logProb += response.logProb
-    notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
-
-    state = DynamicModel.step(adm[i], response)
-    WorldModel.step(wm, i, state)
-    notifyObserver(sim,"Dynamics",Any[i, sim.t_index, adm[i]])
-
-  end
-
-  WorldModel.updateAll(wm)
-  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
-
-  return logProb
-end
-
-function getvhdist(wm::AbstractWorldModel)
-
-  states = WorldModel.getAll(wm) #states::Vector{ASWMState}
-
-  #[(vdist,hdist)]
-  vhdist = [(abs(s2.h-s1.h),norm([(s2.x-s1.x),(s2.y-s1.y)])) for s1 = states, s2 = states]
-  for i = 1:length(states)
-    vhdist[i,i] = (typemax(Float64),typemax(Float64))
-  end
-
-  return vhdist
-end
-
-function isNMAC(sim::ACASX_Multi)
-  vhdist = getvhdist(sim.wm)
-  nmac_test = map((vhd)->vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h,vhdist)
-  return any(nmac_test)
-end
-
-isTerminal(sim::ACASX_Multi) = sim.t_index > sim.params.maxSteps
-
-function isEndState(sim::ACASX_Multi)
-  return isNMAC(sim) || isTerminal(sim)
-end
+isEndState(sim::ACASX_Multi) = ACASX_Common.isEndState(sim)
 
 end #module
 

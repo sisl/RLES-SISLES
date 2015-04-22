@@ -78,6 +78,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvU_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvE_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_EvE_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_Multi_Impl")
+push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/common")
 
 using Util
 using Encounter
