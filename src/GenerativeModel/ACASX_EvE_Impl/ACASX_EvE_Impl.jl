@@ -36,6 +36,7 @@ type ACASX_EvE_params
   num_aircraft::Int64 #number of aircraft  #must be 2 for now...
   encounter_seed::Uint64 #Seed for generating encounters
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
+  end_on_nmac::Bool #end scenario on nmac
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
   command_method::Symbol #:DBN=sampled from DBN or :ENC=from encounter file
@@ -75,6 +76,7 @@ type ACASX_EvE <: AbstractGenerativeModel
   vmd::Float64 #minimum vertical distance so far
   hmd::Float64 #minimum horizontal distance so far
   md::Float64 #combined miss distance metric
+  md_time::Int64 #time index at which vmd and hmd are taken
 
   step_logProb::Float64 #cumulative probability of this step()
 
@@ -114,6 +116,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.vmd = typemax(Float64)
     sim.hmd = typemax(Float64)
     sim.md = typemax(Float64)
+    sim.md_time = 0
 
     sim.step_logProb = 0.0
 

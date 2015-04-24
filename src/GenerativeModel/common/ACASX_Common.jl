@@ -51,6 +51,7 @@ function initialize(sim)
   sim.vmd = typemax(Float64)
   sim.hmd = typemax(Float64)
   sim.md = typemax(Float64)
+  sim.md_time = 0
 
   #reset the probability
   sim.step_logProb = 0.0
@@ -104,6 +105,7 @@ function step(sim)
     sim.vmd = vhdist[index][1]
     sim.hmd = vhdist[index][2]
     sim.md = md
+    sim.md_time = sim.t_index
   end
 
   return
@@ -114,7 +116,7 @@ function getvhdist(wm::AbstractWorldModel)
   states = WorldModel.getAll(wm) #states::Vector{ASWMState}
 
   #[(vdist,hdist)]
-  vhdist = [(abs(s2.h - s1.h),norm([(s2.x - s1.x),(s2.y - s1.y)])) for s1 = states, s2 = states]
+  vhdist = [(abs(s2.h - s1.h),norm([(s2.x - s1.x), (s2.y - s1.y)])) for s1 = states, s2 = states]
   for i = 1 : length(states)
     vhdist[i, i] = (typemax(Float64), typemax(Float64))
   end
@@ -126,12 +128,15 @@ function isNMAC(sim)
 
   vhdist = getvhdist(sim.wm)
   nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
+
   return any(nmac_test)
 end
 
+NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
+
 isTerminal(sim) = sim.t_index > sim.params.max_steps
 
-isEndState(sim) = isNMAC(sim) || isTerminal(sim)
+isEndState(sim) = (sim.params.end_on_nmac && isNMAC(sim)) || isTerminal(sim)
 
 getMissDistance(nmac_h::Float64, nmac_r::Float64, vhmd) = map((vh) -> max(vh[2] * (nmac_h / nmac_r), vh[1]), vhmd)
 

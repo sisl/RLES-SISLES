@@ -36,6 +36,7 @@ type ACASX_Multi_params
   encounter_seed::Uint64 #Seed for generating encounters
   encounterModel::Symbol #{:PairwiseCorrAEMDBN, :StarDBN}
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
+  end_on_nmac::Bool #end scenario on nmac
 
   #these are to define AEM:
   encounter_file::String #Path to encounter file
@@ -70,6 +71,7 @@ type ACASX_Multi <: AbstractGenerativeModel
   vmd::Float64 #minimum vertical distance so far
   hmd::Float64 #minimum horizontal distance so far
   md::Float64 #combined miss distance metric
+  md_time::Int64 #time index at which hmd and vmd are taken
 
   step_logProb::Float64 #cumulative probability of this step()
 
@@ -111,6 +113,7 @@ type ACASX_Multi <: AbstractGenerativeModel
     sim.vmd = typemax(Float64)
     sim.hmd = typemax(Float64)
     sim.md = typemax(Float64)
+    sim.md_time = 0
 
     sim.step_logProb = 0.0
 
