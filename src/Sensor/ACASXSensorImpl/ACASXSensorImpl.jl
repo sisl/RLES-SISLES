@@ -64,7 +64,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
 
   ownInput.dz = own_state.vz
   ownInput.z = own_state.z #baro alt
-  ownInput.psi = atan2(own_state.vx,own_state.vy) #zero when aligned with y-axis / north
+  ownInput.psi = atan2(own_state.vx, own_state.vy) #zero when aligned with y-axis / north
   ownInput.h = own_state.z #agl alt
   ownInput.modes = uint32(sensor.my_id)
 
@@ -72,15 +72,15 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
 
   for i = 1:endof(input.states)
     if i != sensor.my_id
-      intr_i = getListId(sensor.my_id,i)
+      intr_i = getListId(sensor.my_id, i)
       intr_state = input.states[i]
       intruders[intr_i].valid = true
       intruders[intr_i].id = uint32(i)
       intruders[intr_i].modes = uint32(i)
-      intruders[intr_i].sr = norm([own_state.x,own_state.y,own_state.z]-
-                                    [intr_state.x,intr_state.y,intr_state.z]) #slant range (feet)
-      intr_psi = atan2(intr_state.x-own_state.x,intr_state.y-own_state.y)
-      intruders[intr_i].chi = mod(intr_psi-ownInput.psi,2pi) #bearing (radians, nose is 0, clockwise is positive)
+      intruders[intr_i].sr = norm([own_state.x, own_state.y, own_state.z]-
+                                    [intr_state.x, intr_state.y, intr_state.z]) #slant range (feet)
+      intr_psi = atan2(intr_state.x - own_state.x, intr_state.y - own_state.y)
+      intruders[intr_i].chi = to_plusminuspi(intr_psi - ownInput.psi) #bearing (radians, nose is 0, clockwise is positive)
       intruders[intr_i].z = intr_state.z #altitude (feet)
 
       ## These are the defaults.  Modified through coordination
@@ -104,6 +104,9 @@ step(sensor::ACASXSensor, input::ACASXSensorInput) = updateSensor(sensor, input)
 function initialize(sensor::ACASXSensor)
   reset!(sensor.outputVals)
 end
+
+#converts angle in radians to the range +/- pi
+to_plusminuspi(x::FloatingPoint) = mod(x, 2*pi) |> z -> (z > pi) ? (z - 2*pi) : z
 
 end
 

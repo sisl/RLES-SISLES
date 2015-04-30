@@ -116,7 +116,7 @@ type LLADM <: AbstractDynamicModel
                  _phidotmax::Float64 = 0.524,
                  _v_high::Float64 = 100000.0,
                  _v_low::Float64 = 1.7,
-                 LIMIT_DDH::Bool = true,
+                 LIMIT_DDH::Bool = false,
                  _min_vertical_rate::Float64 = -9999.0,
                  _max_vertical_rate::Float64 = 9999.0,
                  _min_vertical_accel::Float64 = -9.66,
@@ -265,7 +265,7 @@ function step(adm::LLADM, ctrl::LLADMCommand)
 
   t_start = state.t
 
-  for i = 1:int64(round(adm.timestep/C._dt))
+  for i = 1:int64(round(adm.timestep / C._dt))
     substep(state, ctrl, C)
   end
 
