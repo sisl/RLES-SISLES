@@ -59,6 +59,7 @@ end
 getListId(list_owner_id::Integer,id::Integer) = id < list_owner_id ? id : id - 1
 
 function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
+
   own_state = input.states[sensor.my_id]
   ownInput = sensor.outputVals.ownInput
 
@@ -81,7 +82,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
                                     [intr_state.x, intr_state.y, intr_state.z]) #slant range (feet)
       intr_psi = atan2(intr_state.x - own_state.x, intr_state.y - own_state.y)
       intruders[intr_i].chi = to_plusminuspi(intr_psi - ownInput.psi) #bearing (radians, nose is 0, clockwise is positive)
-      intruders[intr_i].z = intr_state.z #altitude (feet)
+      intruders[intr_i].z = intr_state.z #altitude (feet)  #quantized
 
       ## These are the defaults.  Modified through coordination
       intruders[intr_i].cvc = 0x0

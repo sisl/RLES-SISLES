@@ -106,7 +106,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
   #note: looping over intruders skips self
   for intruder in inputVals.intruders
 
-    my_list_id = getListId(intruder.id,cas.my_id)
+    my_list_id = getListId(intruder.id, cas.my_id)
     record = coord_records[intruder.id]
 
     #intruder-shared
@@ -114,6 +114,9 @@ function step(cas::ACASX, inputVals::ACASXInput)
     intruder.quant                = record.quant
     intruder.sensitivity_index    = record.sensitivity_index
     intruder.protection_mode      = record.protection_mode
+
+    #quantize sensor reading depending on equipage
+    intruder.z = quantize(intruder.z, float64(intruder.quant))
 
     #intruder-specific
     intruder_self = record.intruders[my_list_id] #self in intruders' record
@@ -126,14 +129,14 @@ function step(cas::ACASX, inputVals::ACASXInput)
 
   end
 
-  update!(cas.casShared,inputVals,cas.outputVals) #cas.outputVals is modified in place
+  update!(cas.casShared, inputVals, cas.outputVals) #cas.outputVals is modified in place
 
   my_record = getRecord(cas.coord, cas.my_id)
 
   #update my record in coordination object
   #intruder-shared
   my_record.sensitivity_index = cas.outputVals.sensitivity_index
-  #others (equipage,quant,protection_mode) don't need to be updated...
+  #others (id,modes,equipage,quant) don't need to be updated...
 
   #intruder-specific
   for i = 1:endof(my_record.intruders)
@@ -172,6 +175,14 @@ function reset!(cas::ACASX,rec::ACASXCoordRecord)
     rec.intruders[i].vrc = 0x0
     rec.intruders[i].vsb = 0x0
   end
+end
+
+function quantize(x::FloatingPoint, b::FloatingPoint)
+  # quantize x to the nearest multiple of b
+
+  d, r = divrem(x, b)
+
+  return b * (d + round(r / b))
 end
 
 end
