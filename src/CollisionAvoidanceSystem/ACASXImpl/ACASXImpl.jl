@@ -104,6 +104,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
 
   #Augment the input with info from coord
   #note: looping over intruders skips self
+  # TODO: consider moving these updates into ACASXSensor
   for intruder in inputVals.intruders
 
     my_list_id = getListId(intruder.id, cas.my_id)
