@@ -51,6 +51,7 @@ const L_MIN = 1
 const L_MAX = 5
 
 type StarDBNParams
+
   tca::Float64 #time of closest approach in seconds
   v_min::Float64
   v_max::Float64
@@ -64,15 +65,16 @@ type StarDBNParams
   psidot_max::Float64 #degrees
   l_min::Int64
   l_max::Int64
+
 end
 
-StarDBNParams(; tca::Float64=40.0, v_min::Float64=400.0, v_max::Float64=600.0,
-              vdot_min::Float64=-2.0, vdot_max::Float64=2.0, h_min::Float64=7000.0,
-              h_max::Float64=8000.0, hdot_min::Float64=-10.0, hdot_max::Float64=10.0,
-              psidot_min::Float64=0.0, psidot_max::Float64=0.0, l_min::Int64=1,
-              l_max::Int64=5) =
-  StarDBNParams(tca,v_min,v_max,vdot_min,vdot_max,h_min,h_max,hdot_min,hdot_max,
-                psidot_min,psidot_max,l_min,l_max)
+StarDBNParams(; tca::Float64 = 40.0, v_min::Float64 = 400.0, v_max::Float64 = 600.0,
+              vdot_min::Float64 = -2.0, vdot_max::Float64 = 2.0, h_min::Float64 = 7000.0,
+              h_max::Float64 = 8000.0, hdot_min::Float64 = -10.0, hdot_max::Float64 = 10.0,
+              psidot_min::Float64 = 0.0, psidot_max::Float64 = 0.0, l_min::Int64 = 1,
+              l_max::Int64 = 5) =
+  StarDBNParams(tca, v_min, v_max, vdot_min, vdot_max, h_min, h_max, hdot_min, hdot_max,
+                psidot_min, psidot_max, l_min, l_max)
 
 type StarDBN <: AbstractEncounterDBN
 
@@ -103,9 +105,9 @@ type StarDBN <: AbstractEncounterDBN
   #caching and reuse
   dynamic_variables0::Vector{Int64}
   dynamic_variables1::Vector{Int64}
-  parents_cache::Dict{Int64,Vector{Bool}}
-  weights_cache::Dict{(Int64,Int64),Vector{Float64}}
-  cumweights_cache::Dict{(Int64,Int64),Vector{Float64}}
+  parents_cache::Dict{Int64, Vector{Bool}}
+  weights_cache::Dict{(Int64,Int64), Vector{Float64}}
+  cumweights_cache::Dict{(Int64,Int64), Vector{Float64}}
 
   #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
@@ -114,17 +116,18 @@ type StarDBN <: AbstractEncounterDBN
 
   function StarDBN(number_of_aircraft::Int,
                    parameter_file::String,
-                   encounter_seed::Uint64, p::StarDBNParams=StarDBNParams())
+                   encounter_seed::Uint64,
+                   p::StarDBNParams = StarDBNParams())
 
     dbn = new()
 
-    dbn.number_of_aircraft     = number_of_aircraft
+    dbn.number_of_aircraft = number_of_aircraft
 
     dbn.parameters = p
 
     dbn.parameter_file = parameter_file
     dbn.aem_parameters = CorrAEMParameters()
-    em_read(dbn.aem_parameters,dbn.parameter_file)
+    em_read(dbn.aem_parameters, dbn.parameter_file)
 
     dbn.encounter_seed = encounter_seed
 
@@ -133,8 +136,8 @@ type StarDBN <: AbstractEncounterDBN
     dbn.t = 0
 
     #compute initial states of variables
-    dbn.dynamic_variables0 = temporal_map[:,1]
-    dbn.dynamic_variables1 = temporal_map[:,2]
+    dbn.dynamic_variables0 = temporal_map[:, 1]
+    dbn.dynamic_variables1 = temporal_map[:, 2]
 
     srand(encounter_seed) #There's a rand inside generateEncounter
     generateEncounter(dbn) #sets initial_states, initial_commands_d, initial_commands
@@ -143,19 +146,24 @@ type StarDBN <: AbstractEncounterDBN
     dbn.commands = deepcopy(dbn.initial_commands)
 
     #precompute and cache these quantities
-    dbn.parents_cache = Dict{Int64,Vector{Bool}}()
-    dbn.weights_cache = Dict{(Int64,Int64),Vector{Float64}}()
-    dbn.cumweights_cache = Dict{(Int64,Int64),Vector{Float64}}()
+    dbn.parents_cache = Dict{Int64, Vector{Bool}}()
+    dbn.weights_cache = Dict{(Int64, Int64), Vector{Float64}}()
+    dbn.cumweights_cache = Dict{(Int64, Int64), Vector{Float64}}()
+
     for i = 1:length(dbn.aem_parameters.N_transition)
+
       dbn.parents_cache[i] = dbn.aem_parameters.G_transition[:, i]
-      for j = 1:1:size(dbn.dirichlet_transition[i],2)
-        dbn.weights_cache[(i,j)] = dbn.aem_parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
-        dbn.weights_cache[(i,j)] /= sum(dbn.weights_cache[(i,j)])
-        dbn.cumweights_cache[(i,j)] = cumsum(dbn.weights_cache[(i,j)])
+
+      for j = 1:1:size(dbn.dirichlet_transition[i], 2)
+
+        dbn.weights_cache[(i, j)] = dbn.aem_parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
+        dbn.weights_cache[(i, j)] /= sum(dbn.weights_cache[(i, j)])
+        dbn.cumweights_cache[(i, j)] = cumsum(dbn.weights_cache[(i, j)])
+
       end
     end
 
-    dbn.output_commands = CorrAEMCommand[ CorrAEMCommand(0.,0.,0.,0.) for i = 1:number_of_aircraft ]
+    dbn.output_commands = CorrAEMCommand[ CorrAEMCommand(0.0, 0.0, 0.0, 0.0) for i = 1:number_of_aircraft ]
     dbn.logProb = 0.0
 
     return dbn
@@ -169,10 +177,11 @@ const map_var2ind_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5,
 const map_ind2var_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
 const temporal_map = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
 
-convert_units(v::Vector{Float64}) = Float64[convert_units(v[i],map_ind2var_L[i]) for i=1:endof(v)]
-unconvert_units(v::Vector{Float64}) = Float64[unconvert_units(v[i],map_ind2var_L[i]) for i=1:endof(v)]
+convert_units(v::Vector{Float64}) = Float64[convert_units(v[i], map_ind2var_L[i]) for i = 1:endof(v)]
 
-function convert_units(x::Float64,var::Symbol)
+unconvert_units(v::Vector{Float64}) = Float64[unconvert_units(v[i], map_ind2var_L[i]) for i = 1:endof(v)]
+
+function convert_units(x::Float64, var::Symbol)
 
   if var == :v_d0 || var == :v_d1
     return x * 1.68780
@@ -197,6 +206,7 @@ function unconvert_units(x::Float64,var::Symbol)
 end
 
 function generateEncounter(dbn::StarDBN)
+
   p = dbn.parameters
 
   #initial aircraft states - place in star pattern heading towards origin
@@ -208,16 +218,17 @@ function generateEncounter(dbn::StarDBN)
     v = p.v_min + rand() * (p.v_max - p.v_min)
     h = p.h_min + rand() * (p.h_max - p.h_min)
     h_d = p.hdot_min + rand() * (p.hdot_max - p.hdot_min)
-    psi = (i-1)*360.0/dbn.number_of_aircraft #absolute approach angle to collision point
-    x = v * p.tca * sind(psi+180)
-    y = v * p.tca * cosd(psi+180)  #FIXME: v is horizontal airspeed, not total airspeed here
+    psi = (i - 1) * 360.0 / dbn.number_of_aircraft #absolute approach angle to collision point
+    psi = to_plusminus_180(psi) #make sure we're in [-180,180]
+    x = v * p.tca * sind(psi + 180)
+    y = v * p.tca * cosd(psi + 180)  #FIXME: v is horizontal airspeed, not total airspeed here
 
-    dbn.initial_states[i] = CorrAEMInitialState(t,x,y,h,v,psi,h_d)
+    dbn.initial_states[i] = CorrAEMInitialState(t, x, y, h, v, psi, h_d)
   end
 
   #initial aircraft commands
-  dbn.initial_commands = Array(Vector{Float64},dbn.number_of_aircraft) #[L,v_d,h_d,psi_d]
-  dbn.initial_commands_d = Array(Vector{Int64},dbn.number_of_aircraft) #[L,v_d,h_d,psi_d,[hd_tp1,psid_tp1]]
+  dbn.initial_commands = Array(Vector{Float64}, dbn.number_of_aircraft) #[L,v_d,h_d,psi_d]
+  dbn.initial_commands_d = Array(Vector{Int64}, dbn.number_of_aircraft) #[L,v_d,h_d,psi_d,[hd_tp1,psid_tp1]]
 
   for i = 1:dbn.number_of_aircraft
     h_d = dbn.initial_states[i].h_d         #defined before
@@ -226,9 +237,9 @@ function generateEncounter(dbn::StarDBN)
     v_d = p.vdot_min + rand() * (p.vdot_max - p.vdot_min)
 
     dbn.initial_commands[i] = Float64[L, v_d, h_d, psi_d]
-    initial_commands_d = discretize(dbn.aem_parameters,unconvert_units(dbn.initial_commands[i]))
+    initial_commands_d = discretize(dbn.aem_parameters, unconvert_units(dbn.initial_commands[i]))
 
-    dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dbn.dynamic_variables1)) ]
+    dbn.initial_commands_d[i] = [initial_commands_d, int64(zeros(dbn.dynamic_variables1))]
   end
 end
 
@@ -236,29 +247,33 @@ addObserver(dbn::StarDBN, f::Function) = _addObserver(aem, f)
 addObserver(dbn::StarDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::StarDBN)
+
   #reset to initial state
-  for i=1:dbn.number_of_aircraft
+  for i = 1:dbn.number_of_aircraft
+
     copy!(dbn.commands_d[i], dbn.initial_commands_d[i])
     copy!(dbn.commands[i], dbn.initial_commands[i])
+
   end
   dbn.t = 0
 
 end
 
-function getInitialState(dbn::StarDBN, index::Int)
-  return dbn.initial_states[index]
-end
+getInitialState(dbn::StarDBN, index::Int) = dbn.initial_states[index]
 
 function step(dbn::StarDBN)
+
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft
-    logProb += step_dbn(dbn, dbn.commands_d[i],dbn.commands[i])
+
+    logProb += step_dbn(dbn, dbn.commands_d[i], dbn.commands[i])
 
     dbn.output_commands[i].t = dbn.t
     dbn.output_commands[i].v_d = dbn.commands[i][map_var2ind_L[:v_d]]
     dbn.output_commands[i].h_d = dbn.commands[i][map_var2ind_L[:h_d0]]
     dbn.output_commands[i].psi_d = dbn.commands[i][map_var2ind_L[:psi_d0]]
+
   end
 
   dbn.t += 1
@@ -267,11 +282,12 @@ function step(dbn::StarDBN)
 end
 
 function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float64})
-  p = dbn.aem_parameters
 
+  p = dbn.aem_parameters
   logProb = 0.0
 
   for (o,i_L) in enumerate(dbn.dynamic_variables1)
+
     i_G = map_L2G[i_L]
     if !isempty(find(dbn.parents_cache[i_G]))
       parents_L = Int64[map_G2L[iparents] for iparents in find(dbn.parents_cache[i_G])]
@@ -281,12 +297,14 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
       #Resampling and dediscretizing process
       i0_L = dbn.dynamic_variables0[o]
       i0_G = map_L2G[i0_L]
+
       if (command_d[i_L] != command_d[i0_L]) || #compare to state at last time step, #Different bin, do resample
         (command_d[i_L] == command_d[i0_L] && rand() < p.resample_rates[i0_G]) #Same bin but meets resample rate
-        command[i0_L] = dediscretize(command_d[i_L],p.boundaries[i0_G],p.zero_bins[i0_G])
-        command[i0_L] = convert_units(command[i0_L],map_ind2var_L[i0_L])
+        command[i0_L] = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
+        command[i0_L] = convert_units(command[i0_L], map_ind2var_L[i0_L])
       end
       #Else same bin and does not meet rate, just set equal to previous (no update)
+
     end
   end
 
@@ -297,11 +315,10 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
   return logProb
 end
 
-function get(dbn::StarDBN, aircraft_number::Int)
-  return dbn.output_commands[aircraft_number]
-end
+get(dbn::StarDBN, aircraft_number::Int) = dbn.output_commands[aircraft_number]
 
-function val2ind(boundariesi,ri,value)
+function val2ind(boundariesi, ri, value)
+
   if !isempty(boundariesi)
     index = findfirst(x -> (x > value), boundariesi) - 1
 
@@ -314,23 +331,35 @@ function val2ind(boundariesi,ri,value)
   return index
 end
 
-function discretize(p::CorrAEMParameters,v::Vector{Float64})
-  return Int64[ val2ind(p.boundaries[map_L2G[i]],
-                        p.r_transition[map_L2G[i]],val)
-               for (i,val) in enumerate(v) ]
+function discretize(p::CorrAEMParameters, v::Vector{Float64})
+
+  Int64[val2ind(p.boundaries[map_L2G[i]], p.r_transition[map_L2G[i]], val) for (i, val) in enumerate(v)]
 end
 
-function dediscretize(dval::Int64,boundaries::Vector{Float64},zero_bin::Int64)
+function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
+
   val_min = boundaries[dval]
-  val_max = boundaries[dval+1]
+  val_max = boundaries[dval + 1]
 
   return dval == zero_bin ? 0.0 : val_min +  rand() * (val_max - val_min)
 end
 
 function select_random_cumweights(cweights::Vector{Float64})
+
   r = cweights[end] * rand()
+
   return findfirst(x -> (x >= r), cweights)
 end
+
+#mods x to the range [-b, b]
+function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+
+  z = mod(x, 2 * b)
+
+  return (z > b) ? (z - 2 * b) : z
+end
+
+to_plusminus_180(x::FloatingPoint) = to_plusminus_b(x, 180.0)
 
 
 end #module

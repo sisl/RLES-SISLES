@@ -76,9 +76,11 @@ type LLDetPR <: AbstractPilotResponse
   queue::Vector{QueueEntry}
   timer::Int64
 
+  COC_RA::LLDetPRRA
+
   output::LLDetPROutput #preallocate
 
-  function LLDetPR(initial_resp_time::Int64,subsequent_resp_time::Int64)
+  function LLDetPR(initial_resp_time::Int64, subsequent_resp_time::Int64)
 
     obj = new()
     obj.initial_resp_time = initial_resp_time
@@ -88,44 +90,38 @@ type LLDetPR <: AbstractPilotResponse
     obj.queue = QueueEntry[]
     obj.timer = 0
 
+    obj.COC_RA = LLDetPRRA(-9999.0, 9999.0, 0.0, 0.0) #COC TODO: Remove hardcoding
+
     obj.output = LLDetPROutput()
 
     return obj
   end
 end
 
-function isequal(x::LLDetPRRA,y::LLDetPRRA)
+function isequal(x::LLDetPRRA, y::LLDetPRRA)
 
   return x.dh_min == y.dh_min && x.dh_max == y.dh_max && x.target_rate == y.target_rate
 end
 
-function add_to_queue!(pr::LLDetPR,q::Vector{QueueEntry},RA::LLDetPRRA)
+function add_to_queue!(q::Vector{QueueEntry}, RA::LLDetPRRA,
+                       queuetime::Int64)
 
-  t_left = isempty(q) ? pr.initial_resp_time : pr.subsequent_resp_time
+  filter!(x -> x.t < queuetime, q) #all elements should have a time smaller than what's being added
 
-  filter!(x->x.t < t_left,q) #all elements should have a time smaller than what's being added
-
-  el = QueueEntry(t_left,RA)
-  push!(q,el)
+  el = QueueEntry(queuetime, RA)
+  push!(q, el)
 
 end
 
 #TODO: replace with findlast in 0.4
 function findlastzero(q::Vector{QueueEntry})
 
-  idx = find(x->x.t==0,q)
+  idx = find(x -> x.t == 0, q)
 
   return length(idx) > 0 ? idx[end] : 0 #index of the last zero.  Returns 0 if empty.
 end
 
-function ischange(q::Vector{QueueEntry},RA::LLDetPRRA)
-
-  if isempty(q)
-    return true
-  end
-
-  return !isequal(q[end].RA,RA)
-end
+isfirstRA(pr::LLDetPR) = isequal(pr.queue[1].RA, pr.COC_RA) && length(pr.queue) == 1
 
 function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
 
@@ -134,54 +130,46 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
   @test RA.dh_min <= RA.target_rate <= RA.dh_max #this should always hold
 
   #decrement timer for all ra's in queue
-  for i=1:endof(pr.queue)
-    pr.queue[i].t = max(0,pr.queue[i].t-1) #TODO: remove hardcoding of t-1
+  for i = 1:endof(pr.queue)
+    pr.queue[i].t = max(0, pr.queue[i].t - 1) #TODO: remove hardcoding of t-1
   end
 
-  #incorporate the new RA
-  if RA.dh_min <= -9999.0 && 9999.0 <= RA.dh_max  #TODO: put these hardcodings in a common place
-    #coc
-    empty!(pr.queue)
-    pr.state = :none
-  elseif ischange(pr.queue,RA)
-    #RA
-    add_to_queue!(pr,pr.queue,RA)
+  #incorporate the new RA if it's new.  Could be coc
+  if !isequal(pr.queue[end].RA, RA)
+    queuetime = isfirstRA(pr) ? pr.initial_resp_time : pr.subsequent_resp_time
+    add_to_queue!(pr.queue, RA, queuetime)
   end
 
   #shift items to the next one with time 0
   last_index = findlastzero(pr.queue)
-  splice!(pr.queue,1:last_index-1)
+  splice!(pr.queue, 1:(last_index - 1))
 
-  pr.timer = 0
+  @test !isempty(pr.queue) #queue should never be empty
+  @test pr.queue[1].t == 0 #first item should always have its time expired
 
-  #default
-  dh_min = -9999.0
-  dh_max = 9999.0
-  target_rate = 0.0
-  ddh = 0.0
+  dh_min      = pr.queue[1].RA.dh_min
+  dh_max      = pr.queue[1].RA.dh_max
+  target_rate = pr.queue[1].RA.target_rate
+  ddh         = pr.queue[1].RA.ddh
 
-  if !isempty(pr.queue)
-    if pr.queue[1].t == 0 #there is an ra in the queue and its time has expired
-      h_d = pr.queue[1].RA.target_rate
-      dh_min = pr.queue[1].RA.dh_min
-      dh_max = pr.queue[1].RA.dh_max
-      target_rate = pr.queue[1].RA.target_rate
-      ddh = pr.queue[1].RA.ddh
+  if isequal(pr.queue[1].RA, pr.COC_RA)
+    #currently doing COC
+    pr.state = :none
 
-      if length(pr.queue) > 1
-        #this is not the last item
-        pr.state = :stay
-        pr.timer = pr.queue[2].t
-      else
-        #this is the last item
-        pr.state = :follow
-      end
+  else
+    h_d = pr.queue[1].RA.target_rate #follow RA
+
+    if length(pr.queue) > 1
+      #currently following an RA and there is another RA queued
+      pr.state = :stay
     else
-      #still waiting for the first item
-      pr.state = :none
-      pr.timer = pr.queue[1].t
+      #currently following an RA and there are no other RA's queued
+      pr.state = :follow
     end
   end
+
+  # if there is a next item, show its timer, otherwise 0
+  pr.timer = length(pr.queue) > 1 ? pr.queue[2].t : 0
 
   pr.output.t = t
   pr.output.v_d = v_d
@@ -203,7 +191,9 @@ step(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA) = updatePilotResponse(p
 function initialize(pr::LLDetPR)
 
   pr.state = :none
+
   empty!(pr.queue)
+  add_to_queue!(pr.queue, pr.COC_RA, 0)
 
   pr.output.t = 0.0
   pr.output.v_d = 0.0

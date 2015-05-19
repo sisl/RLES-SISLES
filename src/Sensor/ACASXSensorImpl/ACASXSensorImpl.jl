@@ -81,7 +81,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
       intruders[intr_i].sr = norm([own_state.x, own_state.y, own_state.z]-
                                     [intr_state.x, intr_state.y, intr_state.z]) #slant range (feet)
       intr_psi = atan2(intr_state.x - own_state.x, intr_state.y - own_state.y)
-      intruders[intr_i].chi = to_plusminuspi(intr_psi - ownInput.psi) #bearing (radians, nose is 0, clockwise is positive)
+      intruders[intr_i].chi = to_plusminus_pi(intr_psi - ownInput.psi) #bearing (radians, nose is 0, clockwise is positive)
       intruders[intr_i].z = intr_state.z #altitude (feet)  #quantized
 
       ## These are the defaults.  Modified through coordination
@@ -106,8 +106,15 @@ function initialize(sensor::ACASXSensor)
   reset!(sensor.outputVals)
 end
 
-#converts angle in radians to the range +/- pi
-to_plusminuspi(x::FloatingPoint) = mod(x, 2*pi) |> z -> (z > pi) ? (z - 2*pi) : z
+#mods x to the range [-b, b]
+function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+
+  z = mod(x, 2 * b)
+
+  return (z > b) ? (z - 2 * b) : z
+end
+
+to_plusminus_pi(x::FloatingPoint) = to_plusminus_b(x, float64(pi))
 
 end
 

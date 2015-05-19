@@ -403,10 +403,10 @@ function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
 
             t, v_d, h_d, psi_d = aem.states[i, 1, :]
 
-            theta = atand((h_n - h) / norm(x_n - x, y_n - y))
-            phi = 0.
+            theta = atand((h_n - h) / norm(x_n - x, y_n - y)) |> to_plusminus_180
+            phi = 0.0
 
-            encounters[i]["initial"] = Float64[v, x, y, h, psi * pi / 180, theta * pi / 180, phi, v_d]
+            encounters[i]["initial"] = Float64[v, x, y, h, deg2rad(psi), deg2rad(theta), deg2rad(phi), v_d]
         end
 
         # time, s, double
@@ -614,8 +614,7 @@ function transform_regarding_TCA(aem, L, geometry_at_TCA)
     AC1_state[:, 4] += (-h1_tca + h_trans)
 
     psi = update_psi(AC1_state[1, 2:3], AC1_state[2, 2:3])
-    AC1_state[:, 6] += psi
-
+    AC1_state[:, 6] = map(to_plusminus_180, AC1_state[:, 6] + psi) #make sure we're in [-180, 180]
 
     AC2_state[:, 2] -= x2_tca
     AC2_state[:, 3] -= y2_tca
@@ -643,8 +642,7 @@ function transform_regarding_TCA(aem, L, geometry_at_TCA)
     AC2_state[:, 4] += (-h2_tca + h_trans - vmd)
 
     psi = update_psi(AC2_state[1, 2:3], AC2_state[2, 2:3])
-    AC2_state[:, 6] += psi
-
+    AC2_state[:, 6] = map(to_plusminus_180, AC2_state[:, 6] + psi) #make sure we're in [-180, 180]
 
     aem.dynamic_states[1, 1:aem.dn_state_index[1], :] = reshape(AC1_state, 1, size(AC1_state, 1), 6)
     aem.dynamic_states[2, 1:aem.dn_state_index[2], :] = reshape(AC2_state, 1, size(AC2_state, 1), 6)
@@ -848,6 +846,16 @@ function reset_sample_from_file(aem)
         aem.f_tran = nothing
     end
 end
+
+#mods x to the range [-b, b]
+function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+
+  z = mod(x, 2 * b)
+
+  return (z > b) ? (z - 2 * b) : z
+end
+
+to_plusminus_180(x::FloatingPoint) = to_plusminus_b(x, 180.0)
 
 end
 

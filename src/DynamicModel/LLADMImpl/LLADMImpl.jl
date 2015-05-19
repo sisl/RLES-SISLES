@@ -116,7 +116,7 @@ type LLADM <: AbstractDynamicModel
                  _phidotmax::Float64 = 0.524,
                  _v_high::Float64 = 100000.0,
                  _v_low::Float64 = 1.7,
-                 LIMIT_DDH::Bool = false,
+                 LIMIT_DDH::Bool = true,
                  _min_vertical_rate::Float64 = -9999.0,
                  _max_vertical_rate::Float64 = 9999.0,
                  _min_vertical_accel::Float64 = -9.66,
@@ -248,8 +248,11 @@ function state_update(C::LLADMConsts, state::LLADMState, ctrl::LLADMCommand, hdd
   state.E += dt * (v * c_theta * s_psi)
   state.h += dt * (v * s_theta)
   state.psi += dt * (q * s_phi / c_theta + r * c_phi / c_theta)
+  state.psi = to_plusminus_pi(state.psi) #RLEE added: mod back to [-pi, pi]
   state.theta += dt * (q * c_phi - r * s_phi)
+  state.theta = to_plusminus_pi(state.theta) #RLEE added: mod back to [-pi, pi]
   state.phi += dt * (p + q * s_phi * t_theta + r * c_phi * t_theta)
+  state.phi = to_plusminus_pi(state.phi) #RLEE added: mode back to [-pi, pi]
 
   state.v = saturate(state.v, 1.7, C._v_high - 0.000001)
   state.t += dt
@@ -295,11 +298,11 @@ function substep(state::LLADMState, ctrl::LLADMCommand, C::LLADMConsts)
 
   dh = state.v * sin(state.theta)
 
-  dummy,ddh_script = response(dh, (ctrl.hdot - dh) / C._dt,
+  dummy, ddh_script = response(dh, (ctrl.hdot - dh) / C._dt,
                                        ctrl.dh_min, ctrl.dh_max,
                                        C._min_vertical_rate, C._max_vertical_rate, C._dt)
 
-  dummy,ddh_cmd = response(dh, ctrl.dh_min, ctrl.dh_max, 0.0, 0.0, ctrl.ddh,
+  dummy, ddh_cmd = response(dh, ctrl.dh_min, ctrl.dh_max, 0.0, 0.0, ctrl.ddh,
                                  C._min_vertical_rate, C._max_vertical_rate, C._dt)
 
   ddh2apply = resolve_TCAS_and_script(ddh_cmd,ddh_script)
@@ -384,6 +387,7 @@ end
 function acceleration_to_apply(dh::Float64, ddh_no_response::Float64, ddh_response::Float64,
                                dh_cmd_min::Float64, dh_cmd_max::Float64, cmd_ddh::Float64)
 
+
   ddh = ddh_no_response
 
   # resolution advisory handling
@@ -417,5 +421,15 @@ end
 snap(x, y) = approxeq(x, y, 1e-8) ? y : x
 
 approxeq(x, y, eps) = (x == y) ? true : abs(x-y) < eps
+
+#mods x to the range [-b, b]
+function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+
+  z = mod(x, 2 * b)
+
+  return (z > b) ? (z - 2 * b) : z
+end
+
+to_plusminus_pi(x::FloatingPoint) = to_plusminus_b(x, float64(pi))
 
 end

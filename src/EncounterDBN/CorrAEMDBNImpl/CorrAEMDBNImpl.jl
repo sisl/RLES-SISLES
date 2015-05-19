@@ -139,7 +139,7 @@ function initialize(dbn::CorrAEMDBN)
 end
 
 function getInitialState(dbn::CorrAEMDBN, index::Int)
-  return Encounter.getInitialState(dbn.aem,index)
+  return Encounter.getInitialState(dbn.aem, index)
 end
 
 function step(dbn::CorrAEMDBN)
@@ -307,7 +307,9 @@ function unconvertUnitsAemState(state_)
 end
 
 function select_random_cumweights(cweights::Vector{Float64})
+
   r = cweights[end] * rand()
+
   return findfirst(x -> (x >= r), cweights)
 end
 

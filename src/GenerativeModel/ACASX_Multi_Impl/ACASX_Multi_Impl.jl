@@ -72,6 +72,8 @@ type ACASX_Multi <: AbstractGenerativeModel
   hmd::Float64 #minimum horizontal distance so far
   md::Float64 #combined miss distance metric
   md_time::Int64 #time index at which hmd and vmd are taken
+  label_as_nmac::Bool #label this trajectory as nmac (different from NMAC_occurred that only looks at md,
+                      #this one also needs to pass label filters)
 
   step_logProb::Float64 #cumulative probability of this step()
 
@@ -114,6 +116,7 @@ type ACASX_Multi <: AbstractGenerativeModel
     sim.hmd = typemax(Float64)
     sim.md = typemax(Float64)
     sim.md_time = 0
+    label_as_nmac = false
 
     sim.step_logProb = 0.0
 
