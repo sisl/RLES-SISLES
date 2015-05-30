@@ -18,8 +18,7 @@ function initialize(sim)
 
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
-  #Start time at 1 for easier indexing into arrays according to time
-  sim.t_index = 1
+  sim.t_index = 0
 
   EncounterDBN.initialize(aem)
 
@@ -29,21 +28,15 @@ function initialize(sim)
     notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
 
     Sensor.initialize(sr[i])
-    notifyObserver(sim,"Sensor", Any[i, sim.t_index, sr[i]])
 
     CollisionAvoidanceSystem.initialize(cas[i])
-    notifyObserver(sim,"CAS", Any[i, sim.t_index, cas[i]])
 
     PilotResponse.initialize(pr[i])
-    notifyObserver(sim,"Response", Any[i, sim.t_index, pr[i]])
 
     state = DynamicModel.initialize(adm[i], initial)
-    notifyObserver(sim,"Dynamics",Any[i, sim.t_index, adm[i]])
 
     WorldModel.initialize(wm, i, state)
   end
-
-  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
   notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
 
@@ -71,7 +64,10 @@ function step(sim)
 
   states = WorldModel.getAll(wm)
 
+  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
+
   for i = 1:sim.params.num_aircraft
+    notifyObserver(sim, "Dynamics", Any[i, sim.t_index, adm[i]])
 
     #intended command
     command = EncounterDBN.get(aem, i)
@@ -89,12 +85,9 @@ function step(sim)
 
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
-    notifyObserver(sim, "Dynamics", Any[i, sim.t_index, adm[i]])
-
   end
 
   WorldModel.updateAll(wm)
-  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
   #check and update miss distances
   vhdist = getvhdist(sim.wm)
