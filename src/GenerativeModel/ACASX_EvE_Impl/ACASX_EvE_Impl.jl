@@ -126,8 +126,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.observer = Observer()
     sim.string_id = "ACASX_EvE_$(p.encounter_number)"
 
-    #Start time at 1 for easier indexing into arrays according to time
-    sim.t_index = 1
+    sim.t_index = 0
 
     return sim
   end

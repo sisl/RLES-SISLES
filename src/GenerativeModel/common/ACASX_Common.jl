@@ -127,7 +127,7 @@ end
 
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
 
-isTerminal(sim) = sim.t_index > sim.params.max_steps
+isTerminal(sim) = sim.t_index >= sim.params.max_steps
 
 isEndState(sim) = (sim.params.end_on_nmac && isNMAC(sim)) || isTerminal(sim)
 
