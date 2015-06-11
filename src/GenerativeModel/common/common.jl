@@ -5,6 +5,7 @@ using PilotResponse
 using DynamicModel
 using WorldModel
 
+
 import Base.convert
 
 #The fact that these are distributed between the simulators (i.e., TCASSimulatorImpl.jl),
@@ -76,3 +77,4 @@ convert(::Type{LLADMState}, s::CorrAEMInitialState) = LLADMState(s.t, s.v, s.y, 
                                                                  0.0, 0.0)
 
 convert(::Type{ASWMState}, s::LLADMOutputState) = ASWMState(s.t, s.x, s.y, s.h, s.vx, s.vy, s.vh)
+

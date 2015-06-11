@@ -32,6 +32,8 @@ import CommonInterfaces.step
 import AbstractEncounterDBNInterfaces.get
 import AbstractEncounterDBNInterfaces.getInitialState
 
+import Base.convert
+
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 
 type CorrAEMDBN <: AbstractEncounterDBN
@@ -206,7 +208,6 @@ function step_dbn(dbn::CorrAEMDBN)
   dbn.logProb = logProb
 end
 
-import Base.convert
 convert(::Type{Vector{Float64}},command_1::CorrAEMCommand,command_2::CorrAEMCommand) =
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]
 

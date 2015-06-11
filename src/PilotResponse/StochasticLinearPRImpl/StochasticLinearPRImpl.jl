@@ -25,7 +25,12 @@ import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
-function generateProbabilityDict()
+const statemap = [:coc => 1, :first => 2, :multi => 3]
+const RAmap = [:none => 1, :climb => 2, :level => 3, :descend => 4]
+const responsemap = [:none => 1, :stay => 2, :follow => 3]
+const strength_change_map = [true => 1, false => 2]
+
+function generateProbabilityTable()
 
   #key = (state,displayRA,response,currentRA,diffStrength)
   #value = (probability vector, output values vector)
@@ -36,59 +41,45 @@ function generateProbabilityDict()
   #response = {:none = not following, :stay = following last displayRA, :follow = following latest displayRA}
   #currentRA = incoming RA, values are same as displayRA
   #diffStrength = {true=currentRA has same symbol but different target_rate, false=same target_Rate}
-  d = Dict{(Symbol,Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})}()
+  A = Array((Vector{Float64},Vector{(Symbol,Symbol)}), length(statemap), length(RAmap), length(responsemap),
+            length(RAmap), length(strength_change_map))
 
   # all entries going to :none go there with prob 1
-  for state = [:coc,:first,:multi]
-    for displayRA = [:none,:climb,:level,:descend]
-      for response = [:none,:stay,:follow]
-        for strength_change = [true,false]
-          d[(state,displayRA,response,:none,strength_change)] = ([1.0],[(:coc,:none)])
-        end
-      end
-    end
-  end
+  A[:, :, :, RAmap[:none], :] = ([1.0],[(:coc,:none)])
 
   # First RA
-  for currentRA = [:climb,:level,:descend]
+  for RA in map(x -> RAmap[x], [:climb, :level, :descend])
     #transition from coc to first
-    d[(:coc,:none,:none,currentRA,false)] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #first time presenting RA
+    A[statemap[:coc], RAmap[:none], responsemap[:none],:, strength_change_map[false]] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #first time presenting RA
 
     #staying in first
-    d[(:first,currentRA,:none,currentRA,false)] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #already active, but not following yet
-    d[(:first,currentRA,:follow,currentRA,false)] = ([1.0],[(:first,:follow)]) #already following
-
+    A[statemap[:first], RA, responsemap[:none], RA, strength_change_map[false]] = ([1/6,5/6],[(:first,:follow),(:first,:none)]) #already active, but not following yet
+    A[statemap[:first], RA, responsemap[:follow], RA, strength_change_map[false]] = ([1.0],[(:first,:follow)]) #already following
   end
 
   # Transition into multi
-  for displayRA = [:climb,:level,:descend]
-    for currentRA = [:climb,:level,:descend]
-      for state = [:first,:multi]
-        if displayRA != currentRA #reversals
-          d[(state,displayRA,:none,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #change already active, but not following yet
-          d[(state,displayRA,:stay,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
-          d[(state,displayRA,:follow,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
-        #displayRA == currentRA
-        else #strengthenings
-          d[(state,currentRA,:none,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #change already active, but not following yet
-          d[(state,currentRA,:stay,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
-          d[(state,currentRA,:follow,currentRA,true)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
-        end
+  for displayRA in map(x -> RAmap[x], [:climb, :level, :descend])
+    for currentRA in map(x -> RAmap[x], [:climb, :level, :descend])
+      for state in map(x -> statemap[x], [:first, :multi])
+        b_same = displayRA == currentRA #same sense?
+        A[state, displayRA, responsemap[:none], currentRA, strength_change_map[b_same]] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #change already active, but not following yet
+        A[state, displayRA, responsemap[:stay], currentRA, strength_change_map[b_same]] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
+        A[state, displayRA, responsemap[:follow], currentRA, strength_change_map[b_same]] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #change already active, but not following yet
       end
     end
   end
 
   # Staying in multi
-  for currentRA = [:climb,:level,:descend]
-    d[(:multi,currentRA,:none,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #already active, but not following yet
-    d[(:multi,currentRA,:stay,currentRA,false)] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #already active, but not following yet
-    d[(:multi,currentRA,:follow,currentRA,false)] = ([1.0],[(:multi,:follow)]) #already following
+  for RA in map(x -> RAmap[x], [:climb, :level, :descend])
+    A[statemap[:multi], RA, responsemap[:none], RA, strength_change_map[false]] = ([1/4,3/4],[(:multi,:follow),(:multi,:none)]) #already active, but not following yet
+    A[statemap[:multi], RA, responsemap[:stay], RA, strength_change_map[false]] = ([1/4,3/4],[(:multi,:follow),(:multi,:stay)]) #already active, but not following yet
+    A[statemap[:multi], RA, responsemap[:follow], RA, strength_change_map[false]] = ([1.0],[(:multi,:follow)]) #already following
   end
 
-  return d
+  return A
 end
 
-const probabilityDict = generateProbabilityDict() #generate it once and store it
+const probabilityTable = generateProbabilityTable() #generate it once and store it
 
 type StochasticLinearPRCommand
 
@@ -116,7 +107,7 @@ type StochasticLinearPR <: AbstractPilotResponse
   response_time::Int64 #for first RA
   output::StochasticLinearPRCommand
 
-  probTable::Dict{(Symbol,Symbol,Symbol,Symbol,Bool),(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
+  probTable::Array{(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
 
   function StochasticLinearPR()
 
@@ -127,7 +118,7 @@ type StochasticLinearPR <: AbstractPilotResponse
     obj.response = :none
     obj.output = StochasticLinearPRCommand(0.0, 0.0, 0.0, 0.0, 0.0)
     obj.response_time = 0
-    obj.probTable = probabilityDict
+    obj.probTable = probabilityTable
 
     return obj
   end
@@ -144,7 +135,8 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
   end
 
   strengthening = (pr.displayRA == ra != :coc) && (nothing != pr.target_rate != RA.target_rate)
-  probabilities,values = pr.probTable[(pr.state,pr.displayRA,pr.response,ra,strengthening)]
+  probabilities, values = pr.probTable[statemap[pr.state], RAmap[pr.displayRA], responsemap[pr.response],
+                                      RAmap[ra], strength_change_map[strengthening]]
   index = select_random(probabilities)
   pr.state,pr.response = values[index]
   pr.displayRA = ra
@@ -205,5 +197,4 @@ function select_random(weights)
 end
 
 end
-
 
