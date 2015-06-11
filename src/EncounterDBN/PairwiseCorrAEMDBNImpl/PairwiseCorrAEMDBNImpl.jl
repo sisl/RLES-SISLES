@@ -120,8 +120,7 @@ const map_var2ind_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5,
 const map_ind2var_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
 const temporal_map = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
 
-using Debug
-@debug function generate_encounter(dbn::PairwiseCorrAEMDBN; sample_number::Int64 = 0)
+function generate_encounter(dbn::PairwiseCorrAEMDBN; sample_number::Int64 = 0)
 
   @test dbn.number_of_aircraft >= 2
 
@@ -149,13 +148,11 @@ using Debug
   #Save aircraft 1 initial vars
   dbn.ac1_initial_dist = masked_initial_dist(dbn.aem.initial,AC1_MASK)
 
-  @bp
   #Save aircraft 1 dynamic vars
   dbn.ac1_dynamic_vars = save_ac1_dyn_vars(squeeze(dbn.aem.states[1,:,:],1))
 
   #Handle aircraft 3+
   for i = 3:dbn.number_of_aircraft
-    @bp
 
     #Load aircraft 1 initial vars into initial distribution
     dbn.aem.initial_distributions = dbn.ac1_initial_dist
