@@ -65,7 +65,7 @@ type ACASX_Multi <: AbstractGenerativeModel
   string_id::String
 
   #sim states: changes throughout simulation run
-  t_index::Int64 #current time index in the simulation. Starts at 1 and increments by 1.
+  t_index::Int64 #current time index in the simulation. Starts at 0 and increments by 1.
   #This is different from t which starts at 0 and could increment in the reals.
 
   vmd::Float64 #minimum vertical distance so far
