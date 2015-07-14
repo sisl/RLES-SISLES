@@ -94,13 +94,13 @@ type ACASX_EvE <: AbstractGenerativeModel
                     p.encounter_number, p.encounter_seed, p.command_method)
 
     if p.pilotResponseModel == :SimplePR
-      sim.pr = SimplePilotResponse[ SimplePilotResponse() for i = 1 : p.num_aircraft ]
+      sim.pr = SimplePilotResponse[SimplePilotResponse() for i = 1 : p.num_aircraft]
     elseif p.pilotResponseModel == :StochasticLinear
-      sim.pr = StochasticLinearPR[ StochasticLinearPR() for i = 1 : p.num_aircraft ]
+      sim.pr = StochasticLinearPR[StochasticLinearPR() for i = 1 : p.num_aircraft]
     elseif p.pilotResponseModel == :FiveVsNone
-      sim.pr = LLDetPR[ i == 1 ? LLDetPR(5, 3) : LLDetPR(-1, -1) for i = 1 : p.num_aircraft]
+      sim.pr = LLDetPR[i == 1 ? LLDetPR(5, 3) : LLDetPR(-1, -1) for i = 1 : p.num_aircraft]
     elseif p.pilotResponseModel == :ICAO_all
-      sim.pr = LLDetPR[ LLDetPR(5, 3) for i = 1 : p.num_aircraft]
+      sim.pr = LLDetPR[LLDetPR(5, 3) for i = 1 : p.num_aircraft]
     else
       error("ACASX_EvE_Impl: No such pilot response model")
     end

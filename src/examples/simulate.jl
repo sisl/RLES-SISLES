@@ -91,7 +91,7 @@ function run_simulation(; bTCAS = false, bReadSampleFromFile = false, initial_sa
     sim = initialize_simulation(bReadSampleFromFile = bReadSampleFromFile, initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename)
 
     aem = sim.parameters.em
-    
+
     AC1_trajectory_ = Vector{Float64}[]
     AC2_trajectory_ = Vector{Float64}[]
 
@@ -132,7 +132,7 @@ function run_simulation_for_comparison(; initial_sample_filename = initial_sampl
     sim = initialize_simulation(bReadSampleFromFile = true, initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename)
 
     aem = sim.parameters.em
-    
+
     AC1_trajectory_ = Vector{Float64}[]
     AC2_trajectory_ = Vector{Float64}[]
 
@@ -184,7 +184,7 @@ function run_simulation_for_validation(; sample_number = 1)
     sim = initialize_simulation(bValidate = true)
 
     aem = sim.parameters.em
-    
+
     AC1_trajectory_ = Vector{Float64}[]
     AC2_trajectory_ = Vector{Float64}[]
 

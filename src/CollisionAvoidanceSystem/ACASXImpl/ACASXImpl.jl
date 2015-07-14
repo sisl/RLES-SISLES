@@ -42,7 +42,7 @@ type ACASXCoordRecordIntruder
   vrc::Uint8
   vsb::Uint8
 
-  ACASXCoordRecordIntruder(id::Int) = new(id,0x0,0x0,0x0)
+  ACASXCoordRecordIntruder(id::Int) = new(id, 0x0, 0x0, 0x0)
 end
 
 type ACASXCoordRecord
@@ -88,7 +88,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
                                0x0,
                                0x0,
                                ACASXCoordRecordIntruder[ACASXCoordRecordIntruder(i)
-                                                        for i=1:cas.max_intruders]))
+                                                        for i = 1:cas.max_intruders]))
 
     reset(cas.casShared)
 
@@ -170,7 +170,7 @@ function reset!(cas::ACASX,rec::ACASXCoordRecord)
   rec.sensitivity_index = 0x0
   rec.protection_mode = 0x0
 
-  for i=1:endof(rec.intruders)
+  for i = 1:endof(rec.intruders)
     rec.intruders[i].id = uint32(i)
     rec.intruders[i].cvc = 0x0
     rec.intruders[i].vrc = 0x0

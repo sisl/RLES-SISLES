@@ -253,9 +253,7 @@ end
 addObserver(aem::CorrAEM, f::Function) = _addObserver(aem, f)
 addObserver(aem::CorrAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
 
-
 function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
-
     params = aem.parameters
 
     if aem.b_write_to_file && aem.file_format == "text"
@@ -454,6 +452,7 @@ function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
     end
 end
 
+
 function generateEncountersToFile(aem::CorrAEM; file_format = "")
 
     if isfile(aem.initial_sample_filename)
@@ -473,9 +472,9 @@ function generateEncountersToFile(aem::CorrAEM; file_format = "")
     end
 
     for i = 1:aem.number_of_initial_samples
-        if file_format == "text"
+        if aem.file_format == "text"
             generateEncounter(aem, b_simulate = false)
-        elseif file_format == "binary"
+        elseif aem.file_format == "binary"
             generateEncounter(aem)
         end
     end

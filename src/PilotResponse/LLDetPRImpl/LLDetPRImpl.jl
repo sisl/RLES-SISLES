@@ -49,7 +49,7 @@ type LLDetPROutput
   logProb::Float64 #log probability of generating this command
 end
 
-LLDetPROutput() = LLDetPROutput(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)
+LLDetPROutput() = LLDetPROutput(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
 type LLDetPRRA
 
@@ -90,7 +90,7 @@ type LLDetPR <: AbstractPilotResponse
     obj.queue = QueueEntry[]
     obj.timer = 0
 
-    obj.COC_RA = LLDetPRRA(-9999.0, 9999.0, 0.0, 0.0) #COC TODO: Remove hardcoding
+    obj.COC_RA = LLDetPRRA(-9999.0, 9999.0, 0.0, 0.0) #COC TODO: Remove hardcoding of 9999.0, or at least centralize it
 
     obj.output = LLDetPROutput()
 
@@ -113,7 +113,7 @@ function add_to_queue!(q::Vector{QueueEntry}, RA::LLDetPRRA,
 
 end
 
-#TODO: replace with findlast in 0.4
+#TODO: replace with findlast when we switch to julia 0.4
 function findlastzero(q::Vector{QueueEntry})
 
   idx = find(x -> x.t == 0, q)
@@ -131,7 +131,7 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
 
   #decrement timer for all ra's in queue
   for i = 1:endof(pr.queue)
-    pr.queue[i].t = max(0, pr.queue[i].t - 1) #TODO: remove hardcoding of t-1
+    pr.queue[i].t = max(0, pr.queue[i].t - 1) #TODO: remove hardcoding of t-1 for step size
   end
 
   #incorporate the new RA if it's new.  Could be coc
@@ -140,7 +140,7 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
     add_to_queue!(pr.queue, RA, queuetime)
   end
 
-  #shift items to the next one with time 0
+  #shift items to the next one with time = 0
   last_index = findlastzero(pr.queue)
   splice!(pr.queue, 1:(last_index - 1))
 
@@ -179,12 +179,12 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
   pr.output.dh_max = dh_max
   pr.output.target_rate = target_rate
   pr.output.ddh = ddh
-  pr.output.logProb = 0.0 #probability 1
+  pr.output.logProb = 0.0 #probability = 1
 
   return pr.output
 end
 
-step(pr::LLDetPR, update, RA) = step(pr,convert(LLDetPRCommand, update), convert(LLDetPRRA,RA))
+step(pr::LLDetPR, update, RA) = step(pr, convert(LLDetPRCommand, update), convert(LLDetPRRA, RA))
 
 step(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA) = updatePilotResponse(pr, update, RA)
 
@@ -199,7 +199,7 @@ function initialize(pr::LLDetPR)
   pr.output.v_d = 0.0
   pr.output.h_d = 0.0
   pr.output.psi_d = 0.0
-  pr.output.dh_min = -9999.0  #TODO: remove these hardcodings into a central location
+  pr.output.dh_min = -9999.0
   pr.output.dh_max = 9999.0
   pr.output.target_rate = 0.0
   pr.output.ddh = 0.0

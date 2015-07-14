@@ -36,21 +36,7 @@ import AbstractEncounterDBNInterfaces.getInitialState
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_load_params.jl"))
 
-const TCA = 40.0 #time of closest approach in seconds
-const V_MIN = 400
-const V_MAX = 600
-const VDOT_MIN = -2.0
-const VDOT_MAX = 2.0
-const H_MIN = 7000
-const H_MAX = 8000
-const HDOT_MIN = -10.0
-const HDOT_MAX = 10.0
-const PSIDOT_MIN = -0.0
-const PSIDOT_MAX = 0.0
-const L_MIN = 1
-const L_MAX = 5
-
-type StarDBNParams
+immutable StarDBNParams
 
   tca::Float64 #time of closest approach in seconds
   v_min::Float64
@@ -151,15 +137,12 @@ type StarDBN <: AbstractEncounterDBN
     dbn.cumweights_cache = Dict{(Int64, Int64), Vector{Float64}}()
 
     for i = 1:length(dbn.aem_parameters.N_transition)
-
       dbn.parents_cache[i] = dbn.aem_parameters.G_transition[:, i]
 
       for j = 1:1:size(dbn.dirichlet_transition[i], 2)
-
         dbn.weights_cache[(i, j)] = dbn.aem_parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
         dbn.weights_cache[(i, j)] /= sum(dbn.weights_cache[(i, j)])
         dbn.cumweights_cache[(i, j)] = cumsum(dbn.weights_cache[(i, j)])
-
       end
     end
 
@@ -182,7 +165,6 @@ convert_units(v::Vector{Float64}) = Float64[convert_units(v[i], map_ind2var_L[i]
 unconvert_units(v::Vector{Float64}) = Float64[unconvert_units(v[i], map_ind2var_L[i]) for i = 1:endof(v)]
 
 function convert_units(x::Float64, var::Symbol)
-
   if var == :v_d0 || var == :v_d1
     return x * 1.68780
   elseif var == :h_d0 || var == :h_d1
@@ -190,11 +172,9 @@ function convert_units(x::Float64, var::Symbol)
   else
     return x
   end
-
 end
 
 function unconvert_units(x::Float64,var::Symbol)
-
   if var == :v_d0 || var == :v_d1
     return x / 1.68780
   elseif var == :h_d0 || var == :h_d1
@@ -202,18 +182,15 @@ function unconvert_units(x::Float64,var::Symbol)
   else
     return x
   end
-
 end
 
 function generateEncounter(dbn::StarDBN)
-
   p = dbn.parameters
 
   #initial aircraft states - place in star pattern heading towards origin
-  dbn.initial_states = Array(CorrAEMInitialState,dbn.number_of_aircraft)
+  dbn.initial_states = Array(CorrAEMInitialState, dbn.number_of_aircraft)
 
   for i = 1:dbn.number_of_aircraft
-
     t = 0
     v = p.v_min + rand() * (p.v_max - p.v_min)
     h = p.h_min + rand() * (p.h_max - p.h_min)
@@ -247,22 +224,17 @@ addObserver(dbn::StarDBN, f::Function) = _addObserver(aem, f)
 addObserver(dbn::StarDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::StarDBN)
-
   #reset to initial state
   for i = 1:dbn.number_of_aircraft
-
     copy!(dbn.commands_d[i], dbn.initial_commands_d[i])
     copy!(dbn.commands[i], dbn.initial_commands[i])
-
   end
   dbn.t = 0
-
 end
 
 getInitialState(dbn::StarDBN, index::Int) = dbn.initial_states[index]
 
 function step(dbn::StarDBN)
-
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft
@@ -282,6 +254,7 @@ function step(dbn::StarDBN)
 end
 
 function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float64})
+  #_G is global (to the file), _L is local (to this module)
 
   p = dbn.aem_parameters
   logProb = 0.0
@@ -289,36 +262,35 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
   for (o,i_L) in enumerate(dbn.dynamic_variables1)
 
     i_G = map_L2G[i_L]
+    j_G = 1
     if !isempty(find(dbn.parents_cache[i_G]))
-      parents_L = Int64[map_G2L[iparents] for iparents in find(dbn.parents_cache[i_G])]
+      parents_L = map(i -> map_G2L[i], find(dbn.parents_cache[i_G]))
       j_G = sub2ind(p.r_transition[dbn.parents_cache[i_G]], command_d[parents_L])
-      command_d[i_L] = select_random_cumweights(dbn.cumweights_cache[(i_G,j_G)])
-      logProb += log(dbn.weights_cache[(i_G,j_G)][command_d[i_L]])
-      #Resampling and dediscretizing process
-      i0_L = dbn.dynamic_variables0[o]
-      i0_G = map_L2G[i0_L]
-
-      if (command_d[i_L] != command_d[i0_L]) || #compare to state at last time step, #Different bin, do resample
-        (command_d[i_L] == command_d[i0_L] && rand() < p.resample_rates[i0_G]) #Same bin but meets resample rate
-        command[i0_L] = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
-        command[i0_L] = convert_units(command[i0_L], map_ind2var_L[i0_L])
-      end
-      #Else same bin and does not meet rate, just set equal to previous (no update)
-
     end
+
+    command_d[i_L] = select_random_cumweights(dbn.cumweights_cache[(i_G, j_G)])
+    logProb += log(dbn.weights_cache[(i_G,j_G)][command_d[i_L]])
+    #Resampling and dediscretizing process
+    i0_L = dbn.dynamic_variables0[o]
+    i0_G = map_L2G[i0_L]
+
+    if (command_d[i_L] != command_d[i0_L]) || #compare to state at last time step, #Different bin, do resample
+      (command_d[i_L] == command_d[i0_L] && rand() < p.resample_rates[i0_G]) #Same bin but meets resample rate
+      command[i0_L] = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
+      command[i0_L] = convert_units(command[i0_L], map_ind2var_L[i0_L])
+    end
+    #Else same bin and does not meet rate, just set equal to previous (no update)
   end
 
   # update x(t) with x(t+1)
   command_d[dbn.dynamic_variables0] = command_d[dbn.dynamic_variables1]
 
-  #return
   return logProb
 end
 
 get(dbn::StarDBN, aircraft_number::Int) = dbn.output_commands[aircraft_number]
 
 function val2ind(boundariesi, ri, value)
-
   if !isempty(boundariesi)
     index = findfirst(x -> (x > value), boundariesi) - 1
 
@@ -332,12 +304,10 @@ function val2ind(boundariesi, ri, value)
 end
 
 function discretize(p::CorrAEMParameters, v::Vector{Float64})
-
   Int64[val2ind(p.boundaries[map_L2G[i]], p.r_transition[map_L2G[i]], val) for (i, val) in enumerate(v)]
 end
 
 function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
-
   val_min = boundaries[dval]
   val_max = boundaries[dval + 1]
 
@@ -345,7 +315,6 @@ function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
 end
 
 function select_random_cumweights(cweights::Vector{Float64})
-
   r = cweights[end] * rand()
 
   return findfirst(x -> (x >= r), cweights)
@@ -353,14 +322,12 @@ end
 
 #mods x to the range [-b, b]
 function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
-
   z = mod(x, 2 * b)
 
   return (z > b) ? (z - 2 * b) : z
 end
 
 to_plusminus_180(x::FloatingPoint) = to_plusminus_b(x, 180.0)
-
 
 end #module
 
