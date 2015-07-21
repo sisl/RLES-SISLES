@@ -24,7 +24,6 @@ using ObserverImpl
 using Util
 using Encounter
 using CorrAEMImpl
-using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -76,7 +75,7 @@ type CorrAEMDBN <: AbstractEncounterDBN
                       encounter_number::Int, encounter_seed::Uint64, command_method::Symbol)
     dbn = new()
 
-    @test number_of_aircraft == 2 #need to revisit the code if this is not true
+    @assert number_of_aircraft == 2 #need to revisit the code if this is not true
     dbn.number_of_aircraft     = number_of_aircraft
 
     dbn.encounter_file         = encounter_file
@@ -176,18 +175,30 @@ function step_dbn(dbn::CorrAEMDBN)
     end
 
     aem_dstate[i] = select_random_cumweights(dbn.cumweights_cache[(i, j)])
-    logProb += log(dbn.weights_cache[(i, j)][aem_dstate[i]])
+    logProb += log(dbn.weights_cache[(i, j)][aem_dstate[i]]) #prob for picking bin
 
     #Resampling and dediscretizing process
     i_t = dbn.dynamic_variables0[o]
-    if (aem_dstate[i] != aem_dstate[i_t]) || #compare to state at last time step, #Different bin, do resample
-      (aem_dstate[i] == aem_dstate[i_t] && rand() < p.resample_rates[i_t]) #Same bin but meets resample rate
-      aem_dyn_cstate[o] = dediscretize(aem_dstate[i], p.boundaries[i_t], p.zero_bins[i_t])
-      if in(i, [17, 18]) #these need unit conversion #FIXME: remove hardcoding, or at least centralize it
-        aem_dyn_cstate[o] /= 60 #convert units
-      end
+    if (aem_dstate[i] != aem_dstate[i_t]) #Different bin than previous time step, resample with prob 1
+
+      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_t], p.zero_bins[i_t])
+      aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
+      logProb += log(prob) #prob of the continuous sample
+
+    elseif rand() < p.resample_rates[i_t] #aem_dstate[i] == aem_dstate[i_t] same bin and meets rate
+
+      logProb += log(p.resample_rates[i_t]) #prob of meeting resample rate
+
+      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_t], p.zero_bins[i_t])
+      aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
+      logProb += log(prob) #prob of the continuous sample
+
+    else # aem_dstate[i] == aem_dstate[i_t] same bin, but does not meet rate
+
+      logProb += log(1.0 - p.resample_rates[i_t]) #prob of not meeting resample rate
+
+      #don't resample state
     end
-    #Else same bin and does not meet rate, just set equal to previous (no update)
   end
 
   # update x(t) with x(t+1)
@@ -198,7 +209,7 @@ function step_dbn(dbn::CorrAEMDBN)
   dbn.aem_dyn_cstate = aem_dyn_cstate
 
   #Just a reminder, this will break if number_of_aircraft != 2
-  @test dbn.number_of_aircraft == 2
+  @assert dbn.number_of_aircraft == 2
 
   dbn.output_commands[1].t = dbn.t
   dbn.output_commands[1].v_d = getInitialSample(dbn.aem, :v1d)
@@ -214,6 +225,8 @@ function step_dbn(dbn::CorrAEMDBN)
   dbn.logProb = logProb
 end
 
+convert_units(x::FloatingPoint, i::Int) = in(i, [17,18]) ? x / 60 : x
+
 convert(::Type{Vector{Float64}}, command_1::CorrAEMCommand, command_2::CorrAEMCommand) =
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]
 
@@ -226,7 +239,7 @@ function step_enc(dbn::CorrAEMDBN)
   end
 
   #Just a reminder, this will break if number_of_aircraft != 2
-  @test dbn.number_of_aircraft == 2
+  @assert dbn.number_of_aircraft == 2
 
   #prepare t+1 from encounter commands
   aem_dyn_cstate = convert(Vector{Float64}, dbn.output_commands[1], dbn.output_commands[2])
@@ -288,11 +301,23 @@ function val2ind(boundariesi, ri, value)
   return index
 end
 
-function dediscretize(dstate::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
-  val_min = boundaries[dstate]
-  val_max = boundaries[dstate + 1]
+function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
+  val_min = boundaries[dval]
+  val_max = boundaries[dval + 1]
 
-  return dstate == zero_bin ? 0.0 : val_min + (val_max - val_min) * rand()
+  if dval == zero_bin
+    val = 0.0
+    prob = 1.0
+  elseif val_max == val_min
+    val = val_min
+    prob = 1.0
+  else
+    val = val_min +  rand() * (val_max - val_min)
+    prob = 1.0 / (val_max - val_min)
+    #this is a density so it won't be normalized to [0,1]
+  end
+
+  return (val, prob)
 end
 
 function unconvertUnitsDynVars(v)

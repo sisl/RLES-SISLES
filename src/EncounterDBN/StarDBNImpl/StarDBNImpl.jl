@@ -25,7 +25,6 @@ using ObserverImpl
 using Util
 using Encounter
 import CorrAEMImpl: CorrAEMParameters, CorrAEMInitialState, CorrAEMCommand
-using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -35,6 +34,12 @@ import AbstractEncounterDBNInterfaces.getInitialState
 
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_load_params.jl"))
+
+const MAP_G2L = [2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6] #global to local
+const MAP_L2G = [1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19] #local to global
+const MAP_VAR2IND_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6] #variable names to local
+const MAP_IND2VAR_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
+const TEMPORAL_MAP = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
 
 immutable StarDBNParams
 
@@ -122,8 +127,8 @@ type StarDBN <: AbstractEncounterDBN
     dbn.t = 0
 
     #compute initial states of variables
-    dbn.dynamic_variables0 = temporal_map[:, 1]
-    dbn.dynamic_variables1 = temporal_map[:, 2]
+    dbn.dynamic_variables0 = TEMPORAL_MAP[:, 1]
+    dbn.dynamic_variables1 = TEMPORAL_MAP[:, 2]
 
     srand(encounter_seed) #There's a rand inside generateEncounter
     generateEncounter(dbn) #sets initial_states, initial_commands_d, initial_commands
@@ -154,15 +159,9 @@ type StarDBN <: AbstractEncounterDBN
 
 end
 
-const map_G2L = [2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6] #global to local
-const map_L2G = [1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19] #local to global
-const map_var2ind_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6] #variable names to local
-const map_ind2var_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
-const temporal_map = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
+convert_units(v::Vector{Float64}) = Float64[convert_units(v[i], MAP_IND2VAR_L[i]) for i = 1:endof(v)]
 
-convert_units(v::Vector{Float64}) = Float64[convert_units(v[i], map_ind2var_L[i]) for i = 1:endof(v)]
-
-unconvert_units(v::Vector{Float64}) = Float64[unconvert_units(v[i], map_ind2var_L[i]) for i = 1:endof(v)]
+unconvert_units(v::Vector{Float64}) = Float64[unconvert_units(v[i], MAP_IND2VAR_L[i]) for i = 1:endof(v)]
 
 function convert_units(x::Float64, var::Symbol)
   if var == :v_d0 || var == :v_d1
@@ -242,9 +241,9 @@ function step(dbn::StarDBN)
     logProb += step_dbn(dbn, dbn.commands_d[i], dbn.commands[i])
 
     dbn.output_commands[i].t = dbn.t
-    dbn.output_commands[i].v_d = dbn.commands[i][map_var2ind_L[:v_d]]
-    dbn.output_commands[i].h_d = dbn.commands[i][map_var2ind_L[:h_d0]]
-    dbn.output_commands[i].psi_d = dbn.commands[i][map_var2ind_L[:psi_d0]]
+    dbn.output_commands[i].v_d = dbn.commands[i][MAP_VAR2IND_L[:v_d]]
+    dbn.output_commands[i].h_d = dbn.commands[i][MAP_VAR2IND_L[:h_d0]]
+    dbn.output_commands[i].psi_d = dbn.commands[i][MAP_VAR2IND_L[:psi_d0]]
 
   end
 
@@ -261,25 +260,40 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
 
   for (o,i_L) in enumerate(dbn.dynamic_variables1)
 
-    i_G = map_L2G[i_L]
+    i_G = MAP_L2G[i_L]
     j_G = 1
     if !isempty(find(dbn.parents_cache[i_G]))
-      parents_L = map(i -> map_G2L[i], find(dbn.parents_cache[i_G]))
+      parents_L = map(i -> MAP_G2L[i], find(dbn.parents_cache[i_G]))
       j_G = sub2ind(p.r_transition[dbn.parents_cache[i_G]], command_d[parents_L])
     end
 
     command_d[i_L] = select_random_cumweights(dbn.cumweights_cache[(i_G, j_G)])
-    logProb += log(dbn.weights_cache[(i_G,j_G)][command_d[i_L]])
+    logProb += log(dbn.weights_cache[(i_G, j_G)][command_d[i_L]]) #prob for picking bin
+
     #Resampling and dediscretizing process
     i0_L = dbn.dynamic_variables0[o]
-    i0_G = map_L2G[i0_L]
+    i0_G = MAP_L2G[i0_L]
 
-    if (command_d[i_L] != command_d[i0_L]) || #compare to state at last time step, #Different bin, do resample
-      (command_d[i_L] == command_d[i0_L] && rand() < p.resample_rates[i0_G]) #Same bin but meets resample rate
-      command[i0_L] = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
-      command[i0_L] = convert_units(command[i0_L], map_ind2var_L[i0_L])
+    if command_d[i_L] != command_d[i0_L] #Different bin than previous, resample with prob 1
+
+      command[i0_L], prob = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
+      command[i0_L] = convert_units(command[i0_L], MAP_IND2VAR_L[i0_L])
+      logProb += log(prob)
+
+    elseif rand() < p.resample_rates[i0_G] #command_d[i_L] == command_d[i0_L] same bin and meets rate
+
+      logProb += log(p.resample_rates[i_t]) #prob of meeting resample rate
+
+      command[i0_L], prob = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
+      command[i0_L] = convert_units(command[i0_L], MAP_IND2VAR_L[i0_L])
+      logProb += log(prob)
+
+    else #command_d[i_L] == command_d[i0_L] same bin, but does not meet rate
+
+      logProb += log(1.0 - p.resample_rates[i_t]) #prob of not meeting resample rate
+
+      #don't resample state
     end
-    #Else same bin and does not meet rate, just set equal to previous (no update)
   end
 
   # update x(t) with x(t+1)
@@ -304,14 +318,26 @@ function val2ind(boundariesi, ri, value)
 end
 
 function discretize(p::CorrAEMParameters, v::Vector{Float64})
-  Int64[val2ind(p.boundaries[map_L2G[i]], p.r_transition[map_L2G[i]], val) for (i, val) in enumerate(v)]
+  Int64[val2ind(p.boundaries[MAP_L2G[i]], p.r_transition[MAP_L2G[i]], val) for (i, val) in enumerate(v)]
 end
 
 function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
   val_min = boundaries[dval]
   val_max = boundaries[dval + 1]
 
-  return dval == zero_bin ? 0.0 : val_min +  rand() * (val_max - val_min)
+  if dval == zero_bin
+    val = 0.0
+    prob = 1.0
+  elseif val_max == val_min
+    val = val_min
+    prob = 1.0
+  else
+    val = val_min +  rand() * (val_max - val_min)
+    prob = 1.0 / (val_max - val_min)
+    #this is a density so it won't be normalized to [0,1]
+  end
+
+  return (val, prob)
 end
 
 function select_random_cumweights(cweights::Vector{Float64})
