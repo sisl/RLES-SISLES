@@ -282,7 +282,7 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
 
     elseif rand() < p.resample_rates[i0_G] #command_d[i_L] == command_d[i0_L] same bin and meets rate
 
-      logProb += log(p.resample_rates[i_t]) #prob of meeting resample rate
+      logProb += log(p.resample_rates[i0_G]) #prob of meeting resample rate
 
       command[i0_L], prob = dediscretize(command_d[i_L], p.boundaries[i0_G], p.zero_bins[i0_G])
       command[i0_L] = convert_units(command[i0_L], MAP_IND2VAR_L[i0_L])
@@ -290,7 +290,7 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
 
     else #command_d[i_L] == command_d[i0_L] same bin, but does not meet rate
 
-      logProb += log(1.0 - p.resample_rates[i_t]) #prob of not meeting resample rate
+      logProb += log(1.0 - p.resample_rates[i0_G]) #prob of not meeting resample rate
 
       #don't resample state
     end
