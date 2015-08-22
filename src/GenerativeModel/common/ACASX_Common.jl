@@ -101,6 +101,8 @@ function step(sim)
     sim.md_time = sim.t_index
   end
 
+  notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
+
   return
 end
 
