@@ -1,3 +1,5 @@
+This is the RLES fork of SISLES.jl by Youngjun Kim.  This fork will soon be merged back into SISLES.jl.
+
 # SISLES
 
 SISL + ES  
