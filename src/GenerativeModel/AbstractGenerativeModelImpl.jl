@@ -13,13 +13,11 @@ end #module
 module AbstractGenerativeModelInterfaces
 
 export get,
-       isEndState
+       isterminal
 
-function get()
-end
+function get() end
 
-function isEndState()
-end
+function isterminal() end
 
 end #module
 

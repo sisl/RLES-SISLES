@@ -21,11 +21,11 @@ using Simulator
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
-import AbstractGenerativeModelInterfaces.isEndState
+import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isEndState, addObserver
+export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isterminal, addObserver
 
 type SimpleTCAS_EvE_params
   #global params: remains constant per sim
@@ -194,9 +194,7 @@ function isNMAC(sim::SimpleTCAS_EvE)
   return any(nmac_test)
 end
 
-isTerminal(sim::SimpleTCAS_EvE) = sim.t_index > sim.params.maxSteps
-
-isEndState(sim::SimpleTCAS_EvE) = isNMAC(sim) || isTerminal(sim)
+isterminal(sim::SimpleTCAS_EvE) = isNMAC(sim) || sim.t_index > sim.params.maxSteps
 
 end #module
 

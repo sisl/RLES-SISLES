@@ -21,11 +21,11 @@ using Simulator
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractGenerativeModelInterfaces.get
-import AbstractGenerativeModelInterfaces.isEndState
+import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export ACASX_Multi_params, ACASX_Multi, initialize, step, isEndState, addObserver
+export ACASX_Multi_params, ACASX_Multi, initialize, step, isterminal, addObserver
 
 type ACASX_Multi_params
   #global params: remains constant per sim
@@ -138,7 +138,7 @@ initialize(sim::ACASX_Multi) = ACASX_Common.initialize(sim)
 
 step(sim::ACASX_Multi) = ACASX_Common.step(sim)
 
-isEndState(sim::ACASX_Multi) = ACASX_Common.isEndState(sim)
+isterminal(sim::ACASX_Multi) = ACASX_Common.isterminal(sim)
 
 end #module
 

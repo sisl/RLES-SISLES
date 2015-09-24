@@ -28,13 +28,9 @@ function initialize(sim)
     notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
 
     Sensor.initialize(sr[i])
-
     CollisionAvoidanceSystem.initialize(cas[i])
-
     PilotResponse.initialize(pr[i])
-
     state = DynamicModel.initialize(adm[i], initial)
-
     WorldModel.initialize(wm, i, state)
   end
 
@@ -48,7 +44,6 @@ function initialize(sim)
 
   #reset the probability
   sim.step_logProb = 0.0
-
   return
 end
 
@@ -56,12 +51,10 @@ function step(sim)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   sim.t_index += 1
-
   sim.step_logProb = 0.0 #track the probabilities in this update
 
   cmdLogProb = EncounterDBN.step(aem)
   sim.step_logProb += cmdLogProb #TODO: decompose this by aircraft?
-
   states = WorldModel.getAll(wm)
 
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
@@ -93,7 +86,6 @@ function step(sim)
   vhdist = getvhdist(sim.wm)
   mds = getMissDistance(sim.params.nmac_h, sim.params.nmac_r, vhdist)
   md, index = findmin(mds)
-
   if md < sim.md
     sim.vmd = vhdist[index][1]
     sim.hmd = vhdist[index][2]
@@ -102,12 +94,10 @@ function step(sim)
   end
 
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
-
   return
 end
 
 function getvhdist(wm::AbstractWorldModel)
-
   states = WorldModel.getAll(wm) #states::Vector{ASWMState}
 
   #[(vdist,hdist)]
@@ -120,19 +110,13 @@ function getvhdist(wm::AbstractWorldModel)
 end
 
 function isNMAC(sim)
-
   vhdist = getvhdist(sim.wm)
   nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
-
   return any(nmac_test)
 end
 
+isterminal(sim) = (sim.params.end_on_nmac && isNMAC(sim)) || sim.t_index >= sim.params.max_steps
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
-
-isTerminal(sim) = sim.t_index >= sim.params.max_steps
-
-isEndState(sim) = (sim.params.end_on_nmac && isNMAC(sim)) || isTerminal(sim)
-
 getMissDistance(nmac_h::Float64, nmac_r::Float64, vhmd) = map((vh) -> max(vh[2] * (nmac_h / nmac_r), vh[1]), vhmd)
 
 end
