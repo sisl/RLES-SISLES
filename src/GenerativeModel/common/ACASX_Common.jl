@@ -96,7 +96,7 @@ function step(sim)
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
 
   sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
-  return (exp(sim.step_logProb), NMAC_occurred(sim), md)
+  return (exp(sim.step_logProb), NMAC_occurred(sim), sim.md)
 end
 
 function getvhdist(wm::AbstractWorldModel)
@@ -109,13 +109,11 @@ function getvhdist(wm::AbstractWorldModel)
   return vhdist
 end
 
-#= redundant...
 function isNMAC(sim)
   vhdist = getvhdist(sim.wm)
   nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
   return any(nmac_test)
 end
-=#
 
 isterminal(sim) = (sim.params.end_on_nmac && NMAC_occurred(sim)) || sim.t_index >= sim.params.max_steps
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
