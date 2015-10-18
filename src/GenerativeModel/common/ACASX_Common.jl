@@ -94,28 +94,30 @@ function step(sim)
   end
 
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
-  return
+
+  sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
+  return (exp(sim.step_logProb), NMAC_occurred(sim), md)
 end
 
 function getvhdist(wm::AbstractWorldModel)
   states = WorldModel.getAll(wm) #states::Vector{ASWMState}
-
   #[(vdist,hdist)]
   vhdist = [(abs(s2.h - s1.h),norm([(s2.x - s1.x), (s2.y - s1.y)])) for s1 = states, s2 = states]
   for i = 1 : length(states)
     vhdist[i, i] = (typemax(Float64), typemax(Float64))
   end
-
   return vhdist
 end
 
+#= redundant...
 function isNMAC(sim)
   vhdist = getvhdist(sim.wm)
   nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
   return any(nmac_test)
 end
+=#
 
-isterminal(sim) = (sim.params.end_on_nmac && isNMAC(sim)) || sim.t_index >= sim.params.max_steps
+isterminal(sim) = (sim.params.end_on_nmac && NMAC_occurred(sim)) || sim.t_index >= sim.params.max_steps
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
 getMissDistance(nmac_h::Float64, nmac_r::Float64, vhmd) = map((vh) -> max(vh[2] * (nmac_h / nmac_r), vh[1]), vhmd)
 
