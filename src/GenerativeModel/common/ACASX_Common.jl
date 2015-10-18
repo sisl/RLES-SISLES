@@ -109,11 +109,13 @@ function getvhdist(wm::AbstractWorldModel)
   return vhdist
 end
 
+#= redundant
 function isNMAC(sim)
   vhdist = getvhdist(sim.wm)
   nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
   return any(nmac_test)
 end
+=#
 
 isterminal(sim) = (sim.params.end_on_nmac && NMAC_occurred(sim)) || sim.t_index >= sim.params.max_steps
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
