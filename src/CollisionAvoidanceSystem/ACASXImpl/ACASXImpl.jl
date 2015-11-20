@@ -21,9 +21,6 @@ using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
 using ObserverImpl
 
-#using Util
-using Base.Test
-
 import CommonInterfaces.initialize
 import CommonInterfaces.step
 
@@ -62,19 +59,22 @@ type ACASX <: AbstractCollisionAvoidanceSystem
   constants::Constants
   casShared::CASShared
   version::String
+  equipage::Int32
   inputVals::InputVals
   outputVals::OutputVals
   coord::AbstractCASCoord
 
-  function ACASX(aircraft_id::Int64, libcas::String, config_file::String, quant::Int64, num_aircraft::Int, coord::AbstractCASCoord)
+  function ACASX(aircraft_id::Int64, libcas::String, config_file::String, quant::Int64,
+                 num_aircraft::Int, coord::AbstractCASCoord, equipage::Int32=EQUIPAGE.EQUIPAGE_TCAS)
     cas = new()
     cas.my_id = aircraft_id
     cas.max_intruders = num_aircraft - 1
     cas.constants = Constants(quant, config_file, cas.max_intruders)
     cas.casShared = CASShared(libcas, cas.constants)
     cas.version = version(cas.casShared)
+    cas.equipage = equipage
 
-    @test cas.max_intruders == max_intruders(cas.casShared) #Will fail if library did not open properly
+    @assert cas.max_intruders == max_intruders(cas.casShared) #Will fail if library did not open properly
 
     cas.coord = coord
 
@@ -83,7 +83,7 @@ type ACASX <: AbstractCollisionAvoidanceSystem
     setRecord(cas.coord, cas.my_id,
               ACASXCoordRecord(cas.my_id,
                                cas.my_id,
-                               EQUIPAGE.EQUIPAGE_TCAS,
+                               cas.equipage,
                                25,
                                0x0,
                                0x0,
@@ -122,7 +122,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
     #intruder-specific
     intruder_self = record.intruders[my_list_id] #self in intruders' record
 
-    @test cas.my_id == intruder_self.id #sanity check the record
+    @assert cas.my_id == intruder_self.id #sanity check the record
 
     intruder.cvc = intruder_self.cvc
     intruder.vrc = intruder_self.vrc
@@ -165,7 +165,7 @@ end
 function reset!(cas::ACASX,rec::ACASXCoordRecord)
   rec.my_id = cas.my_id
   rec.modes = cas.my_id
-  rec.equipage = EQUIPAGE.EQUIPAGE_TCAS
+  rec.equipage = cas.equipage
   rec.quant = 25
   rec.sensitivity_index = 0x0
   rec.protection_mode = 0x0
@@ -180,12 +180,10 @@ end
 
 function quantize(x::FloatingPoint, b::FloatingPoint)
   # quantize x to the nearest multiple of b
-
   d, r = divrem(x, b)
-
   return b * (d + round(r / b))
 end
 
-end
+end #module
 
 

@@ -105,12 +105,12 @@ end
 
 function add_to_queue!(q::Vector{QueueEntry}, RA::LLDetPRRA,
                        queuetime::Int64)
-
+  if queuetime < 0
+    return
+  end
   filter!(x -> x.t < queuetime, q) #all elements should have a time smaller than what's being added
-
   el = QueueEntry(queuetime, RA)
   push!(q, el)
-
 end
 
 #TODO: replace with findlast when we switch to julia 0.4
@@ -124,7 +124,6 @@ end
 isfirstRA(pr::LLDetPR) = isequal(pr.queue[1].RA, pr.COC_RA) && length(pr.queue) == 1
 
 function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
-
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
   @test RA.dh_min <= RA.target_rate <= RA.dh_max #this should always hold

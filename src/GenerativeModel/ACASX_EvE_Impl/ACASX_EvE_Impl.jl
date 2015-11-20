@@ -8,7 +8,6 @@ using AbstractGenerativeModelInterfaces
 using CommonInterfaces
 using ObserverImpl
 
-using Base.Test
 using EncounterDBN
 using PilotResponse
 using DynamicModel
@@ -17,6 +16,7 @@ using Sensor
 using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
+using CCAS.EQUIPAGE
 
 import CommonInterfaces.initialize
 import CommonInterfaces.step
@@ -84,7 +84,7 @@ type ACASX_EvE <: AbstractGenerativeModel
 
   #empty constructor
   function ACASX_EvE(p::ACASX_EvE_params)
-    @test p.num_aircraft == 2 #need to revisit the code if this is not true
+    @assert p.num_aircraft == 2 #need to revisit the code if this is not true
 
     sim = new()
     sim.params = p
@@ -112,7 +112,8 @@ type ACASX_EvE <: AbstractGenerativeModel
 
     max_intruders = p.num_aircraft - 1
     sim.sr = ACASXSensor[ ACASXSensor(i, max_intruders) for i = 1 : p.num_aircraft ]
-    sim.cas = ACASX[ ACASX(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord)
+    sim.cas = ACASX[ ACASX(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord,
+                           EQUIPAGE.EQUIPAGE_TCAS)
                     for i = 1 : p.num_aircraft]
 
     sim.vmd = typemax(Float64)
