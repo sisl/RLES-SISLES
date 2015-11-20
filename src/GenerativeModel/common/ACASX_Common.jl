@@ -15,11 +15,8 @@ addObserver(sim, f::Function) = _addObserver(sim, f)
 addObserver(sim, tag::String, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim)
-
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
-
   sim.t_index = 0
-
   EncounterDBN.initialize(aem)
 
   for i = 1:sim.params.num_aircraft
@@ -33,7 +30,6 @@ function initialize(sim)
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
   end
-
   notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
 
   # reset miss distances
@@ -51,12 +47,11 @@ function step(sim)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   sim.t_index += 1
-  sim.step_logProb = 0.0 #track the probabilities in this update
+  sim.step_logProb = 0.0 #track the log probabilities in this update
 
   cmdLogProb = EncounterDBN.step(aem)
   sim.step_logProb += cmdLogProb #TODO: decompose this by aircraft?
   states = WorldModel.getAll(wm)
-
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
   for i = 1:sim.params.num_aircraft
@@ -79,7 +74,6 @@ function step(sim)
     state = DynamicModel.step(adm[i], response)
     WorldModel.step(wm, i, state)
   end
-
   WorldModel.updateAll(wm)
 
   #check and update miss distances
@@ -87,12 +81,10 @@ function step(sim)
   mds = getMissDistance(sim.params.nmac_h, sim.params.nmac_r, vhdist)
   md, index = findmin(mds)
   if md < sim.md
-    sim.vmd = vhdist[index][1]
-    sim.hmd = vhdist[index][2]
+    sim.vmd, sim.hmd = vhdist[index]
     sim.md = md
     sim.md_time = sim.t_index
   end
-
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
 
   sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
@@ -102,23 +94,15 @@ end
 function getvhdist(wm::AbstractWorldModel)
   states = WorldModel.getAll(wm) #states::Vector{ASWMState}
   #[(vdist,hdist)]
-  vhdist = [(abs(s2.h - s1.h),norm([(s2.x - s1.x), (s2.y - s1.y)])) for s1 = states, s2 = states]
-  for i = 1 : length(states)
-    vhdist[i, i] = (typemax(Float64), typemax(Float64))
+  vhdist = [(abs(s2.h - s1.h), norm([(s2.x - s1.x), (s2.y - s1.y)])) for s1 in states, s2 in states]
+  for i = 1:length(states)
+    vhdist[i, i] = (typemax(Float64), typemax(Float64)) #make selfs big to ease finding min dist
   end
   return vhdist
 end
-
-#= redundant
-function isNMAC(sim)
-  vhdist = getvhdist(sim.wm)
-  nmac_test = map((vhd) -> vhd[2] <= sim.params.nmac_r && vhd[1] <= sim.params.nmac_h, vhdist)
-  return any(nmac_test)
-end
-=#
 
 isterminal(sim) = (sim.params.end_on_nmac && NMAC_occurred(sim)) || sim.t_index >= sim.params.max_steps
 NMAC_occurred(sim) = sim.hmd <= sim.params.nmac_r && sim.vmd <= sim.params.nmac_h
 getMissDistance(nmac_h::Float64, nmac_r::Float64, vhmd) = map((vh) -> max(vh[2] * (nmac_h / nmac_r), vh[1]), vhmd)
 
-end
+end #module
