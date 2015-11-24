@@ -41,17 +41,17 @@ type PairwiseCorrAEMDBN <: AbstractEncounterDBN
 
   number_of_aircraft::Int64
 
-  parameter_file::String
+  parameter_file::ASCIIString
   parameters::AEM_CorrAEMParameters
 
   dirichlet_initial
   dirichlet_transition
 
-  encounter_seed::Uint64
+  encounter_seed::UInt64
 
   aem::CorrAEM
-  ac1_initial_dist::Union(Vector{Union(Function, Nothing)}, Nothing)
-  ac1_dynamic_vars::Union(Array{Float64,2},Nothing)
+  ac1_initial_dist::Union{Vector{Union{Function, Void}}, Void}
+  ac1_dynamic_vars::Union{Array{Float64,2},Void}
 
   t::Float64
 
@@ -71,10 +71,10 @@ type PairwiseCorrAEMDBN <: AbstractEncounterDBN
 
   logProb::Float64 #log probability of output
 
-  function PairwiseCorrAEMDBN(number_of_aircraft::Int, parameter_file::String,
-                              encounter_seed::Uint64;
-                              initial_file::String="",
-                              transition_file::String="")
+  function PairwiseCorrAEMDBN(number_of_aircraft::Int, parameter_file::AbstractString,
+                              encounter_seed::UInt64;
+                              initial_file::AbstractString="",
+                              transition_file::AbstractString="")
 
     dbn = new()
 
@@ -114,10 +114,10 @@ end
 const AC1_MASK = [true,true,false,false,true,false,true,false,true,false,true,false,true,false,false,false]
 const SAVE_INDICES_AC1 = [1, 10, 12, 14]
 
-const map_G2L = [2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6] #global to local
-const map_L2G = [1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19] #local to global
-const map_var2ind_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6] #variable names to local
-const map_ind2var_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
+const map_G2L = Dict(2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6) #global to local
+const map_L2G = Dict(1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19) #local to global
+const map_var2ind_L = Dict(:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6) #variable names to local
+const map_ind2var_L = Dict(1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1) #local to variable names
 const temporal_map = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
 
 function generate_encounter(dbn::PairwiseCorrAEMDBN; sample_number::Int64 = 0)
@@ -252,7 +252,7 @@ function masked_initial_dist(v::Vector{Float64}, mask::Vector{Bool})
 end
 
 addObserver(dbn::PairwiseCorrAEMDBN, f::Function) = _addObserver(aem, f)
-addObserver(dbn::PairwiseCorrAEMDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
+addObserver(dbn::PairwiseCorrAEMDBN, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::PairwiseCorrAEMDBN)
   #reset to initial state

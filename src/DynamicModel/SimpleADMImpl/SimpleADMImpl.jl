@@ -25,7 +25,6 @@ using CommonInterfaces
 using ObserverImpl
 
 using Base.Test
-#using Distributions
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -77,7 +76,7 @@ end
 type SimpleADM <: AbstractDynamicModel
 
     state::SimpleADMState
-    update::Union(SimpleADMCommand, Nothing)
+    update::Union{SimpleADMCommand, Void}
 
     timestep::Float64
     number_of_substeps::Int
@@ -115,7 +114,7 @@ end
 
 
 addObserver(adm::SimpleADM, f::Function) = _addObserver(adm, f)
-addObserver(adm::SimpleADM, tag::String, f::Function) = _addObserver(adm, tag, f)
+addObserver(adm::SimpleADM, tag::AbstractString, f::Function) = _addObserver(adm, tag, f)
 
 
 function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)

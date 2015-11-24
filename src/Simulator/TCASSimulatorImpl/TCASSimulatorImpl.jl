@@ -67,16 +67,16 @@ end
 
 
 addObserver(sim::TCASSimulator, f::Function) = _addObserver(sim, f)
-addObserver(sim::TCASSimulator, tag::String, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim::TCASSimulator, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
 
 
 import Base.convert
 
-convert(::Type{SimpleADMInitialState}, state::Union(CorrAEMInitialState, LLAEMInitialState)) = SimpleADMInitialState(state.t, state.x, state.y, state.h, state.v, state.psi, state.h_d)
+convert(::Type{SimpleADMInitialState}, state::Union{CorrAEMInitialState, LLAEMInitialState}) = SimpleADMInitialState(state.t, state.x, state.y, state.h, state.v, state.psi, state.h_d)
 
 convert(::Type{ASWMState}, state::SimpleADMOutputState) = ASWMState(state.t, state.x, state.y, state.h, state.vx, state.vy, state.vh)
 
-convert(::Type{SimplePRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = SimplePRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
+convert(::Type{SimplePRCommand}, command::Union{CorrAEMCommand, LLAEMCommand}) = SimplePRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
 
 convert(::Type{SimpleADMCommand}, command::SimplePRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
 
@@ -94,7 +94,7 @@ end
 convert(::Type{SimpleTCASInput}, output::SimpleTCASSensorOutput) = SimpleTCASInput(output.t, output.r, output.r_d, output.a, output.a_d, output.h, output.h_d)
 
 convert(::Type{SimplePRResolutionAdvisory}, RA::SimpleTCASResolutionAdvisory) = SimplePRResolutionAdvisory(RA.h_d)
-convert(::Type{SimplePRResolutionAdvisory}, RA::Nothing) = nothing
+convert(::Type{SimplePRResolutionAdvisory}, RA::Void) = nothing
 
 
 function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)

@@ -99,7 +99,7 @@ end
 type LLADM <: AbstractDynamicModel
 
   state::LLADMState
-  update::Union(LLADMCommand, Nothing)
+  update::Union{LLADMCommand, Void}
   timestep::Float64
   params::LLADMConsts
   output_state::LLADMOutputState
@@ -153,7 +153,7 @@ type LLADM <: AbstractDynamicModel
 end
 
 addObserver(adm::LLADM, f::Function) = _addObserver(adm, f)
-addObserver(adm::LLADM, tag::String, f::Function) = _addObserver(adm, tag, f)
+addObserver(adm::LLADM, tag::AbstractString, f::Function) = _addObserver(adm, tag, f)
 
 initialize(adm::LLADM, state) = initialize(adm,convert(LLADMState, state))
 
@@ -423,13 +423,11 @@ snap(x, y) = approxeq(x, y, 1e-8) ? y : x
 approxeq(x, y, eps) = (x == y) ? true : abs(x-y) < eps
 
 #mods x to the range [-b, b]
-function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
-
+function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
   z = mod(x, 2 * b)
-
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_pi(x::FloatingPoint) = to_plusminus_b(x, float64(pi))
+to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, float64(pi))
 
 end

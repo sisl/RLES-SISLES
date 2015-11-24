@@ -54,13 +54,13 @@ end
 
 type LLAEM <: AbstractEncounterModel
 
-    initial_sample_filename::String
+    initial_sample_filename::ASCIIString
     number_of_initial_samples::Int
-    f_init::Union(IOStream, Nothing)
+    f_init::Union{IOStream, Void}
 
-    transition_sample_filenames::Vector{String}
+    transition_sample_filenames::Vector{ASCIIString}
     number_of_transition_samples::Vector{Int}
-    f_tran::Vector{Union(IOStream, Nothing)}
+    f_tran::Vector{Union{IOStream, Void}}
 
     number_of_aircraft::Int
 
@@ -81,9 +81,9 @@ type LLAEM <: AbstractEncounterModel
     observer::Observer
 
 
-    function LLAEM{T <: String}(
+    function LLAEM{T <: AbstractString}(
                     number_of_aircraft::Int,
-                    initial_sample_filename::String,
+                    initial_sample_filename::AbstractString,
                     number_of_initial_samples::Int,
                     transition_sample_filenames::Vector{T},
                     number_of_transition_samples::Vector{Int})
@@ -117,7 +117,7 @@ end
 
 
 addObserver(aem::LLAEM, f::Function) = _addObserver(aem, f)
-addObserver(aem::LLAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
+addObserver(aem::LLAEM, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
 
 
 function generateEncounter(aem::LLAEM, sample_number::Int)
@@ -269,13 +269,13 @@ function read_sample_from_file(aem, number_of_initial_samples, number_of_transit
     # 12, 13  h1d, h2d = [-5000, -3000, -2000, -1000, -400, 400, 1000, 2000, 3000, 5000]    : ft/min
     # 14, 15  psi1d, psi2d = [-8, -6, -3.5, -1, -0.25, 0.25, 1, 3.5, 6, 8]  : deg/s
     # 16      hmd = [0, 0.0822896, 0.5, 1, 3]   : nm
-    # 17      vmd = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 6000]  : ft   
+    # 17      vmd = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 6000]  : ft
     # 18      h = altitude  : ft
 
     if aem.f_init == nothing
         aem.f_init = open(aem.initial_sample_filename, "r")
     end
-    
+
     line = readline(aem.f_init)
 
     if line == ""

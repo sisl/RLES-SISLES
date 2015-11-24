@@ -103,20 +103,20 @@ end
 
 type CorrAEM <: AbstractEncounterModel
 
-    parameter_filename::String
+    parameter_filename::ASCIIString
     parameters::CorrAEMParameters
 
-    initial_sample_filename::String
+    initial_sample_filename::ASCIIString
     number_of_initial_samples::Int
-    f_init::Union(IOStream, Nothing)
+    f_init::Union{IOStream,Void}
 
-    transition_sample_filename::String
+    transition_sample_filename::ASCIIString
     number_of_transition_samples::Int
-    f_tran::Union(IOStream, Nothing)
+    f_tran::Union{IOStream, Void}
 
     b_read_from_file::Bool
     b_write_to_file::Bool
-    file_format::String
+    file_format::ASCIIString
 
     number_of_encounters_generated::Int
     print_header::Bool
@@ -139,7 +139,7 @@ type CorrAEM <: AbstractEncounterModel
     dynamic_states::Array{Float64, 3}
     dn_state_index::Vector{Int}
 
-    initial_distributions::Union(Vector{Union(Function, Nothing)}, Nothing)
+    initial_distributions::Union{Vector{Union{Function, Void}}, Void}
     ISInfo::Array{Float64, 2}
 
 
@@ -151,10 +151,10 @@ type CorrAEM <: AbstractEncounterModel
 
 
     function CorrAEM(
-                    parameter_filename::String,
-                    initial_sample_filename::String,
+                    parameter_filename::AbstractString,
+                    initial_sample_filename::AbstractString,
                     number_of_initial_samples::Int,
-                    transition_sample_filename::String,
+                    transition_sample_filename::AbstractString,
                     number_of_transition_samples::Int;
                     b_read_from_file = false,
                     b_write_to_file = false,
@@ -213,11 +213,11 @@ type CorrAEM <: AbstractEncounterModel
     end
 
     function CorrAEM(
-                    parameter_filename::String,
-                    initial_sample_filename::String,
-                    transition_sample_filename::String;
+                    parameter_filename::AbstractString,
+                    initial_sample_filename::AbstractString,
+                    transition_sample_filename::AbstractString;
                     b_write_to_file::Bool = false,
-                    file_format::String = "text")
+                    file_format::AbstractString = "text")
 
         if b_write_to_file
             CorrAEM(parameter_filename,
@@ -238,7 +238,7 @@ type CorrAEM <: AbstractEncounterModel
     end
 
     CorrAEM(
-        parameter_filename::String
+        parameter_filename::AbstractString
         ) = CorrAEM(
                 parameter_filename,
                 "",
@@ -251,7 +251,7 @@ end
 
 
 addObserver(aem::CorrAEM, f::Function) = _addObserver(aem, f)
-addObserver(aem::CorrAEM, tag::String, f::Function) = _addObserver(aem, tag, f)
+addObserver(aem::CorrAEM, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
 
 function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
     params = aem.parameters
@@ -520,7 +520,7 @@ end
 function setInitialDistributions(aem::CorrAEM, n::Int, f::Function)
 
     if aem.initial_distributions == nothing
-        aem.initial_distributions = Array(Union(Function, Nothing), 16)
+        aem.initial_distributions = Array(Union{Function,Void}, 16)
 
         for i = 1:16
             aem.initial_distributions[i] = nothing
@@ -542,7 +542,7 @@ end
 
 function getInitialSample(aem::CorrAEM, var = :all)
 
-    if var == : all
+    if var == :all
         return aem.initial
     elseif var == :A
         return aem.initial[1]
@@ -847,14 +847,12 @@ function reset_sample_from_file(aem)
 end
 
 #mods x to the range [-b, b]
-function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
-
+function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
   z = mod(x, 2 * b)
-
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_180(x::FloatingPoint) = to_plusminus_b(x, 180.0)
+to_plusminus_180(x::AbstractFloat) = to_plusminus_b(x, 180.0)
 
 end
 

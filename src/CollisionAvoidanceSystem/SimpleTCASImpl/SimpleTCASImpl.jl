@@ -226,10 +226,10 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         println([r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr]')
 
         println("selects")
-        println({t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory}')
+        println(Any[t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory]')
     end
 
-    notifyObserver(cas, "debug", {{input.t, input.r, input.r_d, input.a, input.a_d, input.h, input.h_d}, [sl, tau, dmod, zthr, alim], [r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr], {t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory}})
+    notifyObserver(cas, "debug", Any[Any[input.t, input.r, input.r_d, input.a, input.a_d, input.h, input.h_d], Any[sl, tau, dmod, zthr, alim], Any[r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr], Any[t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory]])
 
     return resolution_advisory
 end

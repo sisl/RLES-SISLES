@@ -8,20 +8,20 @@ export Observer, _addObserver, notifyObserver
 
 type Observer
 
-    f::Dict{String, Function}
+    f::Dict{ASCIIString, Function}
 
 
     function Observer()
 
         obj = new()
 
-        obj.f = Dict{String, Function}()
+        obj.f = Dict{ASCIIString, Function}()
 
         return obj
     end
-end 
+end
 
-function _addObserver(obj, tag::String, f::Function)
+function _addObserver(obj, tag::AbstractString, f::Function)
 
     obj.observer.f[tag] = f
 end

@@ -53,7 +53,7 @@ type SimplePilotResponse <: AbstractPilotResponse
   end
 end
 
-function updatePilotResponse(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing))
+function updatePilotResponse(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void})
 
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
@@ -71,7 +71,7 @@ end
 
 step(pr::SimplePilotResponse, update, RA) = step(pr,convert(SimplePRCommand, update), convert(SimplePRResolutionAdvisory,RA))
 
-step(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union(SimplePRResolutionAdvisory, Nothing)) = updatePilotResponse(pr, update, RA)
+step(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void}) = updatePilotResponse(pr, update, RA)
 
 function initialize(pr::SimplePilotResponse)
 

@@ -25,10 +25,10 @@ import CommonInterfaces.initialize
 import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
-const statemap = [:coc => 1, :first => 2, :multi => 3]
-const RAmap = [:none => 1, :climb => 2, :level => 3, :descend => 4]
-const responsemap = [:none => 1, :stay => 2, :follow => 3]
-const strength_change_map = [true => 1, false => 2]
+const statemap = Dict(:coc => 1, :first => 2, :multi => 3)
+const RAmap = Dict(:none => 1, :climb => 2, :level => 3, :descend => 4)
+const responsemap = Dict(:none => 1, :stay => 2, :follow => 3)
+const strength_change_map = Dict(true => 1, false => 2)
 
 function generateProbabilityTable()
 
@@ -41,7 +41,7 @@ function generateProbabilityTable()
   #response = {:none = not following, :stay = following last displayRA, :follow = following latest displayRA}
   #currentRA = incoming RA, values are same as displayRA
   #diffStrength = {true=currentRA has same symbol but different target_rate, false=same target_Rate}
-  A = Array((Vector{Float64},Vector{(Symbol,Symbol)}), length(statemap), length(RAmap), length(responsemap),
+  A = Array(Tuple{Vector{Float64},Vector{Tuple{Symbol,Symbol}}}, length(statemap), length(RAmap), length(responsemap),
             length(RAmap), length(strength_change_map))
 
   # all entries going to :none go there with prob 1
@@ -102,12 +102,12 @@ type StochasticLinearPR <: AbstractPilotResponse
 
   state::Symbol #[:coc,:first,:multi]
   displayRA::Symbol #RA currently displaying = [:none, :climb, :descend]
-  target_rate::Union(Nothing,Float64) #target_rate of currently following, used for :stay
+  target_rate::Union{Void,Float64} #target_rate of currently following, used for :stay
   response::Symbol #current pilot response = [:none, :stay, :follow]
   response_time::Int64 #for first RA
   output::StochasticLinearPRCommand
 
-  probTable::Array{(Vector{Float64},Vector{(Symbol,Symbol)})} #transition prob table
+  probTable::Array{Tuple{Vector{Float64},Vector{Tuple{Symbol,Symbol}}}} #transition prob table
 
   function StochasticLinearPR()
 

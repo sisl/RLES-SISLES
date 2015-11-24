@@ -39,9 +39,9 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
   number_of_aircraft::Int64
 
-  encounter_file::String
-  initial_sample_file::String
-  transition_sample_file::String
+  encounter_file::ASCIIString
+  initial_sample_file::ASCIIString
+  transition_sample_file::ASCIIString
 
   encounter_number::Int64
   command_method::Symbol #:ENC = read from encounter file, :DBN = generate from DBN on-the-fly
@@ -50,8 +50,8 @@ type CorrAEMDBN <: AbstractEncounterDBN
   dirichlet_transition
 
   #initial states
-  init_aem_dstate::Array{Int64, 1} #discrete current state
-  init_aem_dyn_cstate::Array{Float64, 1} #continuous of current dynamic variables
+  init_aem_dstate::Vector{Int64} #discrete current state
+  init_aem_dyn_cstate::Vector{Float64} #continuous of current dynamic variables
 
   #current states
   t::Int64
@@ -62,17 +62,17 @@ type CorrAEMDBN <: AbstractEncounterDBN
   dynamic_variables0::Vector{Int64}
   dynamic_variables1::Vector{Int64}
   parents_cache::Dict{Int64, Vector{Bool}}
-  weights_cache::Dict{(Int64, Int64), Vector{Float64}}
-  cumweights_cache::Dict{(Int64, Int64), Vector{Float64}}
+  weights_cache::Dict{Tuple{Int64, Int64}, Vector{Float64}}
+  cumweights_cache::Dict{Tuple{Int64, Int64}, Vector{Float64}}
 
   #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
 
   logProb::Float64 #log probability of output
 
-  function CorrAEMDBN(number_of_aircraft::Int, encounter_file::String, initial_sample_file::String,
-                      transition_sample_file::String,
-                      encounter_number::Int, encounter_seed::Uint64, command_method::Symbol)
+  function CorrAEMDBN(number_of_aircraft::Int, encounter_file::AbstractString, initial_sample_file::AbstractString,
+                      transition_sample_file::AbstractString,
+                      encounter_number::Int, encounter_seed::UInt64, command_method::Symbol)
     dbn = new()
 
     @assert number_of_aircraft == 2 #need to revisit the code if this is not true
@@ -129,7 +129,7 @@ type CorrAEMDBN <: AbstractEncounterDBN
 end
 
 addObserver(dbn::CorrAEMDBN, f::Function) = _addObserver(aem, f)
-addObserver(dbn::CorrAEMDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
+addObserver(dbn::CorrAEMDBN, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::CorrAEMDBN)
   #reset to initial state
@@ -225,7 +225,7 @@ function step_dbn(dbn::CorrAEMDBN)
   dbn.logProb = logProb
 end
 
-convert_units(x::FloatingPoint, i::Int) = in(i, [17,18]) ? x / 60 : x
+convert_units(x::AbstractFloat, i::Int) = in(i, [17,18]) ? x / 60 : x
 
 convert(::Type{Vector{Float64}}, command_1::CorrAEMCommand, command_2::CorrAEMCommand) =
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]

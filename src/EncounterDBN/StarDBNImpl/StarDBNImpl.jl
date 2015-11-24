@@ -35,10 +35,10 @@ import AbstractEncounterDBNInterfaces.getInitialState
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_sample.jl"))
 include(Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/corr_aem_load_params.jl"))
 
-const MAP_G2L = [2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6] #global to local
-const MAP_L2G = [1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19] #local to global
-const MAP_VAR2IND_L = [:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6] #variable names to local
-const MAP_IND2VAR_L = [1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1] #local to variable names
+const MAP_G2L = Dict(2 => 1, 9 => 2, 11 => 3, 13 => 4, 17 => 5, 19 => 6) #global to local
+const MAP_L2G = Dict(1 => 2, 2 => 9, 3 => 11, 4 => 13, 5=> 17, 6 => 19) #local to global
+const MAP_VAR2IND_L = Dict(:L => 1, :v_d => 2, :h_d0 => 3, :psi_d0 => 4, :h_d1 => 5, :psi_d1 => 6) #variable names to local
+const MAP_IND2VAR_L = Dict(1 => :L, 2 => :v_d, 3 => :h_d0, 4 => :psi_d0, 5 => :h_d1, 6 => :psi_d1) #local to variable names
 const TEMPORAL_MAP = [3 5; 4 6] #[dynamic_variables0; dynamic_variables1]
 
 immutable StarDBNParams
@@ -73,10 +73,10 @@ type StarDBN <: AbstractEncounterDBN
 
   parameters::StarDBNParams
 
-  parameter_file::String
+  parameter_file::ASCIIString
   aem_parameters::CorrAEMParameters
 
-  encounter_seed::Uint64
+  encounter_seed::UInt64
 
   dirichlet_transition
 
@@ -97,8 +97,8 @@ type StarDBN <: AbstractEncounterDBN
   dynamic_variables0::Vector{Int64}
   dynamic_variables1::Vector{Int64}
   parents_cache::Dict{Int64, Vector{Bool}}
-  weights_cache::Dict{(Int64,Int64), Vector{Float64}}
-  cumweights_cache::Dict{(Int64,Int64), Vector{Float64}}
+  weights_cache::Dict{Tuple{Int64,Int64}, Vector{Float64}}
+  cumweights_cache::Dict{Tuple{Int64,Int64}, Vector{Float64}}
 
   #pre-allocated output to avoid repeating reallocations
   output_commands::Vector{CorrAEMCommand}
@@ -106,8 +106,8 @@ type StarDBN <: AbstractEncounterDBN
   logProb::Float64 #log probability of output
 
   function StarDBN(number_of_aircraft::Int,
-                   parameter_file::String,
-                   encounter_seed::Uint64,
+                   parameter_file::AbstractString,
+                   encounter_seed::UInt64,
                    p::StarDBNParams = StarDBNParams())
 
     dbn = new()
@@ -220,7 +220,7 @@ function generateEncounter(dbn::StarDBN)
 end
 
 addObserver(dbn::StarDBN, f::Function) = _addObserver(aem, f)
-addObserver(dbn::StarDBN, tag::String, f::Function) = _addObserver(aem, tag, f)
+addObserver(dbn::StarDBN, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
 
 function initialize(dbn::StarDBN)
   #reset to initial state
@@ -347,13 +347,13 @@ function select_random_cumweights(cweights::Vector{Float64})
 end
 
 #mods x to the range [-b, b]
-function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
   z = mod(x, 2 * b)
 
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_180(x::FloatingPoint) = to_plusminus_b(x, 180.0)
+to_plusminus_180(x::AbstractFloat) = to_plusminus_b(x, 180.0)
 
 end #module
 
