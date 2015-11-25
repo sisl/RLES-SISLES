@@ -34,21 +34,21 @@ typealias ACASXInput InputVals
 typealias ACASXOutput OutputVals
 
 type ACASXCoordRecordIntruder
-  id::Uint32
-  cvc::Uint8
-  vrc::Uint8
-  vsb::Uint8
+  id::UInt32
+  cvc::UInt8
+  vrc::UInt8
+  vsb::UInt8
 
   ACASXCoordRecordIntruder(id::Int) = new(id, 0x0, 0x0, 0x0)
 end
 
 type ACASXCoordRecord
-  my_id::Uint32
-  modes::Uint32
+  my_id::UInt32
+  modes::UInt32
   equipage::Int32
-  quant::Uint8
-  sensitivity_index::Uint8
-  protection_mode::Uint8
+  quant::UInt8
+  sensitivity_index::UInt8
+  protection_mode::UInt8
 
   intruders::Vector{ACASXCoordRecordIntruder}
 end
@@ -58,13 +58,13 @@ type ACASX <: AbstractCollisionAvoidanceSystem
   max_intruders::Int64
   constants::Constants
   casShared::CASShared
-  version::String
+  version::ASCIIString
   equipage::Int32
   inputVals::InputVals
   outputVals::OutputVals
   coord::AbstractCASCoord
 
-  function ACASX(aircraft_id::Int64, libcas::String, config_file::String, quant::Int64,
+  function ACASX(aircraft_id::Int64, libcas::AbstractString, config_file::AbstractString, quant::Int64,
                  num_aircraft::Int, coord::AbstractCASCoord, equipage::Int32=EQUIPAGE.EQUIPAGE_TCAS)
     cas = new()
     cas.my_id = aircraft_id
@@ -178,7 +178,7 @@ function reset!(cas::ACASX,rec::ACASXCoordRecord)
   end
 end
 
-function quantize(x::FloatingPoint, b::FloatingPoint)
+function quantize(x::AbstractFloat, b::AbstractFloat)
   # quantize x to the nearest multiple of b
   d, r = divrem(x, b)
   return b * (d + round(r / b))

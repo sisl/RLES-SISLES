@@ -33,18 +33,18 @@ type SimpleTCAS_EvU_params
   nmac_h::Float64 #NMAC vertical separation, in feet
   maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
-  encounter_seed::Uint64 #Seed for generating encounters
+  encounter_seed::UInt64 #Seed for generating encounters
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
   command_method::Symbol #:DBN=sampled from DBN or :ENC=from encounter file
 
   #these are to define CorrAEM:
-  encounter_file::String #Path to encounter file
-  initial_sample_file::String #Path to initial sample file
-  transition_sample_file::String #Path to transition sample file
+  encounter_file::ASCIIString #Path to encounter file
+  initial_sample_file::ASCIIString #Path to initial sample file
+  transition_sample_file::ASCIIString #Path to transition sample file
 
-  string_id::String
+  string_id::ASCIIString
 
   SimpleTCAS_EvU_params() = new()
 end
@@ -54,11 +54,11 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
-  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR)}
+  pr::Vector{Union{SimplePilotResponse,StochasticLinearPR}}
   dm::Vector{SimpleADM}
   wm::AirSpace
-  sr::Vector{Union(SimpleTCASSensor,Nothing)}
-  cas::Vector{Union(SimpleTCAS,Nothing)}
+  sr::Vector{Union{SimpleTCASSensor,Void}}
+  cas::Vector{Union{SimpleTCAS,Void}}
 
   observer::Observer
 
@@ -88,8 +88,8 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
     sim.dm = SimpleADM[ SimpleADM(number_of_substeps=1) for i=1:p.number_of_aircraft ]
     sim.wm = AirSpace(p.number_of_aircraft)
 
-    sim.sr = Union(SimpleTCASSensor,Nothing)[ SimpleTCASSensor(1), nothing ]
-    sim.cas = Union(SimpleTCAS,Nothing)[ SimpleTCAS(), nothing ]
+    sim.sr = Union{SimpleTCASSensor,Void}[ SimpleTCASSensor(1), nothing ]
+    sim.cas = Union{SimpleTCAS,Void}[ SimpleTCAS(), nothing ]
 
     sim.observer = Observer()
 
@@ -101,7 +101,7 @@ type SimpleTCAS_EvU <: AbstractGenerativeModel
 end
 
 addObserver(sim::SimpleTCAS_EvU, f::Function) = _addObserver(sim, f)
-addObserver(sim::SimpleTCAS_EvU, tag::String, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim::SimpleTCAS_EvU, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim::SimpleTCAS_EvU)
 

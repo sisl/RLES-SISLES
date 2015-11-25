@@ -107,14 +107,14 @@ function initialize(sensor::ACASXSensor)
 end
 
 #mods x to the range [-b, b]
-function to_plusminus_b(x::FloatingPoint, b::FloatingPoint)
+function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
 
   z = mod(x, 2 * b)
 
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_pi(x::FloatingPoint) = to_plusminus_b(x, float64(pi))
+to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, float64(pi))
 
 end
 

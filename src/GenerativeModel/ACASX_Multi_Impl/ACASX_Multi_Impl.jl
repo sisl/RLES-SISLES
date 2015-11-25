@@ -33,18 +33,18 @@ type ACASX_Multi_params
   nmac_h::Float64 #NMAC vertical separation, in feet
   max_steps::Int64 #maximum number of steps in sim
   num_aircraft::Int64 #number of aircraft  #must be 2 for now...
-  encounter_seed::Uint64 #Seed for generating encounters
+  encounter_seed::UInt64 #Seed for generating encounters
   encounterModel::Symbol #{:PairwiseCorrAEMDBN, :StarDBN}
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear, :DetVsNone}
   end_on_nmac::Bool #end scenario on nmac
 
   #these are to define AEM:
-  encounter_file::String #Path to encounter file
+  encounter_file::ASCIIString #Path to encounter file
 
   #ACASX config
   quant::Int64 #quantization. Typ. quant=25
-  libcas::String #Path to libcas library
-  libcas_config::String #Path to libcas config file
+  libcas::ASCIIString #Path to libcas library
+  libcas_config::ASCIIString #Path to libcas config file
 
   ACASX_Multi_params() = new()
 end
@@ -53,8 +53,8 @@ type ACASX_Multi <: AbstractGenerativeModel
   params::ACASX_Multi_params
 
   #sim objects: contains state that changes throughout sim run
-  em::Union(StarDBN,PairwiseCorrAEMDBN)
-  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR,LLDetPR)}
+  em::Union{StarDBN,PairwiseCorrAEMDBN}
+  pr::Vector{Union{SimplePilotResponse,StochasticLinearPR,LLDetPR}}
   dm::Vector{LLADM}
   wm::AirSpace
   coord::GenericCoord
@@ -62,7 +62,7 @@ type ACASX_Multi <: AbstractGenerativeModel
   cas::Vector{ACASX}
 
   observer::Observer
-  string_id::String
+  string_id::ASCIIString
 
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 0 and increments by 1.
@@ -131,8 +131,8 @@ end
 
 import ACASX_Common
 
-addObserver(sim::ACASX_Multi, f::Function) = ACASX_Common.addObserver(sim, f::Function)
-addObserver(sim::ACASX_Multi, tag::String, f::Function) = ACASX_Common.addObserver(sim, tag::String, f::Function)
+addObserver(sim::ACASX_Multi, f::Function) = ACASX_Common.addObserver(sim, f)
+addObserver(sim::ACASX_Multi, tag::AbstractString, f::Function) = ACASX_Common.addObserver(sim, tag, f)
 
 initialize(sim::ACASX_Multi) = ACASX_Common.initialize(sim)
 

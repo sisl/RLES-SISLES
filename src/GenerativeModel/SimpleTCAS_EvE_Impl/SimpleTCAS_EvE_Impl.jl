@@ -34,18 +34,18 @@ type SimpleTCAS_EvE_params
   nmac_h::Float64 #NMAC vertical separation, in feet
   maxSteps::Int64 #maximum number of steps in sim
   number_of_aircraft::Int64 #number of aircraft  #must be 2 for now...
-  encounter_seed::Uint64 #Seed for generating encounters
+  encounter_seed::UInt64 #Seed for generating encounters
   pilotResponseModel::Symbol #{:SimplePR, :StochasticLinear}
 
   #Defines behavior of CorrAEMDBN.  Read from file or generate samples on-the-fly
   command_method::Symbol #:DBN=sampled from DBN or :ENC=from encounter file
 
   #these are to define CorrAEM:
-  encounter_file::String #Path to encounter file
-  initial_sample_file::String #Path to initial sample file
-  transition_sample_file::String #Path to transition sample file
+  encounter_file::ASCIIString #Path to encounter file
+  initial_sample_file::ASCIIString #Path to initial sample file
+  transition_sample_file::ASCIIString #Path to transition sample file
 
-  string_id::String
+  string_id::ASCIIString
 
   SimpleTCAS_EvE_params() = new()
 end
@@ -55,7 +55,7 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
-  pr::Vector{Union(SimplePilotResponse,StochasticLinearPR)}
+  pr::Vector{Union{SimplePilotResponse,StochasticLinearPR}}
   dm::Vector{SimpleADM}
   wm::AirSpace
   coord::GenericCoord
@@ -105,7 +105,7 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
 end
 
 addObserver(sim::SimpleTCAS_EvE, f::Function) = _addObserver(sim, f)
-addObserver(sim::SimpleTCAS_EvE, tag::String, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim::SimpleTCAS_EvE, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim::SimpleTCAS_EvE)
 

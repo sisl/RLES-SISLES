@@ -25,7 +25,6 @@ using CommonInterfaces
 using ObserverImpl
 
 using Util
-using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -48,7 +47,7 @@ type CoordSimpleTCAS <: AbstractCollisionAvoidanceSystem
 end
 
 addObserver(cas::CoordSimpleTCAS, f::Function) = _addObserver(cas, f)
-addObserver(cas::CoordSimpleTCAS, tag::String, f::Function) = _addObserver(cas, tag, f)
+addObserver(cas::CoordSimpleTCAS, tag::AbstractString, f::Function) = _addObserver(cas, tag, f)
 
 testThreat(cas::CoordSimpleTCAS, input::SimpleTCASInput) = testThreat(cas.simpleTCAS, input)
 

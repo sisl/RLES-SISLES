@@ -30,7 +30,6 @@ using CommonInterfaces
 using ObserverImpl
 
 using Util
-using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -61,7 +60,7 @@ end
 type SimpleTCAS <: AbstractCollisionAvoidanceSystem
 
     b_TCAS_activated::Bool
-    RA::Union(SimpleTCASResolutionAdvisory, Nothing)
+    RA::Union{SimpleTCASResolutionAdvisory,Void}
 
     observer::Observer
 
@@ -81,7 +80,7 @@ end
 
 
 addObserver(cas::SimpleTCAS, f::Function) = _addObserver(cas, f)
-addObserver(cas::SimpleTCAS, tag::String, f::Function) = _addObserver(cas, tag, f)
+addObserver(cas::SimpleTCAS, tag::AbstractString, f::Function) = _addObserver(cas, tag, f)
 
 
 function testThreat(cas::SimpleTCAS, input::SimpleTCASInput)
@@ -148,7 +147,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
 
         return 0.
     end
-    @test t_ > 0
+    @assert t_ > 0
 
     h_dot_ascend = 1500 / 60
 

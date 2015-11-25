@@ -12,7 +12,7 @@ using CollisionAvoidanceSystem
 using Simulator
 
 addObserver(sim, f::Function) = _addObserver(sim, f)
-addObserver(sim, tag::String, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
 
 function initialize(sim)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr

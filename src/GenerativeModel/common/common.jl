@@ -10,9 +10,9 @@ import Base.convert
 
 #The fact that these are distributed between the simulators (i.e., TCASSimulatorImpl.jl),
 #is a bit messy.
-convert(::Type{StochasticLinearPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = StochasticLinearPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
+convert(::Type{StochasticLinearPRCommand}, command::Union{CorrAEMCommand, LLAEMCommand}) = StochasticLinearPRCommand(command.t, command.v_d, command.h_d, command.psi_d, 0.0)
 
-convert(::Type{LLDetPRCommand}, command::Union(CorrAEMCommand, LLAEMCommand)) = LLDetPRCommand(command.t, command.v_d, command.h_d, command.psi_d)
+convert(::Type{LLDetPRCommand}, command::Union{CorrAEMCommand, LLAEMCommand}) = LLDetPRCommand(command.t, command.v_d, command.h_d, command.psi_d)
 
 convert(::Type{SimpleADMCommand}, command::StochasticLinearPRCommand) = SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)
 
@@ -33,7 +33,7 @@ function convert(::Type{StochasticLinearPRRA},RA::ACASXOutput)
   return StochasticLinearPRRA(ra_active,RA.target_rate,RA.dh_min,RA.dh_max)
 end
 
-function convert(::Type{StochasticLinearPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
+function convert(::Type{StochasticLinearPRRA},RA::Union{SimpleTCASResolutionAdvisory,Void})
 
   ra_active = RA != nothing
 
@@ -45,7 +45,7 @@ function convert(::Type{LLDetPRRA},RA::ACASXOutput)
   return LLDetPRRA(RA.dh_min,RA.dh_max,RA.target_rate,RA.ddh)
 end
 
-function convert(::Type{LLDetPRRA},RA::Union(SimpleTCASResolutionAdvisory,Nothing))
+function convert(::Type{LLDetPRRA},RA::Union{SimpleTCASResolutionAdvisory,Void})
 
   ra_active = RA != nothing
 
