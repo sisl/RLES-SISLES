@@ -30,9 +30,9 @@ function em_sample(aem, num_transition_samples; initial_dist = nothing)
     dirichlet_initial = bn_dirichlet_prior(p.N_initial)
     dirichlet_transition = bn_dirichlet_prior(p.N_transition)
 
-    num_transition_samples  = int(num_transition_samples)
+    num_transition_samples  = Int(num_transition_samples)
 
-    output = Array(FloatingPoint, (num_transition_samples, p.n_initial + 2))
+    output = Array(AbstractFloat, (num_transition_samples, p.n_initial + 2))
 
     if initial_dist == nothing
         x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
@@ -44,7 +44,7 @@ function em_sample(aem, num_transition_samples; initial_dist = nothing)
                     println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
                     error("The value violates the boundary.")
                 end
-            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+            elseif !(Int(x[j, 1]) in [1:p.r_initial[j]])
                 print("sample: ", x[:, 1]')
                 println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
                 error("The value violates the boundary.")
@@ -91,10 +91,10 @@ function em_sample_n(aem, num_initial_samples, num_transition_samples)
     dirichlet_initial = bn_dirichlet_prior(p.N_initial)
     dirichlet_transition = bn_dirichlet_prior(p.N_transition)
 
-    num_initial_samples = int(num_initial_samples)
-    num_transition_samples  = int(num_transition_samples)
+    num_initial_samples = Int(num_initial_samples)
+    num_transition_samples  = Int(num_transition_samples)
 
-    output_array = Array(FloatingPoint, (num_initial_samples * num_transition_samples, p.n_initial + 2))
+    output_array = Array(AbstractFloat, (num_initial_samples * num_transition_samples, p.n_initial + 2))
 
     for i = 1:num_initial_samples
         x = create_sample(p, dirichlet_initial, dirichlet_transition, num_transition_samples)
@@ -106,7 +106,7 @@ function em_sample_n(aem, num_initial_samples, num_transition_samples)
                     println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
                     error("The value violates the boundary.")
                 end
-            elseif !(int(x[j, 1]) in [1:p.r_initial[j]])
+            elseif !(Int(x[j, 1]) in [1:p.r_initial[j]])
                 print("sample: ", i, " ", x[:, 1]')
                 println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
                 error("The value violates the boundary.")
@@ -171,7 +171,7 @@ end
 function events2samples(initial, events)
 
     n = length(initial)
-    D = zeros(n, int(sum(events[:, 1])))
+    D = zeros(n, Int(sum(events[:, 1])))
 
     x = vec(copy(initial))
     t = 0
@@ -179,7 +179,7 @@ function events2samples(initial, events)
     for i = 1:size(events, 1)
         event = events[i, :]
 
-        delta_t = int(event[1])
+        delta_t = Int(event[1])
 
         if event[2] == 0
             if delta_t > 0
@@ -263,7 +263,7 @@ function resample_events(initial, events, rates)
         end
     end
 
-    newevents = reshape(newevents, (3, int(length(newevents)/3)))'
+    newevents = reshape(newevents, (3, Int(length(newevents)/3)))'
 
     return newevents
 end
@@ -288,7 +288,7 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
 #
 #   DBN_SAMPLE returns the following
 #   initial
-#   events - matrix of (t, variable_index, new_value) (NOTE: t is the time 
+#   events - matrix of (t, variable_index, new_value) (NOTE: t is the time
 #   since the last event)
 
     if initial_dist == nothing
@@ -325,7 +325,7 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
                 x[i] = select_random(N_transition[i][:, j] + dirichlet_transition[i][:, j])
             end
         end
-        
+
         # map back
         x[temporal_map[:, 1]] = x[temporal_map[:, 2]]
 
@@ -337,10 +337,10 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
                     delta_t = 0
                 end
             end
-        end    
+        end
     end
 
-    events = reshape(events, (3, int(length(events)/3)))'
+    events = reshape(events, (3, Int(length(events)/3)))'
 
     if initial_dist == nothing
         return initial, events
@@ -446,7 +446,7 @@ function select_random(weights)
 #   Returns a randomly selected index according to the distribution
 #   specified by a vector of weights.
 #
-#   INDEX = SELECT_RANDOM(WEIGHTS) returns a scalar index INDEX selected 
+#   INDEX = SELECT_RANDOM(WEIGHTS) returns a scalar index INDEX selected
 #   randomly according to the specified weights WEIGHTS represented as an
 #   array.
 
@@ -484,7 +484,7 @@ function bn_sort(G)
 #
 # This code is based on the topological sort routine by Kevin Murphy. The
 # original source code is available from:
-# http://bnt.sourceforge.net/ 
+# http://bnt.sourceforge.net/
 
 # INPUT:
 # G - a square adjacency matrix

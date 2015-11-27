@@ -99,7 +99,7 @@ type CorrAEMDBN <: AbstractEncounterDBN
     aem_initial_dstate = Int64[ val2ind(dbn.aem.parameters.boundaries[i],
                                         dbn.aem.parameters.r_transition[i], val)
                                for (i, val) in enumerate(aem_initial_unconverted)]
-    dbn.init_aem_dstate = [aem_initial_dstate, aem_initial_dstate[dbn.dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
+    dbn.init_aem_dstate = [aem_initial_dstate; aem_initial_dstate[dbn.dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
     dbn.init_aem_dyn_cstate = dbn.aem.initial[dbn.dynamic_variables0] #continuous variables.
     dbn.dirichlet_transition = bn_dirichlet_prior(dbn.aem.parameters.N_transition)
 
@@ -108,8 +108,8 @@ type CorrAEMDBN <: AbstractEncounterDBN
 
     #precompute and cache these quantities
     dbn.parents_cache = Dict{Int64,Vector{Bool}}()
-    dbn.weights_cache = Dict{(Int64,Int64), Vector{Float64}}()
-    dbn.cumweights_cache = Dict{(Int64,Int64), Vector{Float64}}()
+    dbn.weights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
+    dbn.cumweights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
 
     for i = 1:length(dbn.aem.parameters.N_transition)
       dbn.parents_cache[i] = dbn.aem.parameters.G_transition[:, i]

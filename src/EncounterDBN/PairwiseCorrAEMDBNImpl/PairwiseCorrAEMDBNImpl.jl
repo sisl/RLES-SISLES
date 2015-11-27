@@ -142,7 +142,7 @@ function generate_encounter(dbn::PairwiseCorrAEMDBN; sample_number::Int64 = 0)
     dbn.initial_commands[i] = Float64[dbn.aem.L, v_d, h_d, psi_d]
     initial_commands_d = discretize(dbn.parameters,unconvert_units(dbn.initial_commands[i]))
 
-    dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dynamic_variables1)) ]
+    dbn.initial_commands_d[i] = [ initial_commands_d, Int64(zeros(dynamic_variables1)) ]
   end
 
   #Save aircraft 1 initial vars
@@ -171,7 +171,7 @@ function generate_encounter(dbn::PairwiseCorrAEMDBN; sample_number::Int64 = 0)
     dbn.initial_commands[i] = Float64[dbn.aem.L, v_d, h_d, psi_d]
     initial_commands_d = discretize(dbn.parameters,unconvert_units(dbn.initial_commands[i]))
 
-    dbn.initial_commands_d[i] = [ initial_commands_d, int64(zeros(dynamic_variables1)) ]
+    dbn.initial_commands_d[i] = [ initial_commands_d, Int64(zeros(dynamic_variables1)) ]
   end
 end
 

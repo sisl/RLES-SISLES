@@ -8,8 +8,8 @@
 #   scripts stored in the specified file.
 #
 #   SCRIPTS FILE:
-#   The scripts file contains a set of scripted encounters. Each 
-#   encounter is defined by a set of encounter scripts associated with a 
+#   The scripts file contains a set of scripted encounters. Each
+#   encounter is defined by a set of encounter scripts associated with a
 #   fixed number of aircraft. The file is organized as follows:
 #
 #   [Header]
@@ -65,10 +65,10 @@
 #   altitude, heading, flight path angle, roll angle, and airspeed
 #   acceleration. The update field is a 4 x n matrix, where n is the number
 #   of updates. The rows correspond to the time, vertical rate, turn rate
-#   and airspeed acceleration.  
+#   and airspeed acceleration.
 #   The script also takes an additional parameter through varargin:  the
 #   number of encounters to load, 'limit'.  load_encounters will load the
-#   minimum of this value and the number of encounters specified in the 
+#   minimum of this value and the number of encounters specified in the
 #   encounter file.  If specified, this impacts 'n' in the above paragraph.
 
 
@@ -76,8 +76,8 @@ function load_encounters(filename, initial_dim, update_dim, num_update_type; lim
 
     fio = open(filename, "r")
 
-    num_encounters = read(fio, Uint32)
-    num_ac = read(fio, Uint32)
+    num_encounters = read(fio, UInt32)
+    num_ac = read(fio, UInt32)
 
     if limit != 0
         num_encounters = min(num_encounters, limit)
@@ -97,7 +97,7 @@ function load_encounters(filename, initial_dim, update_dim, num_update_type; lim
         for j = 1:num_ac
             num_update = read(fio, num_update_type)
 
-            encounters[j, i]["update"] = reshape(read(fio, Float64, update_dim * num_update), int64(update_dim), int64(num_update))
+            encounters[j, i]["update"] = reshape(read(fio, Float64, update_dim * num_update), Int64(update_dim), Int64(num_update))
         end
     end
 
@@ -108,7 +108,7 @@ end
 
 function load_scripts(filename; limit = 0)
 
-    scripts, num_ac, num_enc = load_encounters(filename, 8, 4, Uint8; limit = limit)
+    scripts, num_ac, num_enc = load_encounters(filename, 8, 4, UInt8; limit = limit)
 end
 
 

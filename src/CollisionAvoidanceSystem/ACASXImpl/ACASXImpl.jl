@@ -171,7 +171,7 @@ function reset!(cas::ACASX,rec::ACASXCoordRecord)
   rec.protection_mode = 0x0
 
   for i = 1:endof(rec.intruders)
-    rec.intruders[i].id = uint32(i)
+    rec.intruders[i].id = UInt32(i)
     rec.intruders[i].cvc = 0x0
     rec.intruders[i].vrc = 0x0
     rec.intruders[i].vsb = 0x0

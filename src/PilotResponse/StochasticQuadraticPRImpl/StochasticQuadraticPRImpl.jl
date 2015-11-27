@@ -96,7 +96,7 @@ function getProbabilityDict()
   return d
 end
 
-function updatePilotResponse(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union(StochasticQuadraticPRResolutionAdvisory, Nothing))
+function updatePilotResponse(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void})
 
   t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
 
@@ -119,7 +119,7 @@ function updatePilotResponse(pr::StochasticQuadraticPR, update::StochasticQuadra
   return StochasticQuadraticPRCommand(t, v_d, h_d, psi_d)
 end
 
-step(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union(StochasticQuadraticPRResolutionAdvisory, Nothing)) = updatePilotResponse(pr, update, RA)
+step(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void}) = updatePilotResponse(pr, update, RA)
 
 function initialize(pr::StochasticQuadraticPR)
 

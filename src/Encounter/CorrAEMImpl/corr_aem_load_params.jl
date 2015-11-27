@@ -39,7 +39,7 @@ function em_read(p, filename)
     p.G_initial = logical(scanmatrix(f, p.n_initial))
 
     validate_label(f, "# r_initial")
-    p.r_initial = int(scanmatrix(f))
+    p.r_initial = round(Int64, scanmatrix(f))
 
     validate_label(f, "# N_initial")
     dims_initial = getdims(p.G_initial, p.r_initial, 1:p.n_initial)
@@ -53,7 +53,7 @@ function em_read(p, filename)
     p.G_transition = logical(scanmatrix(f, p.n_transition))
 
     validate_label(f, "# r_transition")
-    p.r_transition = int(scanmatrix(f))
+    p.r_transition = round(Int64, scanmatrix(f))
 
     validate_label(f, "# N_transition")
     dims_transition = getdims(p.G_transition, p.r_transition, (p.n_initial + 1):p.n_transition)
@@ -110,10 +110,10 @@ function extract_temporal_map(labels_transition)
             t = searchindex(labels_transition[i], "(t+1)")
 
             if t != 0
-                tt1 = [tt1, i]
+                tt1 = [tt1; i]
             end
         else
-            tt = [tt, i]
+            tt = [tt; i]
         end
     end
 

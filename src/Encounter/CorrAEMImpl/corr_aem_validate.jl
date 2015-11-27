@@ -20,17 +20,17 @@ function validate_initial(aem)
     marginal_prob = cell(params.n_initial)
 
     for i = 1:params.n_initial
-        marginal_dist[i] = int(sum(params.N_initial[i], 2))
+        marginal_dist[i] = Int(sum(params.N_initial[i], 2))
         marginal_prob[i] = marginal_dist[i] / sum(marginal_dist[i])
     end
 
     f = open(aem.initial_sample_filename, "r")
-    
+
     readline(f)
-    
+
     n_nmac = 0
     n_lines = 0
-    
+
     sample_dist = cell(params.n_initial)
     sample_prob = cell(params.n_initial)
 
@@ -56,13 +56,13 @@ function validate_initial(aem)
         # 17      vmd = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 6000]  : ft
 
         for i = [2, 3, 4, 6, 7]
-            if !(int(values[i]) in [1:params.r_initial[i-1]])
+            if !(Int(values[i]) in [1:params.r_initial[i-1]])
                 println("sample: ", chomp(line))
-                println("i: ", i, ", value: ", int(values[i]), ", boundary: ", params.r_initial[i-1])
+                println("i: ", i, ", value: ", Int(values[i]), ", boundary: ", params.r_initial[i-1])
                 error("The value violates the boundary.")
             end
 
-            sample_dist[i - 1][int(values[i])] += 1
+            sample_dist[i - 1][Int(values[i])] += 1
         end
 
         for i = [5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
@@ -80,14 +80,14 @@ function validate_initial(aem)
                 sample_dist[i - 1][j - 1] += 1
             end
         end
-        
+
         hmd_ft = 6076.12 * values[16]
         vmd = values[17]
 
         if hmd_ft <= 500 && vmd <= 100
             n_nmac += 1
         end
-    
+
         n_lines += 1
     end
 
@@ -119,7 +119,7 @@ function validate_initial(aem)
 
         println()
     end
-    
+
     println("P(NMAC | enc, no TCAS) = ", n_nmac / n_lines, " ($n_nmac / $n_lines)")
     println()
 end
@@ -136,15 +136,15 @@ function validate_transition(aem)
     marginal_prob = cell(params.n_transition - params.n_initial)
 
     for i = 1:(params.n_transition - params.n_initial)
-        marginal_dist[i] = int(sum(params.N_transition[params.n_initial + i], 2))
+        marginal_dist[i] = Int(sum(params.N_transition[params.n_initial + i], 2))
         marginal_prob[i] = marginal_dist[i] / sum(marginal_dist[i])
     end
 
 
     f = open(aem.transition_sample_filename, "r")
-    
+
     readline(f)
-    
+
     sample_dist = cell(params.n_transition - params.n_initial)
     sample_prob = cell(params.n_transition - params.n_initial)
 
@@ -153,7 +153,7 @@ function validate_transition(aem)
     end
 
     bin = Array(Int, params.n_transition - params.n_initial)
-    value = Array(FloatingPoint, params.n_transition - params.n_initial)
+    value = Array(AbstractFloat, params.n_transition - params.n_initial)
 
     n_sample = 0
     n_resample = zeros(Int, params.n_transition - params.n_initial)
@@ -166,10 +166,10 @@ function validate_transition(aem)
         # 3, 4  h1d, h2d        : ft/min
         # 5, 6  psi1d, psi2d    : deg/s
 
-        # resampling_rate = 0 0 0 0 0 0 0 0 0 0 0.0487462 0.0505306 0.0794427 0.0827686 0 0 
+        # resampling_rate = 0 0 0 0 0 0 0 0 0 0 0.0487462 0.0505306 0.0794427 0.0827686 0 0
 
-        id = int(values[1])
-        ts = int(values[2])
+        id = Int(values[1])
+        ts = Int(values[2])
 
         if ts != 0
             n_sample += 1

@@ -215,7 +215,7 @@ function generateEncounter(dbn::StarDBN)
     dbn.initial_commands[i] = Float64[L, v_d, h_d, psi_d]
     initial_commands_d = discretize(dbn.aem_parameters, unconvert_units(dbn.initial_commands[i]))
 
-    dbn.initial_commands_d[i] = [initial_commands_d, int64(zeros(dbn.dynamic_variables1))]
+    dbn.initial_commands_d[i] = [initial_commands_d, Int64(zeros(dbn.dynamic_variables1))]
   end
 end
 

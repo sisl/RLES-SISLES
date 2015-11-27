@@ -401,11 +401,11 @@ function parse_commandline()
             action = :store_true
         "--init_file"
             help = "initial sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "initial.txt"
         "--tran_file"
             help = "transition sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "transition.txt"
         "--sample", "-n"
             help = "sample number"
@@ -416,11 +416,11 @@ function parse_commandline()
     @add_arg_table settings["compare"] begin
         "--init_file"
             help = "initial sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "initial.txt"
         "--tran_file"
             help = "transition sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "transition.txt"
         "--sample", "-n"
             help = "sample number"
@@ -438,7 +438,7 @@ function parse_commandline()
     @add_arg_table settings["generate"] begin
         "--init_file"
             help = "initial sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "initial.txt"
         "--ninit", "-n"
             help = "number of initial samples"
@@ -446,7 +446,7 @@ function parse_commandline()
             default = 1
         "--tran_file"
             help = "transition sample file"
-            arg_type = String
+            arg_type = AbstractString
             default = "transition.txt"
         "--ntran"
             help = "number of transition samples"
