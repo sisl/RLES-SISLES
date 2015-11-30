@@ -168,10 +168,11 @@ function step_dbn(dbn::CorrAEMDBN)
   logProb = 0.0
 
   for (o, i) in enumerate(dbn.dynamic_variables1)
-
     j = 1
     if !isempty(find(dbn.parents_cache[i]))
-      j = sub2ind(p.r_transition[dbn.parents_cache[i]], aem_dstate[dbn.parents_cache[i]])
+      dims = tuple(p.r_transition[dbn.parents_cache[i]]...)
+      indices = aem_dstate[dbn.parents_cache[i]]
+      j = sub2ind(dims, indices...)
     end
 
     aem_dstate[i] = select_random_cumweights(dbn.cumweights_cache[(i, j)])
@@ -256,7 +257,9 @@ function step_enc(dbn::CorrAEMDBN)
   logProb = 0.0
   for (o, i) in enumerate(dbn.dynamic_variables1)
     if !isempty(find(dbn.parents_cache[i]))
-      j = sub2ind(p.r_transition[dbn.parents_cache[i]], aem_dstate[dbn.parents_cache[i]])
+      dims = tuple(p.r_transition[dbn.parents_cache[i]]...)
+      indices = aem_dstate[dbn.parents_cache[i]]
+      j = sub2ind(dims, indices...)
       logProb += log(dbn.weights_cache[(i,j)][aem_dstate[i]])
 
       #probability from continuous sampling process

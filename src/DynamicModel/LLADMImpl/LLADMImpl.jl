@@ -428,6 +428,6 @@ function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, float64(pi))
+to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, Float64(pi))
 
 end

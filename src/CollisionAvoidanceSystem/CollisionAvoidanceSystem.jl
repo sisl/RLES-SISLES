@@ -23,6 +23,7 @@ export
     ACASXInput,
     ACASXOutput
 
+import CommonInterfaces: initialize, step
 
 using AbstractCollisionAvoidanceSystemImpl
 

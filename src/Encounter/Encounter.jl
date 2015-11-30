@@ -27,7 +27,7 @@ export
     LLAEMInitialState,
     LLAEMCommand
 
-
+import CommonInterfaces: initialize, step
 using AbstractEncounterModelImpl
 
 using CorrAEMImpl

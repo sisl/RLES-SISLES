@@ -25,6 +25,7 @@ export
     LLDetPRRA,
     LLDetPROutput
 
+import CommonInterfaces: initialize, step
 
 using AbstractPilotResponseImpl
 

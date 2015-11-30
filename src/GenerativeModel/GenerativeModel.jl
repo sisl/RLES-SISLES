@@ -23,6 +23,7 @@ export
     ACASX_Multi_params,
     ACASX_Multi
 
+import CommonInterfaces: initialize, step
 
 using AbstractGenerativeModelImpl
 

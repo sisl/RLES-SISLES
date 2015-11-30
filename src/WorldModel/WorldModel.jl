@@ -18,6 +18,7 @@ export
     AirSpace,
     ASWMState
 
+import CommonInterfaces: initialize, step
 
 using AbstractWorldModelImpl
 

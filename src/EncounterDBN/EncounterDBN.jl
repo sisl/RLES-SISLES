@@ -17,8 +17,10 @@ export
     StarDBN,
     PairwiseCorrAEMDBN
 
+import CommonInterfaces: initialize, step
 
 using AbstractEncounterDBNImpl
+import AbstractEncounterDBNInterfaces: getInitialState, get
 
 using CorrAEMDBNImpl
 

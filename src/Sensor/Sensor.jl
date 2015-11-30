@@ -22,6 +22,7 @@ export
     ACASXSensorInput,
     ACASXSensorOutput
 
+import CommonInterfaces: initialize, step
 
 using AbstractSensorImpl
 

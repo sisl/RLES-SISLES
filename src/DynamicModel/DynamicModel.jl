@@ -24,6 +24,7 @@ export
     LLADMOutputState,
     LLADMCommand
 
+import CommonInterfaces: initialize, step
 
 using AbstractDynamicModelImpl
 

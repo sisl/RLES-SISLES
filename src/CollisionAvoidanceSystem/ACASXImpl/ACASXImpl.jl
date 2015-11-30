@@ -117,7 +117,7 @@ function step(cas::ACASX, inputVals::ACASXInput)
     intruder.protection_mode      = record.protection_mode
 
     #quantize sensor reading depending on equipage
-    intruder.z = quantize(intruder.z, float64(intruder.quant))
+    intruder.z = quantize(intruder.z, Float64(intruder.quant))
 
     #intruder-specific
     intruder_self = record.intruders[my_list_id] #self in intruders' record
