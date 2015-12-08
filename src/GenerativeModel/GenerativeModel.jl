@@ -17,11 +17,8 @@ export
     SimpleTCAS_EvE_params,
     SimpleTCAS_EvE,
 
-    ACASX_EvE_params,
-    ACASX_EvE,
-
-    ACASX_Multi_params,
-    ACASX_Multi
+    ACASX_GM_params,
+    ACASX_GM
 
 
 using AbstractGenerativeModelImpl
@@ -32,9 +29,7 @@ using SimpleTCAS_EvU_Impl
 
 using SimpleTCAS_EvE_Impl
 
-using ACASX_EvE_Impl
-
-using ACASX_Multi_Impl
+using ACASX_GM_Impl
 
 end
 
