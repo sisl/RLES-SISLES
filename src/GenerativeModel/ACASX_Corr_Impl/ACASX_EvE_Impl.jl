@@ -1,7 +1,7 @@
 # Author: Ritchie Lee, ritchie.lee@sv.cmu.edu
 # Date: 12/11/2014
 
-module ACASX_EvE_Impl
+module ACASX_Corr_Impl
 
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
@@ -25,9 +25,9 @@ import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export ACASX_EvE_params, ACASX_EvE, initialize, step, isterminal, addObserver
+export ACASX_Corr_params, ACASX_Corr, initialize, step, isterminal, addObserver
 
-type ACASX_EvE_params
+type ACASX_Corr_params
   #global params: remains constant per sim
   encounter_number::Int64 #encounter number in file
   nmac_r::Float64 #NMAC radius in feet
@@ -51,11 +51,11 @@ type ACASX_EvE_params
   libcas::String #Path to libcas library
   libcas_config::String #Path to libcas config file
 
-  ACASX_EvE_params() = new()
+  ACASX_Corr_params() = new()
 end
 
-type ACASX_EvE <: AbstractGenerativeModel
-  params::ACASX_EvE_params
+type ACASX_Corr <: AbstractGenerativeModel
+  params::ACASX_Corr_params
 
   #sim objects: contains state that changes throughout sim run
   em::CorrAEMDBN
@@ -83,7 +83,7 @@ type ACASX_EvE <: AbstractGenerativeModel
   step_logProb::Float64 #cumulative probability of this step()
 
   #empty constructor
-  function ACASX_EvE(p::ACASX_EvE_params)
+  function ACASX_Corr(p::ACASX_Corr_params)
     @assert p.num_aircraft == 2 #need to revisit the code if this is not true
 
     sim = new()
@@ -102,7 +102,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     elseif p.pilotResponseModel == :ICAO_all
       sim.pr = LLDetPR[LLDetPR(5, 3) for i = 1 : p.num_aircraft]
     else
-      error("ACASX_EvE_Impl: No such pilot response model")
+      error("ACASX_Corr_Impl: No such pilot response model")
     end
 
     sim.dm = LLADM[ LLADM() for i = 1 : p.num_aircraft]
@@ -125,7 +125,7 @@ type ACASX_EvE <: AbstractGenerativeModel
     sim.step_logProb = 0.0
 
     sim.observer = Observer()
-    sim.string_id = "ACASX_EvE_$(p.encounter_number)"
+    sim.string_id = "ACASX_Corr_$(p.encounter_number)"
 
     sim.t_index = 0
 
@@ -137,14 +137,14 @@ end
 
 import ACASX_Common
 
-addObserver(sim::ACASX_EvE, f::Function) = ACASX_Common.addObserver(sim, f::Function)
-addObserver(sim::ACASX_EvE, tag::String, f::Function) = ACASX_Common.addObserver(sim, tag::String, f::Function)
+addObserver(sim::ACASX_Corr, f::Function) = ACASX_Common.addObserver(sim, f::Function)
+addObserver(sim::ACASX_Corr, tag::String, f::Function) = ACASX_Common.addObserver(sim, tag::String, f::Function)
 
-initialize(sim::ACASX_EvE) = ACASX_Common.initialize(sim)
+initialize(sim::ACASX_Corr) = ACASX_Common.initialize(sim)
 
-step(sim::ACASX_EvE) = ACASX_Common.step(sim)
+step(sim::ACASX_Corr) = ACASX_Common.step(sim)
 
-isterminal(sim::ACASX_EvE) = ACASX_Common.isterminal(sim)
+isterminal(sim::ACASX_Corr) = ACASX_Common.isterminal(sim)
 
 end #module
 
