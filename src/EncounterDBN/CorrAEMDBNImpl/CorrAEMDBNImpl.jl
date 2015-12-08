@@ -92,16 +92,16 @@ type CorrAEMDBN <: AbstractEncounterDBN
     generateEncounter(dbn.aem, sample_number=encounter_number) #To optimize: This allocates a lot of memory
 
     #compute initial states of variables
-    dbn.dynamic_variables0 = dbn.aem.parameters.temporal_map[:,1]
-    dbn.dynamic_variables1 = dbn.aem.parameters.temporal_map[:,2]
+    p = dbn.aem.parameters
+    dbn.dynamic_variables0 = p.temporal_map[:,1]
+    dbn.dynamic_variables1 = p.temporal_map[:,2]
 
     aem_initial_unconverted = unconvertUnitsAemState(dbn.aem.initial)
-    aem_initial_dstate = Int64[ val2ind(dbn.aem.parameters.boundaries[i],
-                                        dbn.aem.parameters.r_transition[i], val)
+    aem_initial_dstate = Int64[ val2ind(p.boundaries[i], p.r_transition[i], val)
                                for (i, val) in enumerate(aem_initial_unconverted)]
     dbn.init_aem_dstate = [aem_initial_dstate; aem_initial_dstate[dbn.dynamic_variables0]] #bins, [11:14] are updated with time, append space for t+1 variables
     dbn.init_aem_dyn_cstate = dbn.aem.initial[dbn.dynamic_variables0] #continuous variables.
-    dbn.dirichlet_transition = bn_dirichlet_prior(dbn.aem.parameters.N_transition)
+    dbn.dirichlet_transition = bn_dirichlet_prior(p.N_transition)
 
     dbn.aem_dstate = deepcopy(dbn.init_aem_dstate)
     dbn.aem_dyn_cstate = deepcopy(dbn.init_aem_dyn_cstate)
@@ -111,11 +111,11 @@ type CorrAEMDBN <: AbstractEncounterDBN
     dbn.weights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
     dbn.cumweights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
 
-    for i = 1:length(dbn.aem.parameters.N_transition)
-      dbn.parents_cache[i] = dbn.aem.parameters.G_transition[:, i]
+    for i = 1:length(p.N_transition)
+      dbn.parents_cache[i] = p.G_transition[:, i]
 
       for j = 1:1:size(dbn.dirichlet_transition[i], 2)
-        dbn.weights_cache[(i, j)] = dbn.aem.parameters.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
+        dbn.weights_cache[(i, j)] = p.N_transition[i][:, j] + dbn.dirichlet_transition[i][:, j]
         dbn.weights_cache[(i, j)] /= sum(dbn.weights_cache[(i, j)])
         dbn.cumweights_cache[(i, j)] = cumsum(dbn.weights_cache[(i, j)])
       end
@@ -166,48 +166,69 @@ function step_dbn(dbn::CorrAEMDBN)
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
   logProb = 0.0
-
+######
+  #=
   for (o, i) in enumerate(dbn.dynamic_variables1)
     j = 1
-    if !isempty(find(dbn.parents_cache[i]))
-      dims = tuple(p.r_transition[dbn.parents_cache[i]]...)
-      indices = aem_dstate[dbn.parents_cache[i]]
+    parents = dbn.parents_cache[i]
+    if !isempty(find(parents))
+      dims = tuple(p.r_transition[parents]...)
+      indices = aem_dstate[parents]
       j = sub2ind(dims, indices...)
     end
 
-    aem_dstate[i] = select_random_cumweights(dbn.cumweights_cache[(i, j)])
-    logProb += log(dbn.weights_cache[(i, j)][aem_dstate[i]]) #prob for picking bin
+    weights = dbn.weights_cache[(i, j)]
+    cumweights = dbn.cumweights_cache[(i, j)]
+    aem_dstate[i] = select_random_cumweights(cumweights)
+    logProb += log(weights[aem_dstate[i]]) #prob for picking bin
 
     #Resampling and dediscretizing process
-    i_t = dbn.dynamic_variables0[o]
-    if (aem_dstate[i] != aem_dstate[i_t]) #Different bin than previous time step, resample with prob 1
+    #two components to prob: resample prob, dediscretize prob
+    i_prev = dbn.dynamic_variables0[o]
+    if (aem_dstate[i] != aem_dstate[i_prev]) #Different bin than previous time step, resample with prob 1
 
-      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_t], p.zero_bins[i_t])
+      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
       aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
       logProb += log(prob) #prob of the continuous sample
 
-    elseif rand() < p.resample_rates[i_t] #aem_dstate[i] == aem_dstate[i_t] same bin and meets rate
+    elseif rand() < p.resample_rates[i_prev] #same bin and meets rate
 
-      logProb += log(p.resample_rates[i_t]) #prob of meeting resample rate
-
-      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_t], p.zero_bins[i_t])
+      logProb += log(p.resample_rates[i_prev]) #prob of meeting resample rate
+      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
       aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
       logProb += log(prob) #prob of the continuous sample
 
-    else # aem_dstate[i] == aem_dstate[i_t] same bin, but does not meet rate
+    else #same bin, but does not meet rate
 
-      logProb += log(1.0 - p.resample_rates[i_t]) #prob of not meeting resample rate
-
+      logProb += log(1.0 - p.resample_rates[i_prev]) #prob of not meeting resample rate
       #don't resample state
     end
   end
+  =#
+######
 
-  # update x(t) with x(t+1)
+  for (o,i) in enumerate(dbn.dynamic_variables1)
+    if !isempty(find(dbn.parents_cache[i]))
+      dims = tuple(p.r_transition[dbn.parents_cache[i]]...)
+      j = sub2ind(dims, aem_dstate[dbn.parents_cache[i]]...)
+      aem_dstate[i] = select_random_cumweights(dbn.cumweights_cache[(i,j)])
+      logProb += log(dbn.weights_cache[(i,j)][aem_dstate[i]])
+      #Resampling and dediscretizing process
+      i_t = dbn.dynamic_variables0[o]
+      if (aem_dstate[i] != aem_dstate[i_t]) || #compare to state at last time step, #Different bin, do resample
+        (aem_dstate[i] == aem_dstate[i_t] && rand() < p.resample_rates[i_t]) #Same bin but meets resample rate
+        aem_dyn_cstate[o],_ = dediscretize(aem_dstate[i],p.boundaries[i_t],p.zero_bins[i_t])
+        if in(i,[17,18]) #these need unit conversion
+          aem_dyn_cstate[o] /= 60 #convert units
+        end
+      end
+      #Else same bin and does not meet rate, just set equal to previous (no update)
+    end
+  end
+#######
+
+  # copy over x(t+1) to x(t)
   aem_dstate[dbn.dynamic_variables0] = aem_dstate[dbn.dynamic_variables1]
-
-  #push to sim
-  dbn.aem_dstate = aem_dstate
-  dbn.aem_dyn_cstate = aem_dyn_cstate
 
   #Just a reminder, this will break if number_of_aircraft != 2
   @assert dbn.number_of_aircraft == 2
@@ -222,10 +243,10 @@ function step_dbn(dbn::CorrAEMDBN)
   dbn.output_commands[2].h_d = dbn.aem_dyn_cstate[2]
   dbn.output_commands[2].psi_d = dbn.aem_dyn_cstate[4]
 
-  #return
-  dbn.logProb = logProb
+  return dbn.logProb = logProb
 end
 
+#TODO: remove hardcoding
 convert_units(x::AbstractFloat, i::Int) = in(i, [17,18]) ? x / 60 : x
 
 convert(::Type{Vector{Float64}}, command_1::CorrAEMCommand, command_2::CorrAEMCommand) =
@@ -246,37 +267,38 @@ function step_enc(dbn::CorrAEMDBN)
   aem_dyn_cstate = convert(Vector{Float64}, dbn.output_commands[1], dbn.output_commands[2])
   aem_dstate = dbn.aem_dstate #only copies pointer
   #load into the (t+1) slots
-  #boundaries are specified at t though
+  #boundaries are specified at t
   aem_dyn_cstate_unconverted = unconvertUnitsDynVars(aem_dyn_cstate) #need to unconvert units
-  aem_dstate[dbn.dynamic_variables1] = Int64[ val2ind(aem.parameters.boundaries[i],
-                                                 aem.parameters.r_transition[i],
-                                                 aem_dyn_cstate_unconverted[o])
-                                        for (o, i) in enumerate(dbn.dynamic_variables0) ]
+  aem_dstate[dbn.dynamic_variables1] = Int64[ val2ind(p.boundaries[i], p.r_transition[i], aem_dyn_cstate_unconverted[o])
+                                                for (o, i) in enumerate(dbn.dynamic_variables0) ]
 
   # compute the probability of this transition
   logProb = 0.0
   for (o, i) in enumerate(dbn.dynamic_variables1)
-    if !isempty(find(dbn.parents_cache[i]))
-      dims = tuple(p.r_transition[dbn.parents_cache[i]]...)
-      indices = aem_dstate[dbn.parents_cache[i]]
+    j = 1
+    parents = dbn.parents_cache[i]
+    if !isempty(find(parents))
+      dims = tuple(p.r_transition[parents]...)
+      indices = aem_dstate[parents]
       j = sub2ind(dims, indices...)
-      logProb += log(dbn.weights_cache[(i,j)][aem_dstate[i]])
+    end
+    weights = dbn.weights_cache[(i, j)]
+    logProb += log(weights[aem_dstate[i]])
 
-      #probability from continuous sampling process
-      i_t = dbn.dynamic_variables0[o]
-      if aem_dstate[i] == aem_dstate[i_t] != p.zero_bins[i_t] #same bin but not the zero bin
-        if isapprox(aem_dyn_cstate[o], dbn.aem_dyn_cstate[o], atol=0.0001)
-          #Same bin and no resample
-          logProb += log(1.0 - p.resample_rates[i_t])
-        else
-          #Same bin and got resampled
-          logProb += log(p.resample_rates[i_t])
-        end
-      end
+    #probability from continuous sampling process
+    #two components: resample prob, dediscretize prob
+    i_prev = dbn.dynamic_variables0[o]
+    if aem_dstate[i] != aem_dstate[i_prev] #not the same bin, resample wp 1
+      logProb += dediscretize_prob(aem_dyn_cstate[o], aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
+    elseif isapprox(aem_dyn_cstate[o], dbn.aem_dyn_cstate[o], atol=0.0001) #same bin same value, did not resample
+      logProb += log(1.0 - p.resample_rates[i_prev])
+    else #Same bin different value, got resampled
+      logProb += log(p.resample_rates[i_prev])
+      logProb += dediscretize_prob(aem_dyn_cstate[o], aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
     end
   end
 
-  # update x(t) with x(t+1)
+  # copy over x(t+1) to x(t)
   aem_dstate[dbn.dynamic_variables0] = aem_dstate[dbn.dynamic_variables1]
 
   #push to sim
@@ -294,7 +316,6 @@ end
 function val2ind(boundariesi, ri, value)
   if !isempty(boundariesi)
     index = findfirst(x -> (x > value), boundariesi) - 1
-
     if index == -1
       index = ri
     end
@@ -321,6 +342,24 @@ function dediscretize(dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
   end
 
   return (val, prob)
+end
+
+function dediscretize_prob(val::Float64, dval::Int64, boundaries::Vector{Float64}, zero_bin::Int64)
+  val_min = boundaries[dval]
+  val_max = boundaries[dval + 1]
+
+  if dval == zero_bin
+    @assert val == 0.0
+    prob = 1.0
+  elseif val_max == val_min
+    @assert val == val_min
+    prob = 1.0
+  else
+    @assert val_min <= val <= val_max
+    prob = 1.0 / (val_max - val_min)
+    #this is a density so it won't be normalized to [0,1]
+  end
+  return prob
 end
 
 function unconvertUnitsDynVars(v)
