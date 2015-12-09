@@ -67,7 +67,6 @@ function update_from_coord!(input::ACASXInput, coord::AbstractCASCoord, my_id::I
 
   #Augment the input with info from coord
   #note: looping over intruders skips self
-  # TODO: consider moving these updates into ACASXSensor
   for intruder in input.intruders
 
     my_list_id = getListId(intruder.id, my_id)
@@ -125,7 +124,7 @@ function reset!(cas, rec::ACASXCoordRecord)
   rec.my_id = cas.my_id
   rec.modes = cas.my_id
   rec.equipage = cas.equipage
-  rec.quant = 25
+  rec.quant = cas.quant
   rec.sensitivity_index = 0x0
   rec.protection_mode = 0x0
 

@@ -34,6 +34,7 @@ using CCAS
 type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
   my_id::Int64 #aircraft number
   max_intruders::Int64
+  quant::Int64
   constants::Constants
   casShared::CASShared
   version::String
@@ -42,12 +43,13 @@ type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
   output::Output
   coord::AbstractCASCoord
 
-  function ACASX_CCAS(aircraft_id::Int64, libcas::String, config_file::String, quant::Int64,
+  function ACASX_CCAS(aircraft_id::Int64, libcas::String, config_file::String,
                  num_aircraft::Int, coord::AbstractCASCoord, equipage::EQUIPAGE=EQUIPAGE_TCAS)
     cas = new()
     cas.my_id = aircraft_id
     cas.max_intruders = num_aircraft - 1
-    cas.constants = Constants(quant, config_file, cas.max_intruders)
+    cas.quant = equipage == EQUIPAGE_TCAS ? 25 : 100
+    cas.constants = Constants(cas.quant, config_file, cas.max_intruders)
     cas.casShared = CASShared(libcas, cas.constants)
     cas.version = version(cas.casShared)
     cas.equipage = equipage
@@ -58,7 +60,7 @@ type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
     cas.input = Input(cas.max_intruders)
     cas.output = Output(cas.max_intruders)
     setRecord(cas.coord, cas.my_id,
-              ACASXCoordRecord(cas.my_id, equipage, quant, cas.max_intruders))
+              ACASXCoordRecord(cas.my_id, equipage, cas.quant, cas.max_intruders))
     reset(cas.casShared)
     return cas
   end

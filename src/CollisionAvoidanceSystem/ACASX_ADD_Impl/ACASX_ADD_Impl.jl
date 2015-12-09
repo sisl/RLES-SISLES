@@ -1,7 +1,7 @@
 # Author: Ritchie Lee, ritchie.lee@sv.cmu.edu
 # Date: 11/21/2014
 
-#ACASX implementation: based on CCAS interface to libCAS
+#ACASX implementation: based on interfacing to the the Julia ADD
 
 module ACASX_ADD_Impl
 
@@ -31,9 +31,10 @@ type ACASX_ADD <: AbstractCollisionAvoidanceSystem
   equipage::EQUIPAGE
   input::Input
   output::Output
+  quant::Int64
   coord::AbstractCASCoord
 
-  function ACASX_ADD(aircraft_id::Int64, quant::Int64,
+  function ACASX_ADD(aircraft_id::Int64,
                  num_aircraft::Int, coord::AbstractCASCoord, equipage::EQUIPAGE=EQUIPAGE_TCAS)
     cas = new()
     cas.my_id = aircraft_id
@@ -43,8 +44,9 @@ type ACASX_ADD <: AbstractCollisionAvoidanceSystem
     cas.coord = coord
     cas.input = Input(cas.max_intruders)
     cas.output = Output(cas.max_intruders)
+    cas.quant = equipage == EQUIPAGE_TCAS ? 25 : 100
     setRecord(cas.coord, cas.my_id,
-              ACASXCoordRecord(cas.my_id, equipage, quant, cas.max_intruders))
+              ACASXCoordRecord(cas.my_id, equipage, cas.quant, cas.max_intruders))
     reset(cas.casShared)
     return cas
   end

@@ -51,16 +51,13 @@ type ACASX_GM_params
   initial_sample_file::String #Path to initial sample file
   transition_sample_file::String #Path to transition sample file
 
-  #ACAS X config
-  quant::Int64 #quantization. Typ. quant=25
-
   #CCAS libcas config (CCAS only)
   libcas::String #Path to libcas library
   libcas_config::String #Path to libcas config file
 end
 ACASX_GM_params() = ACASX_GM_params(1, uint64(0), 500.0, 100.0, 50, 2,
                                         :LLCEMDBN, :ICAO, :CCAS, :EvE, :LLADM,
-                                        true, "", :DBN, "", "", 25, "", "")
+                                        true, "", :DBN, "", "", "", "")
 
 type ACASX_GM <: AbstractGenerativeModel
   params::ACASX_GM_params
@@ -131,7 +128,7 @@ type ACASX_GM <: AbstractGenerativeModel
 
     if p.cas_model == :CCAS
       sim.cas = Array(AbstractCollisionAvoidanceSystem, p.num_aircraft)
-      sim.cas[1] = ACASX_CCAS(1, p.libcas, p.libcas_config, p.quant, p.num_aircraft, sim.coord,
+      sim.cas[1] = ACASX_CCAS(1, p.libcas, p.libcas_config, p.num_aircraft, sim.coord,
                            EQUIPAGE_TCAS)
       if p.encounter_equipage == :EvE
         equip = EQUIPAGE_TCAS
@@ -141,13 +138,12 @@ type ACASX_GM <: AbstractGenerativeModel
         error("ACASX_GM_Impl: Encounter equipage not supported ($(p.encounter_equipage))")
       end
       for i = 2:p.num_aircraft
-        sim.cas[i] = ACASX_CCAS(i, p.libcas, p.libcas_config, p.quant, p.num_aircraft,
+        sim.cas[i] = ACASX_CCAS(i, p.libcas, p.libcas_config, p.num_aircraft,
                                 sim.coord, equip)
       end
     elseif p.cas_model == :ADD
       sim.cas = Array(AbstractCollisionAvoidanceSystem, p.num_aircraft)
-      sim.cas[1] = ACASX_ADD(1, p.libcas_config, p.quant, p.num_aircraft, sim.coord,
-                             EQUIPAGE_TCAS)
+      sim.cas[1] = ACASX_ADD(1, p.libcas_config, p.num_aircraft, sim.coord, EQUIPAGE_TCAS)
       if p.encounter_equipage == :EvE
         equip = EQUIPAGE_TCAS
       elseif p.encounter_equipage == :EvU
@@ -156,7 +152,7 @@ type ACASX_GM <: AbstractGenerativeModel
         error("ACASX_GM_Impl: Encounter equipage not supported ($(p.encounter_equipage))")
       end
       for i = 2:p.num_aircraft
-        sim.cas[i] = ACASX_ADD(i, p.libcas_config, p.quant, p.num_aircraft,
+        sim.cas[i] = ACASX_ADD(i, p.libcas_config, p.num_aircraft,
                                 sim.coord, equip)
       end
     else
