@@ -68,8 +68,10 @@ end
 
 function step(cas::ACASX_CCAS, input::ACASXInput)
   ACASXCommonImpl.update_from_coord!(input, cas.coord, cas.my_id)
-  update!(cas.casShared, input, cas.output) #cas.output is modified in place
-  ACASXCommonImpl.update_to_coord!(cas.coord, cas.my_id, cas.output)
+  if cas.equipage == EQUIPAGE_TCAS
+    update!(cas.casShared, input, cas.output) #cas.output is modified in place
+    ACASXCommonImpl.update_to_coord!(cas.coord, cas.my_id, cas.output)
+  end
 
   cas.input = input #keep a record
   return cas.output

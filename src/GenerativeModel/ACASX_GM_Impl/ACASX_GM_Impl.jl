@@ -103,13 +103,7 @@ type ACASX_GM <: AbstractGenerativeModel
     end
 
     if p.response_model == :ICAO
-      if p.encounter_equipage == :EvE #equipped vs equipped
-        sim.pr = [LLDetPR(5, 3) for i = 1 : p.num_aircraft]
-      elseif p.encounter_equipage == :EvU #equipped vs unequipped
-        sim.pr = [i == 1 ? LLDetPR(5, 3) : LLDetPR(-1, -1) for i = 1:p.num_aircraft]
-      else
-        error("ACASX_GM_Impl: Encounter equipage not supported ($(p.encounter_equipage))")
-      end
+      sim.pr = [LLDetPR(5, 3) for i = 1 : p.num_aircraft]
     else
       error("ACASX_GM_Impl: Response model not supported ($(p.response_model))")
     end

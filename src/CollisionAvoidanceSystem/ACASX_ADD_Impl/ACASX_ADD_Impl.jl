@@ -55,10 +55,13 @@ end
 function step(cas::ACASX_ADD, input::ACASXInput)
   ACASXCommonImpl.update_from_coord!(input, cas.coord, cas.my_id)
 
-  #call custom update here...
-  #my_custom_update()
+  if cas.equipage == EQUIPAGE_TCAS
+    #call custom update here...
+    #my_custom_update()
 
-  ACASXCommonImpl.update_to_coord!(cas.coord, cas.my_id, cas.output)
+    ACASXCommonImpl.update_to_coord!(cas.coord, cas.my_id, cas.output)
+  end
+
   cas.input = input #keep a record
   return cas.output
 end
