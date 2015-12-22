@@ -135,7 +135,13 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
 
   #incorporate the new RA if it's new.  Could be coc
   if !isequal(pr.queue[end].RA, RA)
-    queuetime = isfirstRA(pr) ? pr.initial_resp_time : pr.subsequent_resp_time
+    if RA == pr.COC_RA
+      queuetime = 0
+    elseif isfirstRA(pr)
+      queuetime = pr.initial_resp_time
+    else
+      queuetime = pr.subsequent_resp_time
+    end
     add_to_queue!(pr.queue, RA, queuetime)
   end
 
