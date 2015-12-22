@@ -24,7 +24,7 @@ import CommonInterfaces.step
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 using Base.Test
-import Base.isequal
+import Base: isequal, ==
 
 type LLDetPRCommand
 
@@ -98,8 +98,8 @@ type LLDetPR <: AbstractPilotResponse
   end
 end
 
+==(x::LLDetPRRA, y::LLDetPRRA) = isequal(x, y)
 function isequal(x::LLDetPRRA, y::LLDetPRRA)
-
   return x.dh_min == y.dh_min && x.dh_max == y.dh_max && x.target_rate == y.target_rate
 end
 
@@ -135,7 +135,7 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
 
   #incorporate the new RA if it's new.  Could be coc
   if !isequal(pr.queue[end].RA, RA)
-    if RA == pr.COC_RA
+    if isequal(RA, pr.COC_RA)
       queuetime = 0
     elseif isfirstRA(pr)
       queuetime = pr.initial_resp_time
