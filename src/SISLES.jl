@@ -17,15 +17,16 @@ export
     LLADM,
     AirSpace,
     SimpleTCASSensor,
+    ACASXSensor,
     GenericCoord,
     SimpleTCAS,
     CoordSimpleTCAS,
-    ACASX,
+    ACASX_CCAS,
+    ACASX_ADD,
     TCASSimulator,
-    SimpleTCAS_EvU,
-    SimpleTCAS_EvE,
-    ACASX_EvE,
-    ACASX_Multi,
+    SimpleTCAS_EvU, #deprecated
+    SimpleTCAS_EvE, #deprecated
+    ACASX_GM,
 
     addObserver,
     notifyObserver,
@@ -70,14 +71,15 @@ push!(LOAD_PATH, "$PACKAGE_PATH/CASCoordination/GenericCoordImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem")
 push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/SimpleTCASImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/CoordSimpleTCASImpl")
-push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/ACASXImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/ACASXCommonImpl")
+push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/ACASX_CCAS_Impl")
+push!(LOAD_PATH, "$PACKAGE_PATH/CollisionAvoidanceSystem/ACASX_ADD_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Simulator")
 push!(LOAD_PATH, "$PACKAGE_PATH/Simulator/TCASSimulatorImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvU_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvE_Impl")
-push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_EvE_Impl")
-push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_Multi_Impl")
+push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_GM_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/common")
 
 using Util

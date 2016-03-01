@@ -19,7 +19,8 @@ export
 
     CoordSimpleTCAS,
 
-    ACASX,
+    ACASX_CCAS,
+    ACASX_ADD,
     ACASXInput,
     ACASXOutput
 
@@ -31,7 +32,11 @@ using SimpleTCASImpl
 
 using CoordSimpleTCASImpl
 
-using ACASXImpl
+using ACASXCommonImpl
+
+using ACASX_CCAS_Impl
+
+using ACASX_ADD_Impl
 
 end
 
