@@ -61,7 +61,7 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
   ownInput.z = own_state.z #baro alt
   ownInput.psi = atan2(own_state.vx, own_state.vy) #zero when aligned with y-axis / north
   ownInput.h = own_state.z #agl alt
-  ownInput.modes = uint32(sensor.my_id)
+  ownInput.modes = UInt32(sensor.my_id)
 
   intruders = sensor.output.intruders
 
@@ -70,8 +70,8 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
       intr_i = getListId(sensor.my_id, i)
       intr_state = input.states[i]
       intruders[intr_i].valid = true
-      intruders[intr_i].id = uint32(i)
-      intruders[intr_i].modes = uint32(i)
+      intruders[intr_i].id = UInt32(i)
+      intruders[intr_i].modes = UInt32(i)
       intruders[intr_i].sr = norm([own_state.x, own_state.y, own_state.z]-
                                     [intr_state.x, intr_state.y, intr_state.z]) #slant range (feet)
       intr_psi = atan2(intr_state.x - own_state.x, intr_state.y - own_state.y)
@@ -105,7 +105,7 @@ function to_plusminus_b(x::AbstractFloat, b::AbstractFloat)
   return (z > b) ? (z - 2 * b) : z
 end
 
-to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, float64(pi))
+to_plusminus_pi(x::AbstractFloat) = to_plusminus_b(x, Float64(pi))
 
 end
 

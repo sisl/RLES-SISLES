@@ -34,27 +34,27 @@ typealias ACASXInput CASInterface.Input
 typealias ACASXOutput CASInterface.Output
 
 type ACASXCoordRecordIntruder
-  id::Uint32
-  cvc::Uint8
-  vrc::Uint8
-  vsb::Uint8
+  id::UInt32
+  cvc::UInt8
+  vrc::UInt8
+  vsb::UInt8
 
   ACASXCoordRecordIntruder(id::Int) = new(id, 0x0, 0x0, 0x0)
 end
 
 type ACASXCoordRecord
-  my_id::Uint32
-  modes::Uint32
+  my_id::UInt32
+  modes::UInt32
   equipage::EQUIPAGE
-  quant::Uint8
-  sensitivity_index::Uint8
-  protection_mode::Uint8
+  quant::UInt8
+  sensitivity_index::UInt8
+  protection_mode::UInt8
   intruders::Vector{ACASXCoordRecordIntruder}
 end
 function ACASXCoordRecord(my_id::Int64, equipage::EQUIPAGE, quant::Int64, max_intruders::Int64)
-  ACASXCoordRecord(uint32(my_id), equipage, uint8(quant), max_intruders)
+  ACASXCoordRecord(UInt32(my_id), equipage, UInt8(quant), max_intruders)
 end
-function ACASXCoordRecord(my_id::Uint32, equipage::EQUIPAGE, quant::Uint8, max_intruders::Int64)
+function ACASXCoordRecord(my_id::UInt32, equipage::EQUIPAGE, quant::UInt8, max_intruders::Int64)
   ACASXCoordRecord(my_id, my_id, equipage, quant, 0x0, 0x0,
                    [ACASXCoordRecordIntruder(i) for i = 1:max_intruders])
 end
@@ -80,7 +80,7 @@ function update_from_coord!(input::ACASXInput, coord::AbstractCASCoord, my_id::I
 
     #quantize sensor reading depending on equipage
     #TODO: should these be moved to Sensor?
-    intruder.z = quantize(intruder.z, float64(intruder.quant))
+    intruder.z = quantize(intruder.z, Float64(intruder.quant))
 
     #intruder-specific
     intruder_self = record.intruders[my_list_id] #self in intruders' record
@@ -129,14 +129,14 @@ function reset!(cas, rec::ACASXCoordRecord)
   rec.protection_mode = 0x0
 
   for i = 1:endof(rec.intruders)
-    rec.intruders[i].id = uint32(i)
+    rec.intruders[i].id = UInt32(i)
     rec.intruders[i].cvc = 0x0
     rec.intruders[i].vrc = 0x0
     rec.intruders[i].vsb = 0x0
   end
 end
 
-function quantize(x::FloatingPoint, b::FloatingPoint)
+function quantize(x::AbstractFloat, b::AbstractFloat)
   # quantize x to the nearest multiple of b
   d, r = divrem(x, b)
   return b * (d + round(r / b))

@@ -27,7 +27,7 @@ using CASInterface
 type ACASX_ADD <: AbstractCollisionAvoidanceSystem
   my_id::Int64 #aircraft number
   max_intruders::Int64
-  version::String
+  version::ASCIIString
   equipage::EQUIPAGE
   input::Input
   output::Output

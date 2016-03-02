@@ -37,13 +37,13 @@ type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
   quant::Int64
   constants::Constants
   casShared::CASShared
-  version::String
+  version::ASCIIString
   equipage::EQUIPAGE
   input::Input
   output::Output
   coord::AbstractCASCoord
 
-  function ACASX_CCAS(aircraft_id::Int64, libcas::String, config_file::String,
+  function ACASX_CCAS(aircraft_id::Int64, libcas::AbstractString, config_file::AbstractString,
                  num_aircraft::Int, coord::AbstractCASCoord, equipage::EQUIPAGE=EQUIPAGE_TCAS)
     cas = new()
     cas.my_id = aircraft_id

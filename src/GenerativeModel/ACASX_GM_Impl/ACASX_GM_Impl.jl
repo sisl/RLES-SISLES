@@ -31,7 +31,7 @@ using CASInterface
 type ACASX_GM_params
   #global params: remains constant per sim
   encounter_number::Int64 #encounter number in file (LLCEMDEBN only)
-  encounter_seed::Uint64 #Seed for generating encounters
+  encounter_seed::UInt64 #Seed for generating encounters
   nmac_r::Float64 #NMAC radius in feet
   nmac_h::Float64 #NMAC vertical separation, in feet
   max_steps::Int64 #maximum number of steps in sim
@@ -44,18 +44,18 @@ type ACASX_GM_params
   end_on_nmac::Bool #end scenario on nmac
 
   #transition DBN
-  encounter_file::String #Path to encounter file
+  encounter_file::ASCIIString #Path to encounter file
 
   #LLCEMDEBN only
   command_method::Symbol #:DBN=sampled from DBN or :ENC=from encounter file
-  initial_sample_file::String #Path to initial sample file
-  transition_sample_file::String #Path to transition sample file
+  initial_sample_file::ASCIIString #Path to initial sample file
+  transition_sample_file::ASCIIString #Path to transition sample file
 
   #CCAS libcas config (CCAS only)
-  libcas::String #Path to libcas library
-  libcas_config::String #Path to libcas config file
+  libcas::ASCIIString #Path to libcas library
+  libcas_config::ASCIIString #Path to libcas config file
 end
-ACASX_GM_params() = ACASX_GM_params(1, uint64(0), 500.0, 100.0, 50, 2,
+ACASX_GM_params() = ACASX_GM_params(1, UInt64(0), 500.0, 100.0, 50, 2,
                                         :LLCEMDBN, :ICAO, :CCAS, :EvE, :LLADM,
                                         true, "", :DBN, "", "", "", "")
 
@@ -72,7 +72,7 @@ type ACASX_GM <: AbstractGenerativeModel
   cas::Vector{AbstractCollisionAvoidanceSystem}
 
   observer::Observer
-  string_id::String
+  string_id::ASCIIString
 
   #sim states: changes throughout simulation run
   t_index::Int64 #current time index in the simulation. Starts at 0 and increments by 1.
@@ -174,8 +174,8 @@ end
 
 import ACASX_Common
 
-addObserver(sim::ACASX_GM, f::Function) = ACASX_Common.addObserver(sim, f::Function)
-addObserver(sim::ACASX_GM, tag::String, f::Function) = ACASX_Common.addObserver(sim, tag::String, f::Function)
+addObserver(sim::ACASX_GM, f::Function) = ACASX_Common.addObserver(sim, f)
+addObserver(sim::ACASX_GM, tag::AbstractString, f::Function) = ACASX_Common.addObserver(sim, tag, f)
 
 initialize(sim::ACASX_GM) = ACASX_Common.initialize(sim)
 
