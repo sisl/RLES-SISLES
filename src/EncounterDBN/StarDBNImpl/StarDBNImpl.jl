@@ -138,8 +138,8 @@ type StarDBN <: AbstractEncounterDBN
 
     #precompute and cache these quantities
     dbn.parents_cache = Dict{Int64, Vector{Bool}}()
-    dbn.weights_cache = Dict{(Int64, Int64), Vector{Float64}}()
-    dbn.cumweights_cache = Dict{(Int64, Int64), Vector{Float64}}()
+    dbn.weights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
+    dbn.cumweights_cache = Dict{Tuple{Int64,Int64}, Vector{Float64}}()
 
     for i = 1:length(dbn.aem_parameters.N_transition)
       dbn.parents_cache[i] = dbn.aem_parameters.G_transition[:, i]
@@ -215,7 +215,7 @@ function generateEncounter(dbn::StarDBN)
     dbn.initial_commands[i] = Float64[L, v_d, h_d, psi_d]
     initial_commands_d = discretize(dbn.aem_parameters, unconvert_units(dbn.initial_commands[i]))
 
-    dbn.initial_commands_d[i] = [initial_commands_d, Int64(zeros(dbn.dynamic_variables1))]
+    dbn.initial_commands_d[i] = [initial_commands_d; zeros(Int64, length(dbn.dynamic_variables1))]
   end
 end
 
@@ -264,7 +264,8 @@ function step_dbn(dbn::StarDBN, command_d::Vector{Int64}, command::Vector{Float6
     j_G = 1
     if !isempty(find(dbn.parents_cache[i_G]))
       parents_L = map(i -> MAP_G2L[i], find(dbn.parents_cache[i_G]))
-      j_G = sub2ind(p.r_transition[dbn.parents_cache[i_G]], command_d[parents_L])
+      dims = tuple(p.r_transition[dbn.parents_cache[i_G]]...)
+      j_G = sub2ind(dims, command_d[parents_L]...)
     end
 
     command_d[i_L] = select_random_cumweights(dbn.cumweights_cache[(i_G, j_G)])
