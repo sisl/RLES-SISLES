@@ -5,22 +5,22 @@
 module LLDetPRImpl
 
 export
-initialize,
-step,
+  initialize,
+  update,
 
-updatePilotResponse,
+  updatePilotResponse,
 
-LLDetPR,
-LLDetPRCommand,
-LLDetPRRA,
-LLDetPROutput
+  LLDetPR,
+  LLDetPRCommand,
+  LLDetPRRA,
+  LLDetPROutput
 
 using AbstractPilotResponseImpl
 using AbstractPilotResponseInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 using Base.Test
@@ -123,8 +123,8 @@ end
 
 isfirstRA(pr::LLDetPR) = isequal(pr.queue[1].RA, pr.COC_RA) && length(pr.queue) == 1
 
-function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
-  t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
+function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA)
+  t, v_d, h_d, psi_d = command.t, command.v_d, command.h_d, command.psi_d
 
   @test RA.dh_min <= RA.target_rate <= RA.dh_max #this should always hold
 
@@ -189,9 +189,9 @@ function updatePilotResponse(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA)
   return pr.output
 end
 
-step(pr::LLDetPR, update, RA) = step(pr, convert(LLDetPRCommand, update), convert(LLDetPRRA, RA))
+update(pr::LLDetPR, command, RA) = update(pr, convert(LLDetPRCommand, command), convert(LLDetPRRA, RA))
 
-step(pr::LLDetPR, update::LLDetPRCommand, RA::LLDetPRRA) = updatePilotResponse(pr, update, RA)
+update(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA) = updatePilotResponse(pr, command, RA)
 
 function initialize(pr::LLDetPR)
 

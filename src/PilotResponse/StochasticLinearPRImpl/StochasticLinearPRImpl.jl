@@ -9,7 +9,7 @@ module StochasticLinearPRImpl
 
 export
     initialize,
-    step,
+    update,
 
     updatePilotResponse,
 
@@ -22,7 +22,7 @@ using AbstractPilotResponseInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 const statemap = Dict(:coc => 1, :first => 2, :multi => 3)
@@ -165,13 +165,13 @@ function updatePilotResponse(pr::StochasticLinearPR, update::StochasticLinearPRC
   return pr.output
 end
 
-step(pr::StochasticLinearPR, update, RA) = step(pr,
-                                                convert(StochasticLinearPRCommand, update),
+update(pr::StochasticLinearPR, command, RA) = update(pr,
+                                                convert(StochasticLinearPRCommand, command),
                                                 convert(StochasticLinearPRRA,RA))
 
-step(pr::StochasticLinearPR,
-     update::StochasticLinearPRCommand,
-     RA::StochasticLinearPRRA) = updatePilotResponse(pr, update, RA)
+update(pr::StochasticLinearPR,
+     command::StochasticLinearPRCommand,
+     RA::StochasticLinearPRRA) = updatePilotResponse(pr, command, RA)
 
 function initialize(pr::StochasticLinearPR)
   pr.state = :coc

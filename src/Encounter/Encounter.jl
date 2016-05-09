@@ -8,7 +8,7 @@ export
     AbstractEncounterModel,
     AddObserver,
 
-    step,
+    update,
 
     generateEncounter,
     getInitialState,
@@ -27,7 +27,7 @@ export
     LLAEMInitialState,
     LLAEMCommand
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 using AbstractEncounterModelImpl
 
 using CorrAEMImpl

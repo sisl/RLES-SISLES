@@ -8,7 +8,7 @@ export
     AbstractSensor,
 
     initialize,
-    step,
+    update,
 
     updateSensor,
 
@@ -22,7 +22,7 @@ export
     ACASXSensorInput,
     ACASXSensorOutput
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractSensorImpl
 

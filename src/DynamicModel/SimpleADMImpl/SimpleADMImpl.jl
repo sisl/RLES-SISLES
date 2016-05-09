@@ -8,7 +8,7 @@ export
     addObserver,
 
     initialize,
-    step,
+    update,
 
     initializeDynamicModel,
     simulateDynamicModel,
@@ -28,7 +28,7 @@ using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractDynamicModelInterfaces.initializeDynamicModel
 import AbstractDynamicModelInterfaces.simulateDynamicModel
 
@@ -76,7 +76,7 @@ end
 type SimpleADM <: AbstractDynamicModel
 
     state::SimpleADMState
-    update::Union{SimpleADMCommand, Void}
+    command::Union{SimpleADMCommand, Void}
 
     timestep::Float64
     number_of_substeps::Int
@@ -128,7 +128,7 @@ function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)
     vx = sqrt(adm.state.v^2 - vh^2) * cosd(adm.state.psi)
     vy = sqrt(adm.state.v^2 - vh^2) * sind(adm.state.psi)
 
-    adm.update = nothing
+    adm.command = nothing
 
     return SimpleADMOutputState(adm.state.t, adm.state.x, adm.state.y, adm.state.h, vx, vy, vh)
 end
@@ -137,14 +137,14 @@ initialize(adm::SimpleADM, state) = initialize(adm,convert(SimpleADMInitialState
 
 initialize(adm::SimpleADM, state::SimpleADMInitialState) = initializeDynamicModel(adm, state)
 
-function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
+function simulateDynamicModel(adm::SimpleADM, command::SimpleADMCommand)
 
     t, x, y, h, v, psi = adm.state.t, adm.state.x, adm.state.y, adm.state.h, adm.state.v, adm.state.psi
 
-    if adm.update == nothing    # first second
+    if adm.command == nothing    # first second
         t_prev, v_d_prev, h_d_prev, psi_d_prev = t - 1, update.v_d, update.h_d, update.psi_d
     else
-        t_prev, v_d_prev, h_d_prev, psi_d_prev = adm.update.t, adm.update.v_d, adm.update.h_d, adm.update.psi_d
+        t_prev, v_d_prev, h_d_prev, psi_d_prev = adm.command.t, adm.command.v_d, adm.command.h_d, adm.command.psi_d
     end
     t_curr, v_d_curr, h_d_curr, psi_d_curr = update.t, update.v_d, update.h_d, update.psi_d
 
@@ -226,12 +226,12 @@ function simulateDynamicModel(adm::SimpleADM, update::SimpleADMCommand)
     @test_approx_eq_eps psi_d psi_d_curr 0.001
 
     adm.state = SimpleADMState(t_curr + adm.timestep, x_n, y_n, h_n, v_n, psi_n)
-    adm.update = deepcopy(update)
+    adm.command = deepcopy(command)
 end
 
-step(adm::SimpleADM, update) = step(adm,convert(SimpleADMCommand, update))
+update(adm::SimpleADM, command) = update(adm,convert(SimpleADMCommand, command))
 
-function step(adm::SimpleADM, update::SimpleADMCommand)
+function update(adm::SimpleADM, command::SimpleADMCommand)
 
     t =  copy(adm.state.t)
     x =  copy(adm.state.x)
@@ -250,7 +250,7 @@ function step(adm::SimpleADM, update::SimpleADMCommand)
     vh_n = (h_n - h) / (t_n - t)
 
     # instantaneous velocities
-    #vh_n = adm.update.h_d
+    #vh_n = adm.command.h_d
     #vx_n = sqrt(adm.state.v^2 - vh_n^2) * cosd(adm.state.psi)
     #vy_n = sqrt(adm.state.v^2 - vh_n^2) * sind(adm.state.psi)
 

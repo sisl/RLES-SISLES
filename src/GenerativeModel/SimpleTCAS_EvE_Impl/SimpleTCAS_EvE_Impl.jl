@@ -19,13 +19,13 @@ using CollisionAvoidanceSystem
 using Simulator
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, step, get, isterminal, addObserver
+export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, update, get, isterminal, addObserver
 
 type SimpleTCAS_EvE_params
   #global params: remains constant per sim
@@ -138,14 +138,14 @@ function initialize(sim::SimpleTCAS_EvE)
   return
 end
 
-function step(sim::SimpleTCAS_EvE)
+function update(sim::SimpleTCAS_EvE)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   sim.t_index += 1
 
   logProb = 0.0 #track the probabilities in this update
 
-  cmdLogProb = EncounterDBN.step(aem)
+  cmdLogProb = EncounterDBN.update(aem)
   logProb += cmdLogProb #TODO: decompose this by aircraft?
 
   states = WorldModel.getAll(wm)
@@ -155,18 +155,18 @@ function step(sim::SimpleTCAS_EvE)
     command = EncounterDBN.get(aem,i)
     notifyObserver(sim,"Command",[i, sim.t_index, command])
 
-    output = Sensor.step(sr[i], states)
+    output = Sensor.update(sr[i], states)
     notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
 
-    RA = CollisionAvoidanceSystem.step(cas[i], output)
+    RA = CollisionAvoidanceSystem.update(cas[i], output)
     notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
 
-    response = PilotResponse.step(pr[i], command, RA)
+    response = PilotResponse.update(pr[i], command, RA)
     logProb += response.logProb #this will break if response is not SimplePRCommand
     notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
 
-    state = DynamicModel.step(adm[i], response)
-    WorldModel.step(wm, i, state)
+    state = DynamicModel.update(adm[i], response)
+    WorldModel.update(wm, i, state)
 
   end
 

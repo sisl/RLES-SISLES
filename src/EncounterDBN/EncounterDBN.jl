@@ -10,14 +10,14 @@ export
 
     getInitialState,
     initialize,
-    step,
+    update,
     get,
 
     CorrAEMDBN,
     StarDBN,
     PairwiseCorrAEMDBN
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractEncounterDBNImpl
 import AbstractEncounterDBNInterfaces: getInitialState, get

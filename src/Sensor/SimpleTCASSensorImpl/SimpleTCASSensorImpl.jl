@@ -6,7 +6,7 @@ module SimpleTCASSensorImpl
 
 export
     initialize,
-    step,
+    update,
 
     updateSensor,
 
@@ -23,7 +23,7 @@ using CommonInterfaces
 using Base.Test
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractSensorInterfaces.updateSensor
 
 
@@ -114,9 +114,9 @@ function updateSensor(sr::SimpleTCASSensor, input::SimpleTCASSensorInput)
   return sr.output
 end
 
-step(sr::SimpleTCASSensor, input) = step(sr,convert(SimpleTCASSensorInput, input))
+update(sr::SimpleTCASSensor, input) = update(sr,convert(SimpleTCASSensorInput, input))
 
-step(sr::SimpleTCASSensor, input::SimpleTCASSensorInput) = updateSensor(sr, input)
+update(sr::SimpleTCASSensor, input::SimpleTCASSensorInput) = updateSensor(sr, input)
 
 function initialize(sr::SimpleTCASSensor)
 

@@ -5,7 +5,7 @@ module ACASXSensorImpl
 
 export
     initialize,
-    step,
+    update,
 
     updateSensor,
 
@@ -22,7 +22,7 @@ using CommonInterfaces
 using CASInterface
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractSensorInterfaces.updateSensor
 
 typealias ACASXSensorOutput CASInterface.Input #STM Input
@@ -92,8 +92,8 @@ function updateSensor(sensor::ACASXSensor, input::ACASXSensorInput)
   return sensor.output
 end
 
-step(sensor::ACASXSensor, input) = step(sensor, convert(ACASXSensorInput, input))
-step(sensor::ACASXSensor, input::ACASXSensorInput) = updateSensor(sensor, input)
+update(sensor::ACASXSensor, input) = update(sensor, convert(ACASXSensorInput, input))
+update(sensor::ACASXSensor, input::ACASXSensorInput) = updateSensor(sensor, input)
 
 function initialize(sensor::ACASXSensor)
   reset!(sensor.output)

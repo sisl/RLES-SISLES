@@ -8,7 +8,7 @@ export
     AbstractWorldModel,
 
     initialize,
-    step,
+    update,
 
     updateObjectState,
     getAllObjectStates,
@@ -18,7 +18,7 @@ export
     AirSpace,
     ASWMState
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractWorldModelImpl
 

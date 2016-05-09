@@ -16,7 +16,7 @@ end
 function initialize()
 end
 
-function step()
+function update()
 end
 
 end

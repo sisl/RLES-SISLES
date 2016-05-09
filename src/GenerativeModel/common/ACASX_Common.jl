@@ -43,13 +43,13 @@ function initialize(sim)
   return
 end
 
-function step(sim)
+function update(sim)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
 
   sim.t_index += 1
   sim.step_logProb = 0.0 #track the log probabilities in this update
 
-  cmdLogProb = EncounterDBN.step(aem)
+  cmdLogProb = EncounterDBN.update(aem)
   sim.step_logProb += cmdLogProb #TODO: decompose this by aircraft?
   states = WorldModel.getAll(wm)
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
@@ -61,18 +61,18 @@ function step(sim)
     command = EncounterDBN.get(aem, i)
     notifyObserver(sim, "Command", Any[i, sim.t_index, command])
 
-    output = Sensor.step(sr[i], states)
+    output = Sensor.update(sr[i], states)
     notifyObserver(sim, "Sensor",Any[i, sim.t_index, sr[i]])
 
-    RA = CollisionAvoidanceSystem.step(cas[i], output)
+    RA = CollisionAvoidanceSystem.update(cas[i], output)
     notifyObserver(sim, "CAS", Any[i, sim.t_index, cas[i]])
 
-    response = PilotResponse.step(pr[i], command, RA)
+    response = PilotResponse.update(pr[i], command, RA)
     sim.step_logProb += response.logProb
     notifyObserver(sim, "Response", Any[i, sim.t_index, pr[i]])
 
-    state = DynamicModel.step(adm[i], response)
-    WorldModel.step(wm, i, state)
+    state = DynamicModel.update(adm[i], response)
+    WorldModel.update(wm, i, state)
   end
   WorldModel.updateAll(wm)
 

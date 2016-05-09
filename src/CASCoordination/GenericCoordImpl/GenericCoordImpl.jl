@@ -5,7 +5,7 @@ module GenericCoordImpl
 
 export
     initialize,
-    step,
+    update,
 
     setRecord,
     getRecord,
@@ -20,7 +20,7 @@ using AbstractCASCoordInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractCASCoordInterfaces.setRecord
 import AbstractCASCoordInterfaces.getRecord
 import AbstractCASCoordInterfaces.getAll
@@ -45,7 +45,7 @@ function setRecord(coord::GenericCoord, record_number::Int, record)
     coord.records[record_number] = record
 end
 
-step(coord::GenericCoord, record_number::Int, data) = setRecord(coord, record_number, record)
+update(coord::GenericCoord, record_number::Int, data) = setRecord(coord, record_number, record)
 
 function initialize(coord::GenericCoord)
 

@@ -12,7 +12,7 @@ export
 
     getInitialState,
     initialize,
-    step,
+    update,
     get,
 
     StarDBNParams,
@@ -28,7 +28,7 @@ import CorrAEMImpl: CorrAEMParameters, CorrAEMInitialState, CorrAEMCommand
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractEncounterDBNInterfaces.get
 import AbstractEncounterDBNInterfaces.getInitialState
 
@@ -233,7 +233,7 @@ end
 
 getInitialState(dbn::StarDBN, index::Int) = dbn.initial_states[index]
 
-function step(dbn::StarDBN)
+function update(dbn::StarDBN)
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft

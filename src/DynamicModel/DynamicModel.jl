@@ -9,7 +9,7 @@ export
     addObserver,
 
     initialize,
-    step,
+    update,
 
     initializeDynamicModel,
     simulateDynamicModel,
@@ -24,7 +24,7 @@ export
     LLADMOutputState,
     LLADMCommand
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractDynamicModelImpl
 

@@ -6,7 +6,7 @@ module SimplePilotResponseImpl
 
 export
     initialize,
-    step,
+    update,
 
     updatePilotResponse,
 
@@ -20,7 +20,7 @@ using AbstractPilotResponseInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 
@@ -53,9 +53,9 @@ type SimplePilotResponse <: AbstractPilotResponse
   end
 end
 
-function updatePilotResponse(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void})
+function updatePilotResponse(pr::SimplePilotResponse, command::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void})
 
-  t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
+  t, v_d, h_d, psi_d = command.t, command.v_d, command.h_d, command.psi_d
 
   if RA != nothing && pr.b_CAS_activated == false
     pr.RA = RA
@@ -69,9 +69,9 @@ function updatePilotResponse(pr::SimplePilotResponse, update::SimplePRCommand, R
   return SimplePRCommand(t, v_d, h_d, psi_d, 0.0)
 end
 
-step(pr::SimplePilotResponse, update, RA) = step(pr,convert(SimplePRCommand, update), convert(SimplePRResolutionAdvisory,RA))
+update(pr::SimplePilotResponse, command, RA) = update(pr,convert(SimplePRCommand, command), convert(SimplePRResolutionAdvisory,RA))
 
-step(pr::SimplePilotResponse, update::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void}) = updatePilotResponse(pr, update, RA)
+update(pr::SimplePilotResponse, command::SimplePRCommand, RA::Union{SimplePRResolutionAdvisory,Void}) = updatePilotResponse(pr, command, RA)
 
 function initialize(pr::SimplePilotResponse)
 

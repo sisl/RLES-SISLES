@@ -8,7 +8,7 @@ export
     AbstractCASCoord,
 
     initialize,
-    step,
+    update,
 
     setRecord,
     getRecord,

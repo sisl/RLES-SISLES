@@ -6,7 +6,7 @@ module AirSpaceImpl
 
 export
     initialize,
-    step,
+    update,
 
     updateObjectState,
     getAllObjectStates,
@@ -22,7 +22,7 @@ using AbstractWorldModelInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractWorldModelInterfaces.updateObjectState
 import AbstractWorldModelInterfaces.getAllObjectStates
 import AbstractWorldModelInterfaces.getAll
@@ -75,9 +75,9 @@ function updateObjectState(as::AirSpace, aircraft_number::Int, state::ASWMState)
     as.states_update[aircraft_number] = state
 end
 
-step(as::AirSpace, aircraft_number::Int, state) = step(as, aircraft_number, convert(ASWMState,state))
+update(as::AirSpace, aircraft_number::Int, state) = update(as, aircraft_number, convert(ASWMState,state))
 
-step(as::AirSpace, aircraft_number::Int, state::ASWMState) = updateObjectState(as, aircraft_number, state)
+update(as::AirSpace, aircraft_number::Int, state::ASWMState) = updateObjectState(as, aircraft_number, state)
 
 function getAllObjectStates(as::AirSpace)
 

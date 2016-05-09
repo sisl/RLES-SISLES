@@ -12,7 +12,7 @@ export
 
     getInitialState,
     initialize,
-    step,
+    update,
     get,
 
     CorrAEMDBN
@@ -27,7 +27,7 @@ using CorrAEMImpl
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractEncounterDBNInterfaces.get
 import AbstractEncounterDBNInterfaces.getInitialState
 
@@ -145,7 +145,7 @@ function getInitialState(dbn::CorrAEMDBN, index::Int)
   return Encounter.getInitialState(dbn.aem, index)
 end
 
-function step(dbn::CorrAEMDBN)
+function update(dbn::CorrAEMDBN)
 
   if dbn.command_method == :DBN
     logProb = step_dbn(dbn)
@@ -257,7 +257,7 @@ function step_enc(dbn::CorrAEMDBN)
   p = aem.parameters
 
   for i = 1:dbn.number_of_aircraft
-    dbn.output_commands[i] = Encounter.step(aem, i)
+    dbn.output_commands[i] = Encounter.update(aem, i)
   end
 
   #Just a reminder, this will break if number_of_aircraft != 2

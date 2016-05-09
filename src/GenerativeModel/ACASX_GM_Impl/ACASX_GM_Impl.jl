@@ -18,13 +18,13 @@ using CollisionAvoidanceSystem
 using Simulator
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export ACASX_GM_params, ACASX_GM, initialize, step, isterminal, addObserver
+export ACASX_GM_params, ACASX_GM, initialize, update, isterminal, addObserver
 
 using CASInterface
 
@@ -85,7 +85,7 @@ type ACASX_GM <: AbstractGenerativeModel
   label_as_nmac::Bool #label this trajectory as nmac (different from NMAC_occurred that only looks at md,
                       #this one also needs to pass label filters)
 
-  step_logProb::Float64 #cumulative probability of this step()
+  step_logProb::Float64 #cumulative probability of this update()
 
   #empty constructor
   function ACASX_GM(p::ACASX_GM_params)
@@ -179,7 +179,7 @@ addObserver(sim::ACASX_GM, tag::AbstractString, f::Function) = ACASX_Common.addO
 
 initialize(sim::ACASX_GM) = ACASX_Common.initialize(sim)
 
-step(sim::ACASX_GM) = ACASX_Common.step(sim)
+update(sim::ACASX_GM) = ACASX_Common.update(sim)
 
 isterminal(sim::ACASX_GM) = ACASX_Common.isterminal(sim)
 

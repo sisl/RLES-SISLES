@@ -6,7 +6,7 @@ module StochasticQuadraticPRImpl
 
 export
     initialize,
-    step,
+    update,
 
     updatePilotResponse,
 
@@ -20,7 +20,7 @@ using AbstractPilotResponseInterfaces
 using CommonInterfaces
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
 
@@ -96,9 +96,9 @@ function getProbabilityDict()
   return d
 end
 
-function updatePilotResponse(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void})
+function updatePilotResponse(pr::StochasticQuadraticPR, command::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void})
 
-  t, v_d, h_d, psi_d = update.t, update.v_d, update.h_d, update.psi_d
+  t, v_d, h_d, psi_d = command.t, command.v_d, command.h_d, command.psi_d
 
   if RA == nothing
     ra = :none
@@ -119,7 +119,7 @@ function updatePilotResponse(pr::StochasticQuadraticPR, update::StochasticQuadra
   return StochasticQuadraticPRCommand(t, v_d, h_d, psi_d)
 end
 
-step(pr::StochasticQuadraticPR, update::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void}) = updatePilotResponse(pr, update, RA)
+update(pr::StochasticQuadraticPR, command::StochasticQuadraticPRCommand, RA::Union{StochasticQuadraticPRResolutionAdvisory, Void}) = updatePilotResponse(pr, command, RA)
 
 function initialize(pr::StochasticQuadraticPR)
 

@@ -9,7 +9,7 @@ export
     AddObserver,
 
     initialize,
-    step,
+    update,
 
     testThreat,
     selectRA,
@@ -28,7 +28,7 @@ using Util
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractCollisionAvoidanceSystemInterfaces.testThreat
 import AbstractCollisionAvoidanceSystemInterfaces.selectRA
 
@@ -71,9 +71,9 @@ function selectRA(cas::CoordSimpleTCAS, input::SimpleTCASInput)
   return h_d
 end
 
-step(cas::CoordSimpleTCAS, input) = step(cas,convert(SimpleTCASInput, input))
+update(cas::CoordSimpleTCAS, input) = update(cas,convert(SimpleTCASInput, input))
 
-function step(cas::CoordSimpleTCAS, input::SimpleTCASInput)
+function update(cas::CoordSimpleTCAS, input::SimpleTCASInput)
 
   if cas.simpleTCAS.b_TCAS_activated == false
     cas.simpleTCAS.b_TCAS_activated = testThreat(cas, input)

@@ -11,7 +11,7 @@ export
 
     getInitialState,
     initialize,
-    step,
+    update,
     get,
 
     PairwiseCorrAEMDBN
@@ -26,7 +26,7 @@ using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractEncounterDBNInterfaces.get
 import AbstractEncounterDBNInterfaces.getInitialState
 
@@ -266,7 +266,7 @@ function getInitialState(dbn::PairwiseCorrAEMDBN, index::Int)
   return dbn.initial_states[index]
 end
 
-function step(dbn::PairwiseCorrAEMDBN)
+function update(dbn::PairwiseCorrAEMDBN)
   logProb = 0.0 #to accumulate over each aircraft
 
   for i = 1:dbn.number_of_aircraft

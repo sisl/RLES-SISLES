@@ -8,7 +8,7 @@ export
     AbstractPilotResponse,
 
     initialize,
-    step,
+    update,
 
     updatePilotResponse,
 
@@ -25,7 +25,7 @@ export
     LLDetPRRA,
     LLDetPROutput
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractPilotResponseImpl
 

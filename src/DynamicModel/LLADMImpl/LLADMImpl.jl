@@ -8,7 +8,7 @@ export
 addObserver,
 
 initialize,
-step,
+update,
 
 initializeDynamicModel,
 simulateDynamicModel,
@@ -28,7 +28,7 @@ using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractDynamicModelInterfaces.initializeDynamicModel
 import AbstractDynamicModelInterfaces.simulateDynamicModel
 
@@ -259,9 +259,9 @@ function state_update(C::LLADMConsts, state::LLADMState, ctrl::LLADMCommand, hdd
 
 end
 
-step(adm::LLADM, ctrl) = step(adm,convert(LLADMCommand, ctrl))
+update(adm::LLADM, ctrl) = update(adm,convert(LLADMCommand, ctrl))
 
-function step(adm::LLADM, ctrl::LLADMCommand)
+function update(adm::LLADM, ctrl::LLADMCommand)
 
   state = adm.state
   C = adm.params #constants

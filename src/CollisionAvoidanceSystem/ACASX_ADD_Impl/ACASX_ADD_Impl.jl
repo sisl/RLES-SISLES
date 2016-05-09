@@ -52,7 +52,7 @@ type ACASX_ADD <: AbstractCollisionAvoidanceSystem
   end
 end
 
-function step(cas::ACASX_ADD, input::ACASXInput)
+function update(cas::ACASX_ADD, input::ACASXInput)
   ACASXCommonImpl.update_from_coord!(input, cas.coord, cas.my_id)
 
   if cas.equipage == EQUIPAGE_TCAS
@@ -67,7 +67,7 @@ function step(cas::ACASX_ADD, input::ACASXInput)
 end
 
 function initialize(cas::ACASX_ADD)
-  ACASXCommonImpl.initialize(cas)
+  ACASXCommonImpl.initalize(cas)
 end
 
 end #module

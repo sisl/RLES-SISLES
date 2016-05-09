@@ -8,7 +8,7 @@ export
     AbstractCollisionAvoidanceSystem,
 
     initialize,
-    step,
+    update,
 
     testThreat,
     selectRA,
@@ -24,7 +24,7 @@ export
     ACASXInput,
     ACASXOutput
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractCollisionAvoidanceSystemImpl
 

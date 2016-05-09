@@ -9,7 +9,7 @@ module LLAEMImpl
 export
     AddObserver,
 
-    step,
+    update,
 
     generateEncounter,
     getInitialState,
@@ -26,7 +26,7 @@ using CommonInterfaces
 using ObserverImpl
 
 import CommonInterfaces.addObserver
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
 import AbstractEncounterModelInterfaces.getNextCommand
@@ -200,7 +200,7 @@ end
 
 getNextCommand(aem::LLAEM, aircraft_number::Int) = get_next_state(aem, aircraft_number)
 
-function step(aem::LLAEM, aircraft_number::Int)
+function update(aem::LLAEM, aircraft_number::Int)
 
     command = getNextCommand(aem, aircraft_number)
 

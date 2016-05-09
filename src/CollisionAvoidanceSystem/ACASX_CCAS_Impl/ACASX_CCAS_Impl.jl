@@ -9,7 +9,7 @@ export
     addObserver,
 
     initialize,
-    step,
+    update,
 
     ACASX_CCAS,
     ACASXInput,
@@ -22,7 +22,7 @@ using CommonInterfaces
 using ObserverImpl
 
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 
 using AbstractCASCoordImpl
 
@@ -66,7 +66,7 @@ type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
   end
 end
 
-function step(cas::ACASX_CCAS, input::ACASXInput)
+function update(cas::ACASX_CCAS, input::ACASXInput)
   ACASXCommonImpl.update_from_coord!(input, cas.coord, cas.my_id)
   if cas.equipage == EQUIPAGE_TCAS
     update!(cas.casShared, input, cas.output) #cas.output is modified in place

@@ -11,7 +11,7 @@ export
     AddObserver,
 
     initialize,
-    step,
+    update,
 
     generateEncounter,
     getInitialState,
@@ -37,7 +37,7 @@ using Base.Test
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
-import CommonInterfaces.step
+import CommonInterfaces.update
 import AbstractEncounterModelInterfaces.generateEncounter
 import AbstractEncounterModelInterfaces.getInitialState
 import AbstractEncounterModelInterfaces.getNextCommand
@@ -501,7 +501,7 @@ function initialize(aem::CorrAEM)
 
 end
 
-function step(aem::CorrAEM, aircraft_number::Int)
+function update(aem::CorrAEM, aircraft_number::Int)
 
     command = getNextCommand(aem, aircraft_number)
 

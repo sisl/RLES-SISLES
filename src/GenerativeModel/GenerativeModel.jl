@@ -7,7 +7,7 @@ module GenerativeModel
 export
     AbstractGenerativeModel,
     initialize,
-    step,
+    update,
     get,
     isterminal,
 
@@ -20,7 +20,7 @@ export
     ACASX_GM_params,
     ACASX_GM
 
-import CommonInterfaces: initialize, step
+import CommonInterfaces: initialize, update
 
 using AbstractGenerativeModelImpl
 
