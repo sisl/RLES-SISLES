@@ -54,6 +54,16 @@ function update(sim)
   states = WorldModel.getAll(wm)
   notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
 
+  #check and update miss distances
+  vhdist = getvhdist(sim.wm)
+  mds = getMissDistance(sim.params.nmac_h, sim.params.nmac_r, vhdist)
+  md, index = findmin(mds)
+  if md < sim.md
+    sim.vmd, sim.hmd = vhdist[index]
+    sim.md = md
+    sim.md_time = states[1].t #report time instead of index
+  end
+
   for i = 1:sim.params.num_aircraft
     notifyObserver(sim, "Dynamics", Any[i, sim.t_index, adm[i]])
 
@@ -76,15 +86,6 @@ function update(sim)
   end
   WorldModel.updateAll(wm)
 
-  #check and update miss distances
-  vhdist = getvhdist(sim.wm)
-  mds = getMissDistance(sim.params.nmac_h, sim.params.nmac_r, vhdist)
-  md, index = findmin(mds)
-  if md < sim.md
-    sim.vmd, sim.hmd = vhdist[index]
-    sim.md = md
-    sim.md_time = sim.t_index
-  end
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
 
   sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
