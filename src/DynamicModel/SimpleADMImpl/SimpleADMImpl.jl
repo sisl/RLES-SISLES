@@ -97,7 +97,7 @@ type SimpleADM <: AbstractDynamicModel
 
         obj = new()
 
-        obj.update = nothing
+        obj.command = nothing
         obj.timestep = timestep
         obj.number_of_substeps = number_of_substeps
         obj.theta_regulated = 45    # degree
@@ -142,11 +142,11 @@ function simulateDynamicModel(adm::SimpleADM, command::SimpleADMCommand)
     t, x, y, h, v, psi = adm.state.t, adm.state.x, adm.state.y, adm.state.h, adm.state.v, adm.state.psi
 
     if adm.command == nothing    # first second
-        t_prev, v_d_prev, h_d_prev, psi_d_prev = t - 1, update.v_d, update.h_d, update.psi_d
+        t_prev, v_d_prev, h_d_prev, psi_d_prev = t - 1, command.v_d, command.h_d, command.psi_d
     else
         t_prev, v_d_prev, h_d_prev, psi_d_prev = adm.command.t, adm.command.v_d, adm.command.h_d, adm.command.psi_d
     end
-    t_curr, v_d_curr, h_d_curr, psi_d_curr = update.t, update.v_d, update.h_d, update.psi_d
+    t_curr, v_d_curr, h_d_curr, psi_d_curr = command.t, command.v_d, command.h_d, command.psi_d
 
     #limit acclerations and rates
     v_d_curr = min(max(v_d_curr,-adm.v_d_max),adm.v_d_max)
@@ -155,7 +155,7 @@ function simulateDynamicModel(adm::SimpleADM, command::SimpleADMCommand)
     h_dd = (h_d_curr - h_d_prev) / adm.timestep
     h_dd = min(max(h_dd,-adm.h_dd_max),adm.h_dd_max)
     h_d_curr = h_d_prev + h_dd * adm.timestep
-    update.h_d = h_d_curr #propagated to the next time step as prev
+    command.h_d = h_d_curr #propagated to the next time step as prev
 
     @test t == t_curr
     @test t_prev + 1 == t_curr
@@ -238,7 +238,7 @@ function update(adm::SimpleADM, command::SimpleADMCommand)
     y =  copy(adm.state.y)
     h =  copy(adm.state.h)
 
-    simulateDynamicModel(adm, update)
+    simulateDynamicModel(adm, command)
 
     t_n =  adm.state.t
     x_n =  adm.state.x

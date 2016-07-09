@@ -148,7 +148,7 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
 
     while true
         for i = 1:number_of_aircraft
-            command = Encounter.step(aem, i)
+            command = Encounter.update(aem, i)
 
             if command == nothing
                 break
@@ -156,8 +156,8 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
 
             if bTCAS
                 states = WorldModel.getAll(as)
-                output = Sensor.step(sr[i], convert(SimpleTCASSensorInput, states))
-                RA = CollisionAvoidanceSystem.step(cas[i], convert(SimpleTCASInput, output))
+                output = Sensor.update(sr[i], convert(SimpleTCASSensorInput, states))
+                RA = CollisionAvoidanceSystem.update(cas[i], convert(SimpleTCASInput, output))
 
                 if RA != nothing
                     notifyObserver(sim, "RA", [i, states[i].t, RA.h_d])
@@ -166,9 +166,9 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
                 RA = nothing
             end
 
-            response = PilotResponse.step(pr[i], convert(SimplePRCommand, command), convert(SimplePRResolutionAdvisory, RA))
-            state = DynamicModel.step(adm[i], convert(SimpleADMCommand, response))
-            WorldModel.step(as, i, convert(ASWMState, state))
+            response = PilotResponse.update(pr[i], convert(SimplePRCommand, command), convert(SimplePRResolutionAdvisory, RA))
+            state = DynamicModel.update(adm[i], convert(SimpleADMCommand, response))
+            WorldModel.update(as, i, convert(ASWMState, state))
         end
 
         if command == nothing

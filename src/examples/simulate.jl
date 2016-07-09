@@ -86,7 +86,7 @@ function initialize_simulation(; bValidate = false, bReadSampleFromFile = false,
 end
 
 
-function run_simulation(; bTCAS = false, bReadSampleFromFile = false, initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename, sample_number = 1)
+function run_simulation(; bTCAS = false, bReadSampleFromFile = false, initial_sample_filename = "initial.txt", transition_sample_filename = "transition.txt", sample_number = 1)
 
     sim = initialize_simulation(bReadSampleFromFile = bReadSampleFromFile, initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename)
 
@@ -121,13 +121,13 @@ function run_simulation(; bTCAS = false, bReadSampleFromFile = false, initial_sa
     end
 
 
-    SimulationResult = {labels, initial, AC1_trajectory, AC2_trajectory}
+    SimulationResult = Any[labels, initial, AC1_trajectory, AC2_trajectory]
 
     save("result.jld", "data", SimulationResult)
 end
 
 
-function run_simulation_for_comparison(; initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename, sample_number = 1)
+function run_simulation_for_comparison(; initial_sample_filename = "initial.txt", transition_sample_filename = "transition.txt", sample_number = 1)
 
     sim = initialize_simulation(bReadSampleFromFile = true, initial_sample_filename = initial_sample_filename, transition_sample_filename = transition_sample_filename)
 
@@ -173,7 +173,7 @@ function run_simulation_for_comparison(; initial_sample_filename = initial_sampl
 
     initial = [aem.A, aem.L, aem.geometry_at_TCA[1], aem.geometry_at_TCA[2], aem.C[1], aem.C[2], aem.geometry_at_TCA[3], aem.geometry_at_TCA[4]]
 
-    SimulationResult = {labels, initial, AC1_trajectory, AC2_trajectory, AC1_trajectory_tcas, AC2_trajectory_tcas}
+    SimulationResult = Any[labels, initial, AC1_trajectory, AC2_trajectory, AC1_trajectory_tcas, AC2_trajectory_tcas]
 
     save("result.jld", "data", SimulationResult)
 end
@@ -213,7 +213,7 @@ function run_simulation_for_validation(; sample_number = 1)
 
     initial = [aem.A, aem.L, aem.geometry_at_TCA[1], aem.geometry_at_TCA[2], aem.C[1], aem.C[2], aem.geometry_at_TCA[3], aem.geometry_at_TCA[4]]
 
-    SimulationResult = {labels, initial, AC1_trajectory, AC2_trajectory, AC1_trajectory_ll, AC2_trajectory_ll}
+    SimulationResult = Any[labels, initial, AC1_trajectory, AC2_trajectory, AC1_trajectory_ll, AC2_trajectory_ll]
 
     save("result.jld", "data", SimulationResult)
 end
@@ -227,7 +227,6 @@ function generate_samples_to_file(initial_sample_filename = "initial.txt", numbe
 
     Encounter.generateEncountersToFile(aem)
 end
-
 
 function plot_result()
 

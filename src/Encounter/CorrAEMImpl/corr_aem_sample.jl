@@ -44,7 +44,7 @@ function em_sample(aem, num_transition_samples; initial_dist = nothing)
                     println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.boundaries[j][end])
                     error("The value violates the boundary.")
                 end
-            elseif !(Int(x[j, 1]) in [1:p.r_initial[j]])
+            elseif !(Int(x[j, 1]) in collect(1:p.r_initial[j]))
                 print("sample: ", x[:, 1]')
                 println("i: ", j, ", value: ", x[j, 1], ", boundary: ", p.r_initial[j])
                 error("The value violates the boundary.")
@@ -55,7 +55,7 @@ function em_sample(aem, num_transition_samples; initial_dist = nothing)
     end
 
     output[1:num_transition_samples, 1] = ones(num_transition_samples)
-    output[1:num_transition_samples, 2] = [0:num_transition_samples - 1]
+    output[1:num_transition_samples, 2] = collect(0:num_transition_samples - 1)
     output[1:num_transition_samples, 3:end] = x'
 
     if initial_dist == nothing
@@ -156,7 +156,8 @@ function create_sample(p, dirichlet_initial, dirichlet_transition, sample_time; 
 
     if !isempty(events)
         for i = 1:(size(events, 1) - 1)
-            events[i, 3] = dediscretize(events[i, 3], p.boundaries[events[i, 2]], p.zero_bins[events[i, 2]])[1]
+            e2 = convert(Int, events[i, 2])
+            events[i, 3] = dediscretize(events[i, 3], p.boundaries[e2], p.zero_bins[e2])[1]
         end
     end
 
@@ -192,7 +193,8 @@ function events2samples(initial, events)
                 t = t + delta_t
             end
 
-            x[event[2]] = event[3]
+            e2 = convert(Int, event[2])
+            x[e2] = event[3]
         end
     end
 
@@ -214,7 +216,7 @@ function dediscretize(d, parameters, zero_bins)
         if d[i] == zero_bins
             x[i] = 0
         else
-            dd = d[i]
+            dd = convert(Int, d[i])
             a = parameters[dd]
             b = parameters[dd + 1]
             x[i] = a + (b - a) * rand()
@@ -246,7 +248,7 @@ function resample_events(initial, events, rates)
                 delta_t = delta_t + 1
 
                 if !isempty(changes)
-                    T = [[delta_t, zeros(length(changes) - 1)] changes x[changes]]
+                    T = [[delta_t; zeros(length(changes) - 1)] changes x[changes]]
                     for k = 1:size(T, 1)
                         append!(newevents, vec(T[k, :]))
                     end
@@ -259,7 +261,8 @@ function resample_events(initial, events, rates)
         end
 
         if events[i, 2] > 0
-            x[events[i, 2]] = events[i, 3]
+            e2 = convert(Int, events[i,2])
+            x[e2] = events[i, 3]
         end
     end
 
@@ -349,7 +352,6 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
     end
 end
 
-
 function bn_sample(G, r, N, alpha, boundaries, num_samples; initial_dist = nothing)
 
 # BN_SAMPLE Produces a sample from a Bayesian network.
@@ -379,7 +381,7 @@ function bn_sample(G, r, N, alpha, boundaries, num_samples; initial_dist = nothi
 
                 j = 1
                 if !isempty(find(parents))
-                    j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                    j = asub2ind(r[[parents; falses(length(r) - size(G, 1))]], S[sample_index, parents])
                 end
 
                 S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
@@ -391,7 +393,7 @@ function bn_sample(G, r, N, alpha, boundaries, num_samples; initial_dist = nothi
 
                     j = 1
                     if !isempty(find(parents))
-                        j = asub2ind(r[[parents, falses(length(r) - size(G, 1))]], S[sample_index, parents])
+                        j = asub2ind(r[[parents; falses(length(r) - size(G, 1))]], S[sample_index, parents])
                     end
 
                     S[sample_index, i] = select_random(N[i][:, j] + alpha[i][:, j])
@@ -466,10 +468,10 @@ function asub2ind(siz, x)
 #   NDX = ASUB2IND(SIZ,X) returns the linear index NDX of the element in a
 #   matrix of dimension SIZ associated with subscripts specified in X.
 
-    k = [1, cumprod(siz[1:end-1])]
+    k = [1; cumprod(siz[1:end-1])]
     ndx = k' * (x' - 1) + 1
 
-    return ndx[1]
+    return convert(Int, ndx[1])
 end
 
 
