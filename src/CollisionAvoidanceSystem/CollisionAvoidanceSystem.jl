@@ -34,7 +34,10 @@ using CoordSimpleTCASImpl
 
 using ACASXCommonImpl
 
-#using ACASX_CCAS_Impl
+pkgs = keys(Pkg.installed())
+if "CCAS" in pkgs && "CASInterface" in pkgs
+    @eval using ACASX_CCAS_Impl
+end
 
 #using ACASX_ADD_Impl
 
