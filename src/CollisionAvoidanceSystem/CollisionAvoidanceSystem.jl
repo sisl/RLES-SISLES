@@ -39,7 +39,7 @@ if "CCAS" in pkgs && "CASInterface" in pkgs
     @eval using ACASX_CCAS_Impl
 end
 
-#using ACASX_ADD_Impl
+using ACASX_ADD_Impl
 
 end
 
