@@ -15,6 +15,7 @@ export
 
     CorrAEMDBN,
     StarDBN,
+    SideOnDBN,
     PairwiseCorrAEMDBN
 
 import CommonInterfaces: initialize, update
@@ -23,10 +24,9 @@ using AbstractEncounterDBNImpl
 import AbstractEncounterDBNInterfaces: getInitialState, get
 
 using CorrAEMDBNImpl
-
 using StarDBNImpl
-
-using PairwiseCorrAEMDBNImpl
+#using PairwiseCorrAEMDBNImpl
+using SideOnDBNImpl
 
 end
 

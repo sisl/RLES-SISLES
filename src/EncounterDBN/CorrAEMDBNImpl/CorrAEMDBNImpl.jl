@@ -166,46 +166,6 @@ function step_dbn(dbn::CorrAEMDBN)
   aem_dyn_cstate = dbn.aem_dyn_cstate #dynamic states, continuous
 
   logProb = 0.0
-######
-  #=
-  for (o, i) in enumerate(dbn.dynamic_variables1)
-    j = 1
-    parents = dbn.parents_cache[i]
-    if !isempty(find(parents))
-      dims = tuple(p.r_transition[parents]...)
-      indices = aem_dstate[parents]
-      j = sub2ind(dims, indices...)
-    end
-
-    weights = dbn.weights_cache[(i, j)]
-    cumweights = dbn.cumweights_cache[(i, j)]
-    aem_dstate[i] = select_random_cumweights(cumweights)
-    logProb += log(weights[aem_dstate[i]]) #prob for picking bin
-
-    #Resampling and dediscretizing process
-    #two components to prob: resample prob, dediscretize prob
-    i_prev = dbn.dynamic_variables0[o]
-    if (aem_dstate[i] != aem_dstate[i_prev]) #Different bin than previous time step, resample with prob 1
-
-      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
-      aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
-      logProb += log(prob) #prob of the continuous sample
-
-    elseif rand() < p.resample_rates[i_prev] #same bin and meets rate
-
-      logProb += log(p.resample_rates[i_prev]) #prob of meeting resample rate
-      aem_dyn_cstate[o], prob = dediscretize(aem_dstate[i], p.boundaries[i_prev], p.zero_bins[i_prev])
-      aem_dyn_cstate[o] = convert_units(aem_dyn_cstate[o], i) #convert units if necessary
-      logProb += log(prob) #prob of the continuous sample
-
-    else #same bin, but does not meet rate
-
-      logProb += log(1.0 - p.resample_rates[i_prev]) #prob of not meeting resample rate
-      #don't resample state
-    end
-  end
-  =#
-######
 
   for (o,i) in enumerate(dbn.dynamic_variables1)
     if !isempty(find(dbn.parents_cache[i]))
@@ -225,7 +185,6 @@ function step_dbn(dbn::CorrAEMDBN)
       #Else same bin and does not meet rate, just set equal to previous (no update)
     end
   end
-#######
 
   # copy over x(t+1) to x(t)
   aem_dstate[dbn.dynamic_variables0] = aem_dstate[dbn.dynamic_variables1]

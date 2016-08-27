@@ -28,6 +28,8 @@ export ACASX_GM_params, ACASX_GM, initialize, update, isterminal, addObserver
 
 using CASInterface
 
+#TODO: Not all variables are used by all models, provide a system for 
+#managing parameters, e.g., dict + kwargs passing
 type ACASX_GM_params
   #global params: remains constant per sim
   encounter_number::Int64 #encounter number in file (LLCEMDEBN only)
@@ -36,7 +38,7 @@ type ACASX_GM_params
   nmac_h::Float64 #NMAC vertical separation, in feet
   max_steps::Int64 #maximum number of steps in sim
   num_aircraft::Int64 #number of aircraft  #must be 2 for now...
-  encounter_model::Symbol #{:LLCEMDBN, :StarDBN}
+  encounter_model::Symbol #{:LLCEMDBN, :StarDBN, :SideOnDBN}
   encounter_equipage::Symbol #{:EvE, :EvU}
   response_model::Symbol #{:ICAO, :ICAOVsNone, :StochasticLinear}
   cas_model::Symbol #{:CCAS, :ADD}
@@ -100,6 +102,8 @@ type ACASX_GM <: AbstractGenerativeModel
     elseif p.encounter_model == :StarDBN
       @assert p.num_aircraft > 1
       sim.em = StarDBN(p.num_aircraft, p.encounter_file, p.encounter_seed)
+    elseif p.encounter_model == :SideOnDBN
+      sim.em = SideOnDBN(p.num_aircraft, p.encounter_file, p.encounter_seed)
     end
 
     if p.response_model == :ICAO
