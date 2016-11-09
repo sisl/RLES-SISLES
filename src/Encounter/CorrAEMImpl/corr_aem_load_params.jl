@@ -60,7 +60,7 @@ function em_read(p, filename)
     p.N_transition = array2cells(scanmatrix(f), dims_transition)
 
     validate_label(f, "# boundaries")
-    p.boundaries = cell(1, p.n_initial)
+    p.boundaries = Array{Any}(1, p.n_initial)
     for i = 1:p.n_initial
         p.boundaries[i] = scanmatrix(f)
     end
@@ -77,7 +77,7 @@ end
 
 function extract_zero_bins(boundaries)
 
-    zero_bins = cell(1, length(boundaries))
+    zero_bins = Array{Any}(1, length(boundaries))
 
     for i = 1:length(boundaries)
         b = boundaries[i]
@@ -123,7 +123,7 @@ end
 
 function array2cells(x, dims)
 
-    c = cell(size(dims, 1))
+    c = Array{Any}(size(dims, 1))
 
     index = 1
     for i = 1:length(c)
