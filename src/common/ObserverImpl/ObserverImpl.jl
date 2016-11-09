@@ -6,6 +6,8 @@ module ObserverImpl
 
 export Observer, _addObserver, notifyObserver
 
+import Compat.ASCIIString
+
 type Observer
 
     f::Dict{ASCIIString, Function}

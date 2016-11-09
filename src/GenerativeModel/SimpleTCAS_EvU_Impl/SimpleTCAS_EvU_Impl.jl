@@ -3,6 +3,8 @@
 
 module SimpleTCAS_EvU_Impl
 
+import Compat.ASCIIString
+
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces

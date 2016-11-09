@@ -27,6 +27,7 @@ export
     validate,
     getInitialSample
 
+import Compat.ASCIIString
 
 using AbstractEncounterModelImpl
 using AbstractEncounterModelInterfaces
@@ -530,17 +531,12 @@ function setInitialDistributions(aem::CorrAEM, n::Int, f::Function)
     aem.initial_distributions[n] = f
 end
 
-function getInitialSample(aem::CorrAEM)
-
-    return aem.initial
-end
-
 function getInitialSample(aem::CorrAEM, index::Int)
 
     return aem.initial[index]
 end
 
-function getInitialSample(aem::CorrAEM, var = :all)
+function getInitialSample(aem::CorrAEM, var::Symbol=:all)
 
     if var == :all
         return aem.initial

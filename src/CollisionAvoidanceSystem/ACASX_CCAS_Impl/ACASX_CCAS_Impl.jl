@@ -15,6 +15,7 @@ export
     ACASXInput,
     ACASXOutput
 
+import Compat.ASCIIString
 
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces

@@ -20,6 +20,8 @@ export
     SideOnDBNParams,
     SideOnDBN
 
+import Compat.ASCIIString
+
 using AbstractEncounterDBNImpl
 using AbstractEncounterDBNInterfaces
 using CommonInterfaces

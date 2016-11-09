@@ -21,6 +21,8 @@ export
     LLAEMCommand
 
 
+import Compat.ASCIIString
+
 using AbstractEncounterModelImpl
 using CommonInterfaces
 using ObserverImpl

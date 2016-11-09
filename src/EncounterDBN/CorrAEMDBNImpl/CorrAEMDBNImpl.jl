@@ -17,6 +17,8 @@ export
 
     CorrAEMDBN
 
+import Compat.ASCIIString
+
 using AbstractEncounterDBNImpl
 using AbstractEncounterDBNInterfaces
 using CommonInterfaces
