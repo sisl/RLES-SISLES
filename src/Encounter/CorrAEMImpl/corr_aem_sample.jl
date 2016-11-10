@@ -539,7 +539,7 @@ function bn_dirichlet_prior(N)
 
     n = length(N)
 
-    alpha = cell(n, 1)
+    alpha = Array{Any}(n, 1)
 
     for i = 1:n
         r, q = size(N[i])
