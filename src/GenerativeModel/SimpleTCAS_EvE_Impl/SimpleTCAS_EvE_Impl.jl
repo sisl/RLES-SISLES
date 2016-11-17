@@ -27,7 +27,7 @@ import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
 
-export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, update, get, isterminal, addObserver
+export SimpleTCAS_EvE_params, SimpleTCAS_EvE, initialize, update, isterminal, addObserver
 
 type SimpleTCAS_EvE_params
   #global params: remains constant per sim
