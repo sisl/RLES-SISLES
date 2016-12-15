@@ -40,6 +40,7 @@ function initialize(sim)
 
   #reset the probability
   sim.step_logProb = 0.0
+  notifyObserver(sim, "initialize", Any[sim])
   return
 end
 
@@ -89,6 +90,7 @@ function update(sim)
   notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
 
   sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
+  notifyObserver(sim, "update", Any[sim])
   return (exp(sim.step_logProb), NMAC_occurred(sim), sim.md)
 end
 

@@ -6,32 +6,28 @@ module ObserverImpl
 
 export Observer, _addObserver, notifyObserver
 
+import Base.empty!
 import Compat.ASCIIString
 
 type Observer
-
     f::Dict{ASCIIString, Function}
 
-
     function Observer()
-
         obj = new()
-
         obj.f = Dict{ASCIIString, Function}()
-
         return obj
     end
 end
 
 function _addObserver(obj, tag::AbstractString, f::Function)
-
     obj.observer.f[tag] = f
 end
 
 _addObserver(obj, f::Function) = _addObserver(obj, "_default", f::Function)
 
-function notifyObserver(obj, tag, arg)
+empty!(obs::Observer) = empty!(obs.f)
 
+function notifyObserver(obj, tag, arg)
     if haskey(obj.observer.f, tag)
         obj.observer.f[tag](arg)
     end
