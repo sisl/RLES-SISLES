@@ -42,7 +42,7 @@ type LLADMState
   N::Float64       #position north (ft)
   E::Float64       #position east (ft)
   h::Float64       #position altitude (ft)
-  psi::Float64     #heading angle (rad)
+  psi::Float64     #heading angle (rad) y-axis is zero, increasing toward positive x
   theta::Float64   #pitch angle (rad)
   phi::Float64     #bank angle (rad)
   a::Float64       #airspeed acceleration (ft/s^2)

@@ -63,7 +63,7 @@ type CorrAEMInitialState
     y::Float64
     h::Float64
     v::Float64
-    psi::Float64
+    psi::Float64 #degrees, x-axis is zero, increasing toward positive y
     h_d::Float64
 end
 
@@ -639,8 +639,10 @@ function transform_regarding_TCA(aem, L, geometry_at_TCA)
     psi = update_psi(AC2_state[1, 2:3], AC2_state[2, 2:3])
     AC2_state[:, 6] = map(to_plusminus_180, AC2_state[:, 6] + psi) #make sure we're in [-180, 180]
 
-    aem.dynamic_states[1, 1:aem.dn_state_index[1], :] = reshape(AC1_state, 1, size(AC1_state, 1), 6)
-    aem.dynamic_states[2, 1:aem.dn_state_index[2], :] = reshape(AC2_state, 1, size(AC2_state, 1), 6)
+    aem.dynamic_states[1, 1:aem.dn_state_index[1], :] = reshape(AC1_state, 1, 
+        size(AC1_state, 1), 6)
+    aem.dynamic_states[2, 1:aem.dn_state_index[2], :] = reshape(AC2_state, 1, 
+        size(AC2_state, 1), 6)
 end
 
 function update_psi(state1, state2)
