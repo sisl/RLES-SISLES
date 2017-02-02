@@ -192,8 +192,8 @@ function generateEncounter(dbn::StarDBN)
         h_d = randfloat(p.hdot_min, p.hdot_max)
         psi = (i - 1) * 360.0 / dbn.number_of_aircraft #absolute approach angle to collision point
         psi = to_plusminus_180(psi) #make sure we're in [-180,180]
-        x = v * p.tca * sind(psi + 180)
-        y = v * p.tca * cosd(psi + 180) 
+        x = v * p.tca * cosd(psi + 180)
+        y = v * p.tca * sind(psi + 180) 
     
         dbn.initial_states[i] = CorrAEMInitialState(t, x, y, h, v, psi, h_d)
     end

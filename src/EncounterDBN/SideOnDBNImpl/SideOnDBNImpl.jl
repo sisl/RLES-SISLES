@@ -192,8 +192,8 @@ function generateEncounter(dbn::SideOnDBN)
         h = i==1 ? h_mid : h_mid + randfloat(p.dh_min, p.dh_max)
         h_d = randfloat(p.hdot_min, p.hdot_max)
         psi = i == 1 ? 0.0 : 90.0 
-        x = v * p.tca * sind(psi + 180)
-        y = v * p.tca * cosd(psi + 180)
+        x = v * p.tca * cosd(psi + 180)
+        y = v * p.tca * sind(psi + 180)
 
         dbn.initial_states[i] = CorrAEMInitialState(t, x, y, h, v, psi, h_d)
     end
