@@ -78,7 +78,7 @@ function update(sim)
     RA = CollisionAvoidanceSystem.update(cas[i], output)
     notifyObserver(sim, "CAS", Any[i, sim.t_index, cas[i]])
 
-    response = PilotResponse.update(pr[i], command, RA)
+    response = PilotResponse.update(pr[i], command, RA, states[i])
     sim.step_logProb += response.logProb
     notifyObserver(sim, "Response", Any[i, sim.t_index, pr[i]])
 

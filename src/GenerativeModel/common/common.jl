@@ -16,6 +16,9 @@ end
 function convert(::Type{LLDetPRCommand}, command::Union{CorrAEMCommand, LLAEMCommand}) 
     LLDetPRCommand(command.t, command.v_d, command.h_d, command.psi_d)
 end
+function convert(::Type{LLDetPRAircraft}, state::ASWMState) 
+    LLDetPRAircraft(state.vh)
+end
 
 function convert(::Type{SimpleADMCommand}, command::StochasticLinearPRCommand)
     SimpleADMCommand(command.t, command.v_d, command.h_d, command.psi_d)

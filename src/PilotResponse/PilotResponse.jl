@@ -21,6 +21,7 @@ export
     StochasticLinearPRRA,
 
     LLDetPR,
+    LLDetPRAircraft,
     LLDetPRCommand,
     LLDetPRRA,
     LLDetPROutput
