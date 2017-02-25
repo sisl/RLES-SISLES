@@ -4,7 +4,6 @@
 # Converted by Youngjun Kim, youngjun@stanford.edu
 # Date: 4/23/2014
 
-
 function em_sample(aem, num_transition_samples; initial_dist = nothing)
 
 # EM_SAMPLE Outputs samples from an encounter model to files.
@@ -459,8 +458,8 @@ function select_random(weights)
     return index
 end
 
-
-function asub2ind(siz, x)
+#= Use built-in instead
+function asub2ind(siz::Vector{Int64}, x::Vector{Int64})
 # ASUB2IND Linear index from multiple subscripts.
 #   Returns a linder index from multiple subscripts assuming a matrix of a
 #   specified size.
@@ -469,11 +468,14 @@ function asub2ind(siz, x)
 #   matrix of dimension SIZ associated with subscripts specified in X.
 
     k = [1; cumprod(siz[1:end-1])]
-    ndx = k' * (x' - 1) + 1
+    ndx = k' * (x - 1) + 1
 
     return convert(Int, ndx[1])
 end
-
+=#
+function asub2ind(siz::Vector{Int64}, x)
+    sub2ind(siz, map(Int64, x)...)
+end
 
 function bn_sort(G)
 # BN_SORT Produces a topological sort of a Bayesian network.

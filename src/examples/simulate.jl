@@ -37,7 +37,7 @@ using PyPlot
 # $ julia simulate.jl generate -n 100
 #
 # generate 10 samples with 20 seconds transitions for each sample to file. "init.txt" and "tran.txt" files are generated under current directory.
-# $ julia simulate.jl generate --init_file "init.txt" --ninit 10 --tran_file "tran.txt" --ntran 20
+# $ julia simulate.jl generate --init_file "init.txt" --ninit 10 --tran_file "tran.txt" --ntran 20 --param_file "../Encounter/CorrAEMImpl/params/cor.txt"
 
 
 function initialize_simulation(; bValidate = false, bReadSampleFromFile = false, initial_sample_filename = "initial.txt", transition_sample_filename = "transition.txt")
@@ -219,11 +219,13 @@ function run_simulation_for_validation(; sample_number = 1)
 end
 
 
-function generate_samples_to_file(initial_sample_filename = "initial.txt", number_of_initial_samples = 1, transition_sample_filename = "transition.txt", number_of_transition_samples = 50)
+function generate_samples_to_file(initial_sample_filename = "initial.txt", 
+    number_of_initial_samples = 1, transition_sample_filename = "transition.txt", 
+    number_of_transition_samples = 50, 
+    parameter_file = Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/params/cor.txt"))
 
-    SISLES_PATH = Pkg.dir("SISLES", "src")
-
-    aem = CorrAEM("$SISLES_PATH/Encounter/CorrAEMImpl/params/cor.txt", initial_sample_filename, number_of_initial_samples, transition_sample_filename, number_of_transition_samples)
+    aem = CorrAEM(parameter_file, initial_sample_filename, number_of_initial_samples, 
+        transition_sample_filename, number_of_transition_samples)
 
     Encounter.generateEncountersToFile(aem)
 end
@@ -451,6 +453,10 @@ function parse_commandline()
             help = "number of transition samples"
             arg_type = Int
             default = 50
+        "--param_file"
+            help = "encounter parameter file"
+            arg_type = AbstractString
+            default = Pkg.dir("SISLES/src/Encounter/CorrAEMImpl/params/cor.txt")
     end
 
     @add_arg_table settings["plot"] begin
@@ -480,7 +486,7 @@ function main()
         run_simulation_for_validation(sample_number = parsed_args["validate"]["sample"])
 
     elseif parsed_args["%COMMAND%"] == "generate"
-        generate_samples_to_file(parsed_args["generate"]["init_file"], parsed_args["generate"]["ninit"], parsed_args["generate"]["tran_file"], parsed_args["generate"]["ntran"])
+        generate_samples_to_file(parsed_args["generate"]["init_file"], parsed_args["generate"]["ninit"], parsed_args["generate"]["tran_file"], parsed_args["generate"]["ntran"], parsed_args["generate"]["param_file"])
 
     elseif parsed_args["%COMMAND%"] == "plot"
         if parsed_args["plot"]["compare"]
