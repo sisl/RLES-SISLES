@@ -214,16 +214,20 @@ convert(::Type{Vector{Float64}}, command_1::CorrAEMCommand, command_2::CorrAEMCo
   [ command_1.h_d, command_2.h_d, command_1.psi_d, command_2.psi_d ]
 
 function step_enc(dbn::CorrAEMDBN)
-  aem = dbn.aem
-  p = aem.parameters
-
-  for i = 1:dbn.number_of_aircraft
-    dbn.output_commands[i] = Encounter.update(aem, i)
-  end
+    aem = dbn.aem
+    p = aem.parameters
+    
+    for i = 1:dbn.number_of_aircraft
+        cmd = Encounter.update(aem, i)
+        if cmd != nothing
+            dbn.output_commands[i] = cmd
+        end
+    end
 
   #Just a reminder, this will break if number_of_aircraft != 2
-  @assert dbn.number_of_aircraft == 2
+  #@assert dbn.number_of_aircraft == 2
 
+  #= FIXME: skip probability calc for now...
   #prepare t+1 from encounter commands
   aem_dyn_cstate = convert(Vector{Float64}, dbn.output_commands[1], dbn.output_commands[2])
   aem_dstate = dbn.aem_dstate #only copies pointer
@@ -268,6 +272,8 @@ function step_enc(dbn::CorrAEMDBN)
 
   #return
   dbn.logProb = logProb
+  =#
+  dbn.logProb = 0.0 #for now... FIXME
 end
 
 function get(dbn::CorrAEMDBN, aircraft_number::Int)

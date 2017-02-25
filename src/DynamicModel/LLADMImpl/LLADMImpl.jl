@@ -42,7 +42,7 @@ type LLADMState
   N::Float64       #position north (ft)
   E::Float64       #position east (ft)
   h::Float64       #position altitude (ft)
-  psi::Float64     #heading angle (rad) y-axis is zero, increasing toward positive x
+  psi::Float64     #heading angle (rad), N is zero, clockwise is positive
   theta::Float64   #pitch angle (rad)
   phi::Float64     #bank angle (rad)
   a::Float64       #airspeed acceleration (ft/s^2)
@@ -161,17 +161,23 @@ function initialize(adm::LLADM, state::LLADMState)
   adm.state = state
 
   # Intialize the mitcas state
-  # Note: x is E and y is N.  See assignments in scripted_dynamics.h
+  # Note: x is E and y is N in scripted_dynamics.h
   adm.output_state.t     = state.t
   adm.output_state.h     = state.h
   adm.output_state.vh    = sin(state.theta) * state.v
-  adm.output_state.x     = state.E
-  adm.output_state.vx    = sin(state.psi) * cos(state.theta) * state.v
-  adm.output_state.y     = state.N
-  adm.output_state.vy    = cos(state.psi) * cos(state.theta) * state.v
+  #adm.output_state.x     = state.E
+  #adm.output_state.vx    = sin(state.psi) * cos(state.theta) * state.v
+  #adm.output_state.y     = state.N
+  #adm.output_state.vy    = cos(state.psi) * cos(state.theta) * state.v
   adm.output_state.psi   = state.psi
   adm.output_state.theta = state.theta
   adm.output_state.phi   = state.phi
+
+  # RLEE: Override x and y to match LLCEM.  X is north
+  adm.output_state.x     = state.N
+  adm.output_state.vx    = cos(state.psi) * cos(state.theta) * state.v
+  adm.output_state.y     = state.E
+  adm.output_state.vy    = sin(state.psi) * cos(state.theta) * state.v
 
   adm.update = nothing
 
@@ -279,17 +285,23 @@ function update(adm::LLADM, ctrl::LLADMCommand)
   @test state.t == t_start + adm.timestep
 
   # calculate the new mitcas state vars
-  # Note: x is E and y is N.  See assignments in scripted_dynamics.h
+  # Note: x is E and y is N in scripted_dynamics.h
   adm.output_state.t     = state.t
   adm.output_state.h     = state.h
   adm.output_state.vh    = sin(state.theta) * state.v
-  adm.output_state.x     = state.E
-  adm.output_state.vx    = sin(state.psi) * cos(state.theta) * state.v
-  adm.output_state.y     = state.N
-  adm.output_state.vy    = cos(state.psi) * cos(state.theta) * state.v
+  #adm.output_state.x     = state.E
+  #adm.output_state.vx    = sin(state.psi) * cos(state.theta) * state.v
+  #adm.output_state.y     = state.N
+  #adm.output_state.vy    = cos(state.psi) * cos(state.theta) * state.v
   adm.output_state.psi   = state.psi
   adm.output_state.theta = state.theta
   adm.output_state.phi   = state.phi
+
+  # RLEE: Override x and y to match LLCEM.  X is north
+  adm.output_state.x     = state.N
+  adm.output_state.vx    = cos(state.psi) * cos(state.theta) * state.v
+  adm.output_state.y     = state.E
+  adm.output_state.vy    = sin(state.psi) * cos(state.theta) * state.v
 
   return adm.output_state
 end

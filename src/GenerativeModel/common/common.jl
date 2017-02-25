@@ -70,14 +70,12 @@ function convert(::Type{LLDetPRRA},RA::Union{SimpleTCASResolutionAdvisory,Void})
 end
 
 function convert(::Type{LLADMCommand}, out::LLDetPROutput) 
-    psid_convert = -out.psi_d 
-    LLADMCommand(out.t, out.h_d, deg2rad(psid_convert), out.v_d, out.dh_min, 
+    LLADMCommand(out.t, out.h_d, deg2rad(out.psi_d), out.v_d, out.dh_min, 
         out.dh_max, out.target_rate, out.ddh)
 end
 
 function convert(::Type{LLADMState}, s::CorrAEMInitialState) 
-    psi_convert = 90.0 - s.psi 
-    LLADMState(s.t, s.v, s.y, s.x, s.h, deg2rad(psi_convert), asin(s.h_d / s.v), 0.0, 0.0)
+    LLADMState(s.t, s.v, s.x, s.y, s.h, deg2rad(s.psi), asin(s.h_d / s.v), 0.0, 0.0)
 end
 
 convert(::Type{ASWMState}, s::LLADMOutputState) = ASWMState(s.t, s.x, s.y, s.h, s.vx, s.vy, s.vh)
