@@ -16,11 +16,11 @@ function validate_initial(aem)
 
     params = aem.parameters
 
-    marginal_dist = cell(params.n_initial)
-    marginal_prob = cell(params.n_initial)
+    marginal_dist = Array{Any}(params.n_initial)
+    marginal_prob = Array{Any}(params.n_initial)
 
     for i = 1:params.n_initial
-        marginal_dist[i] = Int(sum(params.N_initial[i], 2))
+        marginal_dist[i] = vec(sum(params.N_initial[i], 2))
         marginal_prob[i] = marginal_dist[i] / sum(marginal_dist[i])
     end
 
@@ -31,8 +31,8 @@ function validate_initial(aem)
     n_nmac = 0
     n_lines = 0
 
-    sample_dist = cell(params.n_initial)
-    sample_prob = cell(params.n_initial)
+    sample_dist = Array{Any}(params.n_initial)
+    sample_prob = Array{Any}(params.n_initial)
 
     for i = 1:params.n_initial
         sample_dist[i] = zeros(Int, params.r_initial[i])
@@ -56,7 +56,7 @@ function validate_initial(aem)
         # 17      vmd = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 6000]  : ft
 
         for i = [2, 3, 4, 6, 7]
-            if !(Int(values[i]) in [1:params.r_initial[i-1]])
+            if !(Int(values[i]) in 1:params.r_initial[i-1])
                 println("sample: ", chomp(line))
                 println("i: ", i, ", value: ", Int(values[i]), ", boundary: ", params.r_initial[i-1])
                 error("The value violates the boundary.")
@@ -132,11 +132,11 @@ function validate_transition(aem)
 
     params = aem.parameters
 
-    marginal_dist = cell(params.n_transition - params.n_initial)
-    marginal_prob = cell(params.n_transition - params.n_initial)
+    marginal_dist = Array{Any}(params.n_transition - params.n_initial)
+    marginal_prob = Array{Any}(params.n_transition - params.n_initial)
 
     for i = 1:(params.n_transition - params.n_initial)
-        marginal_dist[i] = Int(sum(params.N_transition[params.n_initial + i], 2))
+        marginal_dist[i] = vec(sum(params.N_transition[params.n_initial + i], 2))
         marginal_prob[i] = marginal_dist[i] / sum(marginal_dist[i])
     end
 
@@ -145,8 +145,8 @@ function validate_transition(aem)
 
     readline(f)
 
-    sample_dist = cell(params.n_transition - params.n_initial)
-    sample_prob = cell(params.n_transition - params.n_initial)
+    sample_dist = Array{Any}(params.n_transition - params.n_initial)
+    sample_prob = Array{Any}(params.n_transition - params.n_initial)
 
     for i = 1:(params.n_transition - params.n_initial)
         sample_dist[i] = zeros(Int, params.r_transition[params.n_initial + i])
