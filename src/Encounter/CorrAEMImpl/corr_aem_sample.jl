@@ -321,7 +321,7 @@ function dbn_sample(G_initial, G_transition, temporal_map, r, N_initial, N_trans
 
                 j = 1
                 if !isempty(find(parents))
-                    j = asub2ind(r[parents], x[parents']')
+                    j = asub2ind(r[parents], x[parents'])
                 end
 
                 x[i] = select_random(N_transition[i][:, j] + dirichlet_transition[i][:, j])
@@ -458,8 +458,8 @@ function select_random(weights)
     return index
 end
 
-#= Use built-in instead
-function asub2ind(siz::Vector{Int64}, x::Vector{Int64})
+#can't replace this with built-in sub2ind...
+function asub2ind(siz, x)
 # ASUB2IND Linear index from multiple subscripts.
 #   Returns a linder index from multiple subscripts assuming a matrix of a
 #   specified size.
@@ -469,12 +469,11 @@ function asub2ind(siz::Vector{Int64}, x::Vector{Int64})
 
     k = [1; cumprod(siz[1:end-1])]
     ndx = k' * (x - 1) + 1
+    lindex = convert(Int, ndx[1])
 
-    return convert(Int, ndx[1])
-end
-=#
-function asub2ind(siz::Vector{Int64}, x)
-    sub2ind(siz, map(Int64, x)...)
+    #@assert lindex == sub2ind(siz, map(Int64, x)...) #different answer than sub2ind
+
+    lindex 
 end
 
 function bn_sort(G)
