@@ -319,6 +319,9 @@ function substep(state::LLADMState, ctrl::LLADMCommand, C::LLADMConsts)
 
   ddh2apply = resolve_TCAS_and_script(ddh_cmd,ddh_script)
 
+  #debug
+  #println("ddh_script=", ddh_script, ", ddh_cmd=", ddh_cmd, ", ddh2apply=", ddh2apply)
+
   if C.LIMIT_DDH
     ddh2apply = saturate(ddh2apply, C._min_vertical_accel, C._max_vertical_accel)
   end

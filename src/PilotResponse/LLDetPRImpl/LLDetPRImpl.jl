@@ -145,8 +145,7 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
     target_rate = pr.queue[1].RA.target_rate
     ddh         = pr.queue[1].RA.ddh
 
-    if isequal(pr.queue[1].RA, pr.COC_RA)
-        #currently doing COC
+    if isequal(pr.queue[1].RA, pr.COC_RA) #currently COC
         pr.state = :none
 
         #restrict pilot to not accelerate against any pending RA's
@@ -154,9 +153,13 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
             h_d = pr.queue[2].RA.target_rate > ac_state.vh ? 
                 max(ac_state.vh, h_d) : min(ac_state.vh, h_d)
         end 
-    else
-        h_d = pr.queue[1].RA.target_rate #follow RA
-    
+    else #RA
+        #perfect compliance
+        #let LLADM (scripted_dynamics) handle the RA 
+        #following based on dh_min, dh_max, ddh
+        #don't interfere with resolve_TCAS_and_script in LLADM
+        h_d = ac_state.vh
+
         if length(pr.queue) > 1
             #currently following an RA and there is another RA queued
             pr.state = :stay
@@ -210,4 +213,4 @@ end
 
 end #module
 
-
+    
