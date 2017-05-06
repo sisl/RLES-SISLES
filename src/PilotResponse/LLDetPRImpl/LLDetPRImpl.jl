@@ -24,6 +24,8 @@ import CommonInterfaces.initialize
 import CommonInterfaces.update
 import AbstractPilotResponseInterfaces.updatePilotResponse
 
+using DataStructures
+
 import Base: isequal, ==
 
 type LLDetPRAircraft
@@ -68,12 +70,15 @@ type LLDetPR <: AbstractPilotResponse
     subsequent_resp_time::Int64 #subsequent response delay
     limit_hd::Bool #limit pilot command rate to (dh_min,dh_max)
     state::Symbol #{none,follow,stay}
-    queue::Vector{QueueEntry}
+    queue::Vector{QueueEntry} #TODO: replace this with Queue
     timer::Int64
     COC_RA::LLDetPRRA
     output::LLDetPROutput #preallocate
+    vh_history::Queue{Float64}
+    history_length::Int64
 
-    function LLDetPR(initial_resp_time::Int64, subsequent_resp_time::Int64; limit_hd::Bool=true)
+    function LLDetPR(initial_resp_time::Int64, subsequent_resp_time::Int64; limit_hd::Bool=true,
+        history_length::Int64=5)
         obj = new()
         obj.initial_resp_time = initial_resp_time
         obj.subsequent_resp_time = subsequent_resp_time
@@ -83,7 +88,8 @@ type LLDetPR <: AbstractPilotResponse
         obj.timer = 0
         obj.COC_RA = LLDetPRRA(-9999.0, 9999.0, 0.0, 0.0) #COC TODO: Remove hardcoding of 9999.0, or at least centralize it
         obj.output = LLDetPROutput()
-        obj
+        obj.vh_history = Queue(Float64)
+        obj.history_length = history_length
     end
 end
 
@@ -145,6 +151,12 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
     target_rate = pr.queue[1].RA.target_rate
     ddh         = pr.queue[1].RA.ddh
 
+    #keep a sliding history of vh
+    enqueue!(pr.vh_history, ac_state.vh)
+    while length(pr.vh_history) > pr.history_length
+        dequeue!(pr.vh_history)
+    end
+
     if isequal(pr.queue[1].RA, pr.COC_RA) #currently COC
         pr.state = :none
 
@@ -153,6 +165,13 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
             h_d = pr.queue[2].RA.target_rate > ac_state.vh ? 
                 max(ac_state.vh, h_d) : min(ac_state.vh, h_d)
         end 
+        #restrict pilot not to make a sudden move right at NMAC
+        #limit based on mean of history of vh
+        if pr.history_length > 0 && length(pr.queue) > 1
+            m = mean(pr.vh_history)
+            h_d = pr.queue[2].RA.target_rate > ac_state.vh ? 
+                max(m, h_d) : min(m, h_d)
+        end
     else #RA
         #perfect compliance
         #let LLADM (scripted_dynamics) handle the RA 
@@ -197,6 +216,7 @@ function initialize(pr::LLDetPR)
     pr.state = :none
     empty!(pr.queue)
     add_to_queue!(pr.queue, pr.COC_RA, 0)
+    empty!(pr.vh_history)
 
     pr.output.t = 0.0
     pr.output.v_d = 0.0
