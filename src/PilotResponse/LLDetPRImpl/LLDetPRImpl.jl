@@ -26,7 +26,7 @@ import AbstractPilotResponseInterfaces.updatePilotResponse
 
 using DataStructures
 
-import Base: isequal, ==
+import Base: isequal, ==, empty!
 
 type LLDetPRAircraft
     vh::Float64             #vertical rate of aircraft (ft/s)
@@ -76,9 +76,11 @@ type LLDetPR <: AbstractPilotResponse
     output::LLDetPROutput #preallocate
     vh_history::Queue{Float64}
     history_length::Int64
+    accel_thresh::Float64 #accel above which counts as too much change, in ft/s^2
+    accel_near_RA::Bool #flag to indicate that accel thresh was exceeded near initial RA
 
     function LLDetPR(initial_resp_time::Int64, subsequent_resp_time::Int64; limit_hd::Bool=true,
-        history_length::Int64=5)
+        history_length::Int64=5, accel_thresh::Float64=5.0)
         obj = new()
         obj.initial_resp_time = initial_resp_time
         obj.subsequent_resp_time = subsequent_resp_time
@@ -90,6 +92,9 @@ type LLDetPR <: AbstractPilotResponse
         obj.output = LLDetPROutput()
         obj.vh_history = Queue(Float64)
         obj.history_length = history_length
+        obj.accel_thresh = accel_thresh
+        obj.accel_near_RA = false
+        obj
     end
 end
 
@@ -107,12 +112,6 @@ function add_to_queue!(q::Vector{QueueEntry}, RA::LLDetPRRA,
   el = QueueEntry(queuetime, RA)
   push!(q, el)
 end
-
-#TODO: replace with findlast when we switch to julia 0.4
-#function findlastzero(q::Vector{QueueEntry})
-  #idx = find(x -> x.t == 0, q)
-  #return length(idx) > 0 ? idx[end] : 0 #index of the last zero.  Returns 0 if empty.
-#end
 
 isfirstRA(pr::LLDetPR) = isequal(pr.queue[1].RA, pr.COC_RA) && length(pr.queue) == 1
 
@@ -156,6 +155,8 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
     while length(pr.vh_history) > pr.history_length
         dequeue!(pr.vh_history)
     end
+    #reset at each time step so that flag is only true once if true at all
+    pr.accel_near_RA = false 
 
     if isequal(pr.queue[1].RA, pr.COC_RA) #currently COC
         pr.state = :none
@@ -165,12 +166,11 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
             h_d = pr.queue[2].RA.target_rate > ac_state.vh ? 
                 max(ac_state.vh, h_d) : min(ac_state.vh, h_d)
         end 
-        #restrict pilot not to make a sudden move right at NMAC
-        #limit based on mean of history of vh
-        if pr.history_length > 0 && length(pr.queue) > 1
-            m = mean(pr.vh_history)
-            h_d = pr.queue[2].RA.target_rate > ac_state.vh ? 
-                max(m, h_d) : min(m, h_d)
+        #Check history for accelerations exceeding thresh
+        #currently COC, but RA is queued
+        #only check at time of initial RA
+        if pr.history_length > 0 && length(pr.queue) > 1 && pr.queue[2].t == pr.initial_resp_time 
+            pr.accel_near_RA = exceeds_thresh(pr.vh_history, pr.accel_thresh)
         end
     else #RA
         #perfect compliance
@@ -204,12 +204,26 @@ function updatePilotResponse(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA
     pr.output
 end
 
+function exceeds_thresh(q::Queue{Float64}, thresh::Float64)
+    x = first(q)
+    for y in q
+        x = abs(x-y) <= thresh ? y : return true
+    end
+    false
+end
+
 function update(pr::LLDetPR, command, RA, ac_state) 
     update(pr, convert(LLDetPRCommand, command), convert(LLDetPRRA, RA), 
         convert(LLDetPRAircraft, ac_state))
 end
 function update(pr::LLDetPR, command::LLDetPRCommand, RA::LLDetPRRA, ac_state::LLDetPRAircraft) 
     updatePilotResponse(pr, command, RA, ac_state)
+end
+
+function empty!{T}(q::Queue{T})
+    while length(q) > 0
+        dequeue!(q)
+    end
 end
 
 function initialize(pr::LLDetPR)
