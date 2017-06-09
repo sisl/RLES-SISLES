@@ -22,7 +22,7 @@ LLADMCommand
 using AbstractDynamicModelImpl
 using AbstractDynamicModelInterfaces
 using CommonInterfaces
-using ObserverImpl
+using RLESUtils, Observers
 
 using Base.Test
 
@@ -152,8 +152,8 @@ type LLADM <: AbstractDynamicModel
   end
 end
 
-addObserver(adm::LLADM, f::Function) = _addObserver(adm, f)
-addObserver(adm::LLADM, tag::AbstractString, f::Function) = _addObserver(adm, tag, f)
+addObserver(adm::LLADM, f::Function) = add_observer(adm.observer, f)
+addObserver(adm::LLADM, tag::AbstractString, f::Function) = add_observer(adm.observer, tag, f)
 
 initialize(adm::LLADM, state) = initialize(adm,convert(LLADMState, state))
 

@@ -1,7 +1,5 @@
 module ACASX_Common
 
-using ObserverImpl
-
 using EncounterDBN
 using PilotResponse
 using DynamicModel
@@ -10,9 +8,11 @@ using Sensor
 using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
+using RLESUtils, Observers
 
-addObserver(sim, f::Function) = _addObserver(sim, f)
-addObserver(sim, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim, f::Function) = add_observer(sim.observer, f)
+addObserver(sim, tag::AbstractString, f::Function) = add_observer(sim.observer, tag, f)
+clearObservers!(sim) = empty!(sim.observer)
 
 function initialize(sim)
   wm, aem, pr, adm, cas, sr = sim.wm, sim.em, sim.pr, sim.dm, sim.cas, sim.sr
@@ -22,15 +22,16 @@ function initialize(sim)
   for i = 1:sim.params.num_aircraft
     #TODO: clean up this structure
     initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Initial", Any[i, sim.t_index, aem])
+    @notify_observer(sim.observer,"Initial", Any[i, sim.t_index, aem])
 
     Sensor.initialize(sr[i])
     CollisionAvoidanceSystem.initialize(cas[i])
     PilotResponse.initialize(pr[i])
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
+
+    @notify_observer(sim.observer,"CAS_info", Any[i, sim.cas[i]])
   end
-  notifyObserver(sim,"CAS_info", Any[sim.cas[1]])
 
   # reset miss distances
   sim.vmd = typemax(Float64)
@@ -40,7 +41,7 @@ function initialize(sim)
 
   #reset the probability
   sim.step_logProb = 0.0
-  notifyObserver(sim, "initialize", Any[sim])
+  @notify_observer(sim.observer, "initialize", Any[sim])
   return
 end
 
@@ -53,7 +54,7 @@ function update(sim)
   cmdLogProb = EncounterDBN.update(aem)
   sim.step_logProb += cmdLogProb #TODO: decompose this by aircraft?
   states = WorldModel.getAll(wm)
-  notifyObserver(sim,"WorldModel", Any[sim.t_index, wm])
+  @notify_observer(sim.observer,"WorldModel", Any[sim.t_index, wm])
 
   #check and update miss distances
   vhdist = getvhdist(sim.wm)
@@ -66,31 +67,31 @@ function update(sim)
   end
 
   for i = 1:sim.params.num_aircraft
-    notifyObserver(sim, "Dynamics", Any[i, sim.t_index, adm[i]])
+    @notify_observer(sim.observer, "Dynamics", Any[i, sim.t_index, adm[i]])
 
     #intended command
     command = EncounterDBN.get(aem, i)
-    notifyObserver(sim, "Command", Any[i, sim.t_index, command])
+    @notify_observer(sim.observer, "Command", Any[i, sim.t_index, command])
 
     output = Sensor.update(sr[i], states)
-    notifyObserver(sim, "Sensor",Any[i, sim.t_index, sr[i]])
+    @notify_observer(sim.observer, "Sensor",Any[i, sim.t_index, sr[i]])
 
     RA = CollisionAvoidanceSystem.update(cas[i], output)
-    notifyObserver(sim, "CAS", Any[i, sim.t_index, cas[i]])
+    @notify_observer(sim.observer, "CAS", Any[i, sim.t_index, cas[i]])
 
     response = PilotResponse.update(pr[i], command, RA, states[i])
     sim.step_logProb += response.logProb
-    notifyObserver(sim, "Response", Any[i, sim.t_index, pr[i]])
+    @notify_observer(sim.observer, "Response", Any[i, sim.t_index, pr[i]])
 
     state = DynamicModel.update(adm[i], response)
     WorldModel.update(wm, i, state)
   end
   WorldModel.updateAll(wm)
 
-  notifyObserver(sim, "logProb", Any[sim.t_index, sim.step_logProb])
+  @notify_observer(sim.observer, "logProb", Any[sim.t_index, sim.step_logProb])
 
   sim.label_as_nmac = NMAC_occurred(sim) #the same for now... no filters
-  notifyObserver(sim, "update", Any[sim])
+  @notify_observer(sim.observer, "update", Any[sim])
   return (exp(sim.step_logProb), NMAC_occurred(sim), sim.md)
 end
 

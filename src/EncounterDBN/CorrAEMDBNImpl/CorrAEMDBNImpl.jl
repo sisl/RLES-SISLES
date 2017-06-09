@@ -22,10 +22,10 @@ import Compat.ASCIIString
 using AbstractEncounterDBNImpl
 using AbstractEncounterDBNInterfaces
 using CommonInterfaces
-using ObserverImpl
 using Util
 using Encounter
 using CorrAEMImpl
+using RLESUtils, Observers
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -130,8 +130,8 @@ type CorrAEMDBN <: AbstractEncounterDBN
   end
 end
 
-addObserver(dbn::CorrAEMDBN, f::Function) = _addObserver(aem, f)
-addObserver(dbn::CorrAEMDBN, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
+addObserver(dbn::CorrAEMDBN, f::Function) = add_observer(aem.observer, f)
+addObserver(dbn::CorrAEMDBN, tag::AbstractString, f::Function) = add_observer(aem.observer, tag, f)
 
 function initialize(dbn::CorrAEMDBN)
   #reset to initial state

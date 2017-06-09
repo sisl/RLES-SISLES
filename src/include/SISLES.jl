@@ -8,7 +8,6 @@ end
 
 push!(LOAD_PATH, "$PACKAGE_PATH/include")
 push!(LOAD_PATH, "$PACKAGE_PATH/common")
-push!(LOAD_PATH, "$PACKAGE_PATH/common/ObserverImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/CorrAEMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/LLAEMImpl")

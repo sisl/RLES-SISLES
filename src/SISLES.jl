@@ -30,7 +30,9 @@ export
     ACASX_GM,
 
     addObserver,
-    notifyObserver,
+    clearObservers!,
+    initialize,
+    update,
     outputGFormatString,
 
     # Encounter
@@ -47,7 +49,6 @@ PACKAGE_PATH = Pkg.dir("SISLES", "src")
 
 push!(LOAD_PATH, "$PACKAGE_PATH/include")
 push!(LOAD_PATH, "$PACKAGE_PATH/common")
-push!(LOAD_PATH, "$PACKAGE_PATH/common/ObserverImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/CorrAEMImpl")
 push!(LOAD_PATH, "$PACKAGE_PATH/Encounter/LLAEMImpl")
@@ -84,6 +85,7 @@ push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/SimpleTCAS_EvE_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/ACASX_GM_Impl")
 push!(LOAD_PATH, "$PACKAGE_PATH/GenerativeModel/common")
 
+using CommonInterfaces
 using Util
 using Encounter
 using EncounterDBN
@@ -95,7 +97,6 @@ using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
 using GenerativeModel
-using ObserverImpl
 
 end
 

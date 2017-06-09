@@ -32,8 +32,8 @@ import Compat.ASCIIString
 using AbstractEncounterModelImpl
 using AbstractEncounterModelInterfaces
 using CommonInterfaces
-using ObserverImpl
 using Util
+using RLESUtils, Observers
 using Base.Test
 
 import CommonInterfaces.addObserver
@@ -251,8 +251,8 @@ type CorrAEM <: AbstractEncounterModel
 end
 
 
-addObserver(aem::CorrAEM, f::Function) = _addObserver(aem, f)
-addObserver(aem::CorrAEM, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
+addObserver(aem::CorrAEM, f::Function) = add_observer(aem.observer, f)
+addObserver(aem::CorrAEM, tag::AbstractString, f::Function) = add_observer(aem.observer, tag, f)
 
 function generateEncounter(aem::CorrAEM; sample_number = 0, b_simulate = true)
     params = aem.parameters

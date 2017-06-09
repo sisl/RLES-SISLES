@@ -6,7 +6,7 @@
 module CoordSimpleTCASImpl
 
 export
-    AddObserver,
+    addObserver,
 
     initialize,
     update,
@@ -22,20 +22,20 @@ export
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using Util
+using RLESUtils, Observers
+
+using AbstractCASCoordImpl
+
+using CASCoordination
+using SimpleTCASImpl
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
 import CommonInterfaces.update
 import AbstractCollisionAvoidanceSystemInterfaces.testThreat
 import AbstractCollisionAvoidanceSystemInterfaces.selectRA
-
-using AbstractCASCoordImpl
-
-using CASCoordination
-using SimpleTCASImpl
 
 
 type CoordSimpleTCAS <: AbstractCollisionAvoidanceSystem
@@ -46,8 +46,8 @@ type CoordSimpleTCAS <: AbstractCollisionAvoidanceSystem
   CoordSimpleTCAS(aircraft_number::Int,coordination::AbstractCASCoord) = new(aircraft_number,SimpleTCAS(),coordination)
 end
 
-addObserver(cas::CoordSimpleTCAS, f::Function) = _addObserver(cas, f)
-addObserver(cas::CoordSimpleTCAS, tag::AbstractString, f::Function) = _addObserver(cas, tag, f)
+addObserver(cas::CoordSimpleTCAS, f::Function) = add_observer(cas.observer, f)
+addObserver(cas::CoordSimpleTCAS, tag::AbstractString, f::Function) = add_observer(cas.observer, tag, f)
 
 testThreat(cas::CoordSimpleTCAS, input::SimpleTCASInput) = testThreat(cas.simpleTCAS, input)
 

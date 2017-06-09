@@ -22,12 +22,13 @@ export
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using AbstractCASCoordImpl
 
 using CASCoordination
 using CASInterface
+using RLESUtils, Observers
+
 import CASInterface.reset! #extend
 
 typealias ACASXInput CASInterface.Input

@@ -6,11 +6,15 @@ module CommonInterfaces
 
 export
     addObserver,
+    clearObservers!,
 
     initialize,
     step
 
 function addObserver()
+end
+
+function clearObservers!()
 end
 
 function initialize()
@@ -19,6 +23,6 @@ end
 function update()
 end
 
-end
+end #module
 
 

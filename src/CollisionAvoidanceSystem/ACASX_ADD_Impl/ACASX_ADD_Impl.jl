@@ -17,13 +17,13 @@ import Compat.ASCIIString
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using AbstractCASCoordImpl
 
 using ACASXCommonImpl
 using CASCoordination
 using CASInterface
+using RLESUtils, Observers
 
 type ACASX_ADD <: AbstractCollisionAvoidanceSystem
   my_id::Int64 #aircraft number

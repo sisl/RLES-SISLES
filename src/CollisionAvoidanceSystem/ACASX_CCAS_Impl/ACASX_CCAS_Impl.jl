@@ -20,10 +20,6 @@ import Compat.ASCIIString
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
-using ObserverImpl
-
-import CommonInterfaces.initialize
-import CommonInterfaces.update
 
 using AbstractCASCoordImpl
 
@@ -31,6 +27,11 @@ using ACASXCommonImpl
 using CASCoordination
 using CASInterface
 using CCAS
+using RLESUtils, Observers
+
+import CommonInterfaces.initialize
+import CommonInterfaces.update
+
 
 type ACASX_CCAS <: AbstractCollisionAvoidanceSystem
   my_id::Int64 #aircraft number

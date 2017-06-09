@@ -19,9 +19,9 @@ export
 using AbstractEncounterDBNImpl
 using AbstractEncounterDBNInterfaces
 using CommonInterfaces
-using ObserverImpl
 using Util
 using Encounter
+using RLESUtils, Observers
 using Base.Test
 
 import CommonInterfaces.addObserver
@@ -251,8 +251,8 @@ function masked_initial_dist(v::Vector{Float64}, mask::Vector{Bool})
   return [m ? ()->(x,0.0) : nothing for (m,x) = zip(mask,v)]
 end
 
-addObserver(dbn::PairwiseCorrAEMDBN, f::Function) = _addObserver(aem, f)
-addObserver(dbn::PairwiseCorrAEMDBN, tag::AbstractString, f::Function) = _addObserver(aem, tag, f)
+addObserver(dbn::PairwiseCorrAEMDBN, f::Function) = add_observer(aem.observer, f)
+addObserver(dbn::PairwiseCorrAEMDBN, tag::AbstractString, f::Function) = add_observer(aem.observer, tag, f)
 
 function initialize(dbn::PairwiseCorrAEMDBN)
   #reset to initial state

@@ -13,7 +13,6 @@ export
 
 using AbstractSimulatorImpl
 using CommonInterfaces
-using ObserverImpl
 
 using Base.Test
 
@@ -23,6 +22,7 @@ using DynamicModel
 using WorldModel
 using Sensor
 using CollisionAvoidanceSystem
+using RLESUtils, Observers
 
 import CommonInterfaces.addObserver
 
@@ -66,8 +66,8 @@ type TCASSimulator <: AbstractSimulator
 end
 
 
-addObserver(sim::TCASSimulator, f::Function) = _addObserver(sim, f)
-addObserver(sim::TCASSimulator, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim::TCASSimulator, f::Function) = add_observer(sim.observer, f)
+addObserver(sim::TCASSimulator, tag::AbstractString, f::Function) = add_observer(sim.observer, tag, f)
 
 
 import Base.convert
@@ -160,7 +160,7 @@ function simulate(sim::AbstractSimulator; bTCAS = false, sample_number = 0)
                 RA = CollisionAvoidanceSystem.update(cas[i], convert(SimpleTCASInput, output))
 
                 if RA != nothing
-                    notifyObserver(sim, "RA", [i, states[i].t, RA.h_d])
+                    @notify_observer(sim.observer, "RA", [i, states[i].t, RA.h_d])
                 end
             else
                 RA = nothing

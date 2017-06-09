@@ -22,7 +22,7 @@ export
 using AbstractDynamicModelImpl
 using AbstractDynamicModelInterfaces
 using CommonInterfaces
-using ObserverImpl
+using RLESUtils, Observers
 
 using Base.Test
 
@@ -113,8 +113,8 @@ type SimpleADM <: AbstractDynamicModel
 end
 
 
-addObserver(adm::SimpleADM, f::Function) = _addObserver(adm, f)
-addObserver(adm::SimpleADM, tag::AbstractString, f::Function) = _addObserver(adm, tag, f)
+addObserver(adm::SimpleADM, f::Function) = add_observer(adm.observer, f)
+addObserver(adm::SimpleADM, tag::AbstractString, f::Function) = add_observer(adm.observer, tag, f)
 
 
 function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)
@@ -122,7 +122,7 @@ function initializeDynamicModel(adm::SimpleADM, state::SimpleADMInitialState)
     adm.state = SimpleADMState(state.t, state.x, state.y, state.h, state.v, state.psi)
     #print([state.t, state.x, state.y, state.h, state.v, state.psi]')
 
-    notifyObserver(adm, [adm.state.t, adm.state.x, adm.state.y, adm.state.h])
+    @notify_observer(adm.observer, "adm_init", [adm.state.t, adm.state.x, adm.state.y, adm.state.h])
 
     vh = state.h_d
     vx = sqrt(adm.state.v^2 - vh^2) * cosd(adm.state.psi)
@@ -217,7 +217,7 @@ function simulateDynamicModel(adm::SimpleADM, command::SimpleADMCommand)
 
         #print([t_sim, x_n, y_n, h_n, v_n, psi_n]')
 
-        notifyObserver(adm, [t_sim, x_n, y_n, h_n])
+        @notify_observer(adm.observer, "adm_simulate", [t_sim, x_n, y_n, h_n])
     end
 
     @test_approx_eq_eps t_sim (t_curr + adm.timestep) 0.001

@@ -27,9 +27,9 @@ export
 using AbstractCollisionAvoidanceSystemImpl
 using AbstractCollisionAvoidanceSystemInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using Util
+using RLESUtils, Observers
 
 import CommonInterfaces.addObserver
 import CommonInterfaces.initialize
@@ -79,8 +79,8 @@ type SimpleTCAS <: AbstractCollisionAvoidanceSystem
 end
 
 
-addObserver(cas::SimpleTCAS, f::Function) = _addObserver(cas, f)
-addObserver(cas::SimpleTCAS, tag::AbstractString, f::Function) = _addObserver(cas, tag, f)
+addObserver(cas::SimpleTCAS, f::Function) = add_observer(cas.observer, f)
+addObserver(cas::SimpleTCAS, tag::AbstractString, f::Function) = add_observer(cas.observer, tag, f)
 
 
 function testThreat(cas::SimpleTCAS, input::SimpleTCASInput)
@@ -143,7 +143,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         println(t_)
         println()
 
-        notifyObserver(cas, "debug", [false])
+        @notify_observer(cas.observer, "debug", [false])
 
         return 0.
     end
@@ -228,7 +228,7 @@ function selectRA(cas::SimpleTCAS, input::SimpleTCASInput)
         println(Any[t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory]')
     end
 
-    notifyObserver(cas, "debug", Any[Any[input.t, input.r, input.r_d, input.a, input.a_d, input.h, input.h_d], Any[sl, tau, dmod, zthr, alim], Any[r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr], Any[t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory]])
+    @notify_observer(cas.observer, "debug", Any[Any[input.t, input.r, input.r_d, input.a, input.a_d, input.h, input.h_d], Any[sl, tau, dmod, zthr, alim], Any[r_dot < 0, -(r - dmod) / r_dot <= tau, r < dmod, a_dot < 0, -a / a_dot <= tau, a <= zthr], Any[t_, ascend_cross, ascend_dist, ascend_alim, descend_cross, descend_dist, descend_alim, resolution_advisory]])
 
     return resolution_advisory
 end

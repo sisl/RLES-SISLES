@@ -8,7 +8,6 @@ import Compat.ASCIIString
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using EncounterDBN
 using PilotResponse
@@ -18,6 +17,7 @@ using Sensor
 using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
+using RLESUtils, Observers
 
 import CommonInterfaces.initialize
 import CommonInterfaces.update
@@ -25,8 +25,9 @@ import AbstractGenerativeModelInterfaces.get
 import AbstractGenerativeModelInterfaces.isterminal
 
 import CommonInterfaces.addObserver
+import CommonInterfaces.clearObservers!
 
-export ACASX_GM_params, ACASX_GM, initialize, update, isterminal, addObserver
+export ACASX_GM_params, ACASX_GM, initialize, update, isterminal, addObserver, clearObservers!
 
 using CASInterface
 
@@ -189,6 +190,7 @@ addObserver(sim::ACASX_GM, f::Function) = ACASX_Common.addObserver(sim, f)
 function addObserver(sim::ACASX_GM, tag::AbstractString, f::Function) 
     ACASX_Common.addObserver(sim, tag, f)
 end
+clearObservers!(sim::ACASX_GM) = ACASX_Common.clearObservers!(sim) 
 
 initialize(sim::ACASX_GM) = ACASX_Common.initialize(sim)
 update(sim::ACASX_GM) = ACASX_Common.update(sim)

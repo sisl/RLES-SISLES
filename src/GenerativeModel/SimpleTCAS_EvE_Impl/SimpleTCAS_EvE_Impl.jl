@@ -8,7 +8,6 @@ import Compat.ASCIIString
 using AbstractGenerativeModelImpl
 using AbstractGenerativeModelInterfaces
 using CommonInterfaces
-using ObserverImpl
 
 using Base.Test
 using EncounterDBN
@@ -19,6 +18,7 @@ using Sensor
 using CASCoordination
 using CollisionAvoidanceSystem
 using Simulator
+using RLESUtils, Observers
 
 import CommonInterfaces.initialize
 import CommonInterfaces.update
@@ -106,8 +106,8 @@ type SimpleTCAS_EvE <: AbstractGenerativeModel
   end
 end
 
-addObserver(sim::SimpleTCAS_EvE, f::Function) = _addObserver(sim, f)
-addObserver(sim::SimpleTCAS_EvE, tag::AbstractString, f::Function) = _addObserver(sim, tag, f)
+addObserver(sim::SimpleTCAS_EvE, f::Function) = add_observer(sim.observer, f)
+addObserver(sim::SimpleTCAS_EvE, tag::AbstractString, f::Function) = add_observer(sim.observer, tag, f)
 
 function initialize(sim::SimpleTCAS_EvE)
 
@@ -120,22 +120,22 @@ function initialize(sim::SimpleTCAS_EvE)
 
   for i = 1:sim.params.number_of_aircraft
     initial = EncounterDBN.getInitialState(aem, i)
-    notifyObserver(sim,"Initial",[i, sim.t_index, initial])
+    @notify_observer(sim.observer,"Initial",[i, sim.t_index, initial])
 
     state = DynamicModel.initialize(adm[i], initial)
     WorldModel.initialize(wm, i, state)
 
     Sensor.initialize(sr[i])
-    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+    @notify_observer(sim.observer,"Sensor",[i, sim.t_index, sr[i]])
 
     CollisionAvoidanceSystem.initialize(cas[i])
-    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
+    @notify_observer(sim.observer,"CAS", [i, sim.t_index, cas[i]])
 
     PilotResponse.initialize(pr[i])
-    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
+    @notify_observer(sim.observer,"Response",[i, sim.t_index, pr[i]])
   end
 
-  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
+  @notify_observer(sim.observer,"WorldModel", [sim.t_index, wm])
 
   return
 end
@@ -155,17 +155,17 @@ function update(sim::SimpleTCAS_EvE)
   for i = 1:sim.params.number_of_aircraft
     #intended command
     command = EncounterDBN.get(aem,i)
-    notifyObserver(sim,"Command",[i, sim.t_index, command])
+    @notify_observer(sim.observer,"Command",[i, sim.t_index, command])
 
     output = Sensor.update(sr[i], states)
-    notifyObserver(sim,"Sensor",[i, sim.t_index, sr[i]])
+    @notify_observer(sim.observer,"Sensor",[i, sim.t_index, sr[i]])
 
     RA = CollisionAvoidanceSystem.update(cas[i], output)
-    notifyObserver(sim,"CAS", [i, sim.t_index, cas[i]])
+    @notify_observer(sim.observer,"CAS", [i, sim.t_index, cas[i]])
 
     response = PilotResponse.update(pr[i], command, RA)
     logProb += response.logProb #this will break if response is not SimplePRCommand
-    notifyObserver(sim,"Response",[i, sim.t_index, pr[i]])
+    @notify_observer(sim.observer,"Response",[i, sim.t_index, pr[i]])
 
     state = DynamicModel.update(adm[i], response)
     WorldModel.update(wm, i, state)
@@ -173,7 +173,7 @@ function update(sim::SimpleTCAS_EvE)
   end
 
   WorldModel.updateAll(wm)
-  notifyObserver(sim,"WorldModel", [sim.t_index, wm])
+  @notify_observer(sim.observer,"WorldModel", [sim.t_index, wm])
 
   return logProb
 end
